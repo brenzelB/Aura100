@@ -37,7 +37,7 @@ Alle Dateien liegen einsatzbereit im Ordner `deploy/store/`:
 
 ### Schritt 2.3: App-Inhalte & Richtlinien (Dashboard-Aufgaben)
 Gehe im linken Menü auf **App-Inhalte** und fülle die Pflichtformulare aus:
-- **Datenschutzerklärung:** URL `https://legal.brenzel.uk`
+- **Datenschutzerklärung:** URL `https://legal.brenzel.uk/aura-quest/`
 - **App-Zugriff:** *Alle Funktionen sind ohne besondere Einschränkungen verfügbar* (oder Test-Account `testuser@auraquest.local` / `Passwort` bereitstellen).
 - **Werbung:** *Nein, meine App enthält keine Werbung*.
 - **Zielgruppe & Inhalte:** 13+ bzw. 16+ Jahre auswählen.
@@ -98,7 +98,7 @@ Da du auf Windows arbeitest, nutzt du die fertige GitHub Actions Pipeline:
 1. **App-Informationen:**
    - Untertitel: `Gewohnheiten, Duelle & Aura`
    - Kategorie: Produktivität
-   - Datenschutzrichtlinie-URL: `https://legal.brenzel.uk`
+   - Datenschutzrichtlinie-URL: `https://legal.brenzel.uk/aura-quest/`
 2. **App-Datenschutz:**
    - Folge den Vorgaben aus [`deploy/store/APP_PRIVACY_APPLE.md`](APP_PRIVACY_APPLE.md).
    - Das erforderliche `PrivacyInfo.xcprivacy` ist bereits im Projekt eingebunden!

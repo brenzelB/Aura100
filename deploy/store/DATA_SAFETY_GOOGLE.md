@@ -11,7 +11,7 @@ Leitfaden zum Ausfüllen des Formulars **"Datensicherheit" (Data Safety)** in de
 | **Erhebt oder teilt Ihre App Nutzerdaten?** | **Ja** | Die App erhebt Nutzerdaten für Authentifizierung, Spielfortschritt und Push-Benachrichtigungen. |
 | **Werden alle vom Nutzer erhobenen Daten bei der Übertragung verschlüsselt?** | **Ja** | Alle Verbindungen laufen über gesichertes HTTPS / TLS zu Supabase. |
 | **Bieten Sie Nutzern eine Möglichkeit, die Löschung ihrer Daten zu beantragen?** | **Ja** | Vollständige In-App-Account-Löschung unter *Profil → Account löschen* vorhanden. |
-| **Link zur Datenlöschung (URL)** | `https://legal.brenzel.uk` | URL der Datenschutzerklärung mit Kontakt- und Löschhinweisen. |
+| **Link zur Datenlöschung (URL)** | `https://legal.brenzel.uk/aura-quest/` | URL der Datenschutzerklärung mit Kontakt- und Löschhinweisen. |
 
 ---
 

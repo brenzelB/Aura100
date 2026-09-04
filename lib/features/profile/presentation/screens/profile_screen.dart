@@ -1047,7 +1047,7 @@ class _TrophyTile extends StatelessWidget {
 
 /// Where the legal pages live. Same host family as the API, served from
 /// the same NAS through the same tunnel.
-const _legalBaseUrl = 'https://legal.brenzel.uk/';
+const _legalBaseUrl = 'https://legal.brenzel.uk/aura-quest/';
 
 /// A row that opens a legal page in the system browser.
 ///
