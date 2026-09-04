@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "330587668877",
+    "project_id": "auraquest-fa2a1",
+    "storage_bucket": "auraquest-fa2a1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:330587668877:android:ad07c7a625fa03ef74fdc4",
+        "android_client_info": {
+          "package_name": "com.auraquest.aura_quest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmjFV0KV7qB93rY8RvxDX4hbHpVYH3Zr8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+<body style="margin:0;padding:0;background:#f2f2f0;">
+<!--
+  Bestaetigungsmail fuer die Registrierung.
+
+  BAUWEISE: Tabellen und Inline-Stile, keine Flexbox, kein Grid, keine
+  CSS-Variablen. Outlook rendert mit der Word-Engine und wirft alles
+  Moderne weg - eine huebsche Mail, die dort zerfaellt, ist schlechter
+  als eine schlichte, die ueberall haelt.
+
+  HELLES DESIGN, obwohl die App dunkel ist: Viele Mail-Programme zwingen
+  ohnehin ihren eigenen Hintergrund auf. Ein dunkler Entwurf kippt dann
+  zu dunkler Schrift auf dunklem Grund.
+
+  DER CODE STEHT VORNE, der Link dahinter. Umgekehrt war es der Grund,
+  warum eine erfolgreiche Registrierung wie ein Fehlschlag aussah: Beide
+  sind DERSELBE Token, und wer zuerst den Link anklickt, verbraucht den
+  Code. Deshalb sagt der Text das ausdruecklich.
+
+  Verfuegbare Platzhalter: .Token  .ConfirmationURL  .Email  .SiteURL
+-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+       style="background:#f2f2f0;padding:32px 12px;">
+  <tr><td align="center">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+           style="max-width:480px;background:#ffffff;border-radius:14px;
+                  border:1px solid #e2e4e6;">
+
+      <tr><td style="padding:32px 32px 8px;text-align:center;">
+        <div style="font-size:34px;line-height:1;">&#9889;</div>
+        <div style="font:700 22px/1.3 -apple-system,'Segoe UI',Roboto,sans-serif;
+                    color:#17191a;letter-spacing:-0.3px;padding-top:10px;">
+          AURA QUEST
+        </div>
+      </td></tr>
+
+      <tr><td style="padding:14px 32px 0;text-align:center;
+                     font:400 16px/1.55 -apple-system,'Segoe UI',Roboto,sans-serif;
+                     color:#5c6266;">
+        Welcome. Enter this code in the app to finish signing up:
+      </td></tr>
+
+      <tr><td align="center" style="padding:22px 32px 6px;">
+        <div style="display:inline-block;background:#fff8e1;
+                    border:2px solid #ffc700;border-radius:12px;
+                    padding:14px 26px;
+                    font:700 34px/1 -apple-system,'Segoe UI',Roboto,sans-serif;
+                    color:#17191a;letter-spacing:9px;">
+          {{ .Token }}
+        </div>
+      </td></tr>
+
+      <tr><td style="padding:16px 32px 0;text-align:center;
+                     font:400 14px/1.5 -apple-system,'Segoe UI',Roboto,sans-serif;
+                     color:#8a9096;">
+        Reading this on your phone? You can tap the link below instead.
+        <b>Use one or the other</b> &mdash; whichever you use first makes
+        the other stop working.
+      </td></tr>
+
+      <tr><td align="center" style="padding:18px 32px 0;">
+        <a href="{{ .ConfirmationURL }}"
+           style="font:600 15px/1 -apple-system,'Segoe UI',Roboto,sans-serif;
+                  color:#7c3aed;text-decoration:underline;">
+          Confirm with a link instead
+        </a>
+      </td></tr>
+
+      <tr><td style="padding:26px 32px 32px;text-align:center;
+                     border-top:1px solid #eceef0;margin-top:20px;
+                     font:400 12px/1.5 -apple-system,'Segoe UI',Roboto,sans-serif;
+                     color:#a0a6ab;">
+        Did not sign up? Then ignore this mail &mdash; without the code
+        above nothing happens.
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>

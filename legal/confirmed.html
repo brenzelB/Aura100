@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aura Quest — Email confirmed</title>
+<style>
+  :root { --bg:#0d0f10; --fg:#e8eaed; --dim:#9aa0a6; --gold:#ffc700;
+          --line:#24282b; --card:#16191b; }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#fbfbfa; --fg:#17191a; --dim:#5c6266; --gold:#8a6b00;
+            --line:#e2e4e6; --card:#fff; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;
+       justify-content:center;background:var(--bg);color:var(--fg);
+       font:16px/1.6 -apple-system,"Segoe UI",Roboto,sans-serif;padding:1.5rem}
+  .card{max-width:26rem;width:100%;text-align:center;background:var(--card);
+        border:1px solid var(--line);border-radius:16px;padding:2.5rem 1.75rem}
+  .mark{font-size:3rem;line-height:1;margin-bottom:1rem}
+  h1{font-size:1.35rem;margin:0 0 .6rem;letter-spacing:-.01em}
+  p{color:var(--dim);margin:.5rem 0}
+  .btn{display:inline-block;margin-top:1.5rem;padding:.85rem 1.6rem;
+       background:var(--gold);color:#17191a;text-decoration:none;
+       border-radius:10px;font-weight:700}
+  .hint{font-size:.85rem;margin-top:1.5rem;padding-top:1.25rem;
+        border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+  <!-- English, like the app and like the mail that leads here. The legal
+       pages stay German - those answer German law, not the player. -->
+  <div class="card">
+    <div class="mark">⚡</div>
+    <h1>Email confirmed</h1>
+    <p>Your account is live. Open Aura Quest and sign in with your email
+       and password.</p>
+
+    <!-- On a phone this jumps straight into the app. On a desktop nothing
+         happens - which is why the text below says so instead of relying
+         on the jump. That silent assumption was the original bug. -->
+    <a class="btn" href="io.supabase.auraquest://login-callback/">
+      OPEN AURA QUEST
+    </a>
+
+    <p class="hint">On a computer? The button does nothing here — that is
+       normal. Grab your phone and sign in there.</p>
+  </div>
+</body>
+</html>

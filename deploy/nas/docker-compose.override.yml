@@ -1,0 +1,97 @@
+# ═══════════════════════════════════════════════════════════════
+#  AURA QUEST — Supabase auf NAS-BRA
+#
+#  Datenbank liegt in:  /volume2/Datenbanken/AuraQuest/volumes/db/data
+#  (von Windows:        \NAS-BRA\Datenbanken\AuraQuest\volumes\db\data)
+#
+#  Zwei UGOS-Besonderheiten sind hier abgefangen:
+#
+#  1. Die ugacl-Schicht auf /volume2 laesst nur echte NAS-Benutzer zu.
+#     Der uebliche Postgres-UID 999 bekommt dort NICHTS - nicht einmal
+#     Zugriff auf sein eigenes Datenverzeichnis. Darum laeuft die
+#     Datenbank als denzel (1000:10) aus einem abgeleiteten Image, in
+#     dem der postgres-Benutzer dieselbe UID traegt (siehe pgimage/).
+#     Kong laeuft als root, weil es zusaetzlich in eigene Verzeichnisse
+#     im Image schreiben muss.
+#
+#  2. Ein Container faellt aus dem Namensschema:
+#     "realtime-dev.supabase-realtime". Das ist Absicht - Realtime
+#     leitet aus dem Namen seinen Tenant ab und kong.yml spricht ihn
+#     so an. Umbenennen bricht den Push. Zur Projektgruppe
+#     "auraquest" gehoert der Container trotzdem.
+#
+#  ACHTUNG: COMPOSE_FILE in der .env muss beide Dateien listen, sonst
+#  wird diese hier stillschweigend ignoriert.
+# ═══════════════════════════════════════════════════════════════
+name: auraquest
+
+services:
+  db:
+    image: auraquest/postgres:17
+    user: "1000:10"
+    container_name: auraquest-db
+    labels:
+      org.auraquest.rolle: "Datenbank — Quests, Konten, Aura, Verlauf"
+      org.auraquest.reihenfolge: "1"
+
+  kong:
+    user: "0:0"
+    container_name: auraquest-gateway
+    labels:
+      org.auraquest.rolle: "API-Gateway — einziger Eingang, Port 8000"
+      org.auraquest.reihenfolge: "2"
+
+  auth:
+    container_name: auraquest-auth
+    labels:
+      org.auraquest.rolle: "Anmeldung & Registrierung (GoTrue)"
+      org.auraquest.reihenfolge: "3"
+
+  rest:
+    container_name: auraquest-rest
+    labels:
+      org.auraquest.rolle: "REST-API — alle Datenbankaufrufe der App"
+      org.auraquest.reihenfolge: "4"
+
+  realtime:
+    # Name bleibt der Vorgabe treu: Realtime leitet daraus seinen
+    # Tenant ab und kong.yml spricht ihn so an. Umbenennen bricht den Push.
+    labels:
+      org.auraquest.rolle: "Live-Push — Pokes, Roasts, Duelle sofort"
+      org.auraquest.reihenfolge: "5"
+
+  studio:
+    container_name: auraquest-studio
+    labels:
+      org.auraquest.rolle: "Admin-Oberflaeche (nur im Heimnetz nutzen)"
+      org.auraquest.reihenfolge: "6"
+
+  meta:
+    container_name: auraquest-meta
+    labels:
+      org.auraquest.rolle: "Schema-Dienst fuer das Studio"
+      org.auraquest.reihenfolge: "7"
+
+  supavisor:
+    container_name: auraquest-pooler
+    labels:
+      org.auraquest.rolle: "Verbindungs-Pooler (Port 5433)"
+      org.auraquest.reihenfolge: "8"
+
+  storage:
+    container_name: auraquest-storage
+    labels:
+      org.auraquest.rolle: "Dateiablage — von dieser App nicht genutzt"
+      org.auraquest.reihenfolge: "9"
+
+  imgproxy:
+    container_name: auraquest-imgproxy
+    labels:
+      org.auraquest.rolle: "Bildskalierung — von dieser App nicht genutzt"
+      org.auraquest.reihenfolge: "10"
+
+  functions:
+    container_name: auraquest-functions
+    labels:
+      org.auraquest.rolle: "Edge Functions — von dieser App nicht genutzt"
+      org.auraquest.reihenfolge: "11"

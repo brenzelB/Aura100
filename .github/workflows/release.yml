@@ -1,0 +1,125 @@
+name: Release Builds (Android & iOS)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: 'Build Number (optional override)'
+        required: false
+        default: ''
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Run Tests & Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Analyze Code
+        run: flutter analyze
+
+      - name: Run Unit & Widget Tests
+        run: flutter test
+
+  build-android:
+    name: Build Android App Bundle (.aab)
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Configure Keystore (if secret present)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_PROPERTIES: ${{ secrets.ANDROID_KEY_PROPERTIES }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/aura-quest-release.jks
+            echo "$KEY_PROPERTIES" > android/key.properties
+          fi
+
+      - name: Build App Bundle (.aab)
+        run: |
+          BUILD_ARGS="--release"
+          if [ -n "${{ github.event.inputs.build_number }}" ]; then
+            BUILD_ARGS="$BUILD_ARGS --build-number=${{ github.event.inputs.build_number }}"
+          fi
+          flutter build appbundle $BUILD_ARGS
+
+      - name: Upload Android Bundle Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-bundle
+          path: build/app/outputs/bundle/release/*.aab
+          if-no-files-found: error
+
+  build-ios:
+    name: Build iOS Archive (.ipa)
+    needs: validate
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build iOS Archive
+        run: |
+          BUILD_ARGS="--release --no-codesign"
+          if [ -n "${{ github.event.inputs.build_number }}" ]; then
+            BUILD_ARGS="$BUILD_ARGS --build-number=${{ github.event.inputs.build_number }}"
+          fi
+          flutter build ipa $BUILD_ARGS
+
+      - name: Upload iOS Archive Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-archive
+          path: build/ios/archive/Runner.xcarchive
+          if-no-files-found: warn

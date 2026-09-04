@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aura Quest — Vorsätze mit Konsequenzen</title>
+<meta name="description" content="Habit-Tracker als Wettkampf: Aura verdienen, Freunde herausfordern — und sie dürfen dich sabotieren. Blackout, Aura Heist, Würfelduelle.">
+<meta name="theme-color" content="#FBE9E1">
+
+<link rel="alternate" hreflang="de" href="/">
+<link rel="alternate" hreflang="en" href="/en/">
+<link rel="alternate" hreflang="x-default" href="/en/">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Aura Quest — Vorsätze mit Konsequenzen">
+<meta property="og:description" content="Der erste Habit-Tracker, in dem deine Freunde dich sabotieren dürfen.">
+<meta property="og:image" content="/screens/quests.webp">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="image" href="/screens/quests.webp" fetchpriority="high">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@500;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Zum Inhalt springen</a>
+
+<header class="nav">
+  <a class="nav__brand" href="#top" aria-label="Aura Quest, Startseite">
+    <span class="bolt" aria-hidden="true">⚡</span> AURA QUEST
+  </a>
+  <nav class="nav__links" aria-label="Abschnitte">
+    <a href="#how">So läuft das</a>
+    <a href="#types">Quest-Typen</a>
+    <a href="#sabotage">Sabotage</a>
+    <a href="#modes">Modi</a>
+  </nav>
+  <a class="lang js-lang" href="/en/" hreflang="en" lang="en">EN</a>
+  <a class="btn btn--sm js-store" data-store="play" href="#get">Holen</a>
+</header>
+
+<main id="main">
+
+<!-- ══ HERO ══════════════════════════════════════════════════ -->
+<section class="hero" id="top">
+  <div class="hero__grid">
+    <div class="hero__copy">
+      <p class="eyebrow reveal">Habit-Tracker · Mehrspieler</p>
+      <h1 class="reveal">
+        Deine Freunde wollen,<br>
+        dass du <span class="mark">scheiterst</span>.
+      </h1>
+      <p class="lede reveal">
+        Aura Quest ist ein Gewohnheits-Tracker, in dem Mitspieler dich
+        aktiv sabotieren dürfen. Sie sperren dich aus, klauen deinen
+        Fortschritt und würfeln um deine Punkte.
+        Durchziehen wird dadurch überraschend interessant.
+      </p>
+
+      <div class="hero__cta reveal">
+        <a class="btn btn--primary js-store" data-store="play" href="#get">
+          <span class="btn__sub">Jetzt laden für</span>
+          <span class="btn__main">Android</span>
+        </a>
+        <a class="btn js-store" data-store="ios" href="#get">
+          <span class="btn__sub">Bald für</span>
+          <span class="btn__main">iPhone</span>
+        </a>
+      </div>
+
+      <dl class="hero__stats reveal">
+        <div><dt>Quest-Typen</dt><dd>3</dd></div>
+        <div><dt>Spielmodi</dt><dd>4</dd></div>
+        <div><dt>Sprüche</dt><dd>297</dd></div>
+      </dl>
+    </div>
+
+    <div class="hero__shot">
+      <div class="phone phone--tilt">
+        <img src="/screens/quests.webp" width="560" height="1195"
+             alt="Die Quest-Übersicht der App: drei laufende Quests mit Aura-Stand, Team-Zugehörigkeit und Fortschrittsbalken."
+             fetchpriority="high" decoding="async">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ PROBLEM ═══════════════════════════════════════════════ -->
+<section class="decay" aria-labelledby="decay-h">
+  <h2 id="decay-h" class="section-h reveal">Du kennst den Verlauf</h2>
+  <ol class="decay__row">
+    <li class="decay__card reveal" data-day="1">
+      <span class="decay__day">Tag 1</span>
+      <p>Neue Schuhe. Neuer Plan. Diesmal wirklich.</p>
+    </li>
+    <li class="decay__card reveal" data-day="6">
+      <span class="decay__day">Tag 6</span>
+      <p>Einmal aussetzen ist ja kein Drama.</p>
+    </li>
+    <li class="decay__card reveal" data-day="17">
+      <span class="decay__day">Tag 17</span>
+      <p>Welcher Plan?</p>
+    </li>
+  </ol>
+  <p class="decay__punch reveal">
+    Niemand hat es gemerkt. <strong>Das ist das Problem.</strong>
+  </p>
+</section>
+
+<!-- ══ SO LÄUFT DAS ══════════════════════════════════════════ -->
+<section class="how" id="how" aria-labelledby="how-h">
+  <div class="how__intro">
+    <h2 id="how-h" class="section-h reveal">So läuft das</h2>
+    <p class="section-sub reveal">
+      Vier Schritte. Danach zählt der Server, nicht dein Gedächtnis.
+    </p>
+  </div>
+
+  <div class="how__steps">
+    <article class="step reveal">
+      <span class="step__n" aria-hidden="true">01</span>
+      <h3>Quest anlegen</h3>
+      <p>
+        Du setzt den Einsatz selbst: Aura pro Erfolg, Strafe pro
+        Ausfall, und wie viele Fehltritte du dir leistest, bevor es
+        vorbei ist. Danach lädst du ein, wen es treffen soll.
+      </p>
+      <ul class="chips">
+        <li>Täglich, wöchentlich, monatlich</li>
+        <li>Ruhetage möglich</li>
+        <li>Drei Quest-Typen</li>
+      </ul>
+    </article>
+
+    <article class="step reveal">
+      <span class="step__n" aria-hidden="true">02</span>
+      <h3>Eintragen</h3>
+      <p>
+        Ein Tippen pro Tag. Bei Fortschritts-Quests sammelst du in
+        Teilbeträgen, bis das Ziel voll ist. Bei Vermeiden-Quests
+        meldest du nur den Rückfall — sonst gewinnst du durch Nichtstun.
+      </p>
+    </article>
+
+    <article class="step reveal">
+      <span class="step__n" aria-hidden="true">03</span>
+      <h3>Der Server rechnet ab</h3>
+      <p>
+        Stündlich. Er zählt Check-ins, verrechnet Schutzgegenstände,
+        bucht Aura, setzt Strikes und beendet Quests. Auch wenn die App
+        eine Woche zu war.
+      </p>
+    </article>
+
+    <article class="step reveal">
+      <span class="step__n" aria-hidden="true">04</span>
+      <h3>Konsequenzen</h3>
+      <p>
+        Strikes aufgebraucht heißt raus. Nicht gelöscht — du bleibst als
+        Zuschauer drin und siehst zu, wie die anderen weitermachen.
+      </p>
+    </article>
+  </div>
+
+  <figure class="how__shots">
+    <div class="phone phone--sm"><img src="/screens/home.webp" width="560" height="1195" loading="lazy" decoding="async" alt="Startseite mit Wochenrückblick, offener Duell-Herausforderung und den letzten Ereignissen."></div>
+    <div class="phone phone--sm"><img src="/screens/detail.webp" width="560" height="1195" loading="lazy" decoding="async" alt="Quest-Detail einer Fortschritts-Quest: 100 von 100 Reps, Streak-Kacheln und Verlauf."></div>
+    <div class="phone phone--sm"><img src="/screens/celebration.webp" width="560" height="1195" loading="lazy" decoding="async" alt="Abschluss-Meldung: Quest complete, 60 Aura gutgeschrieben."></div>
+  </figure>
+</section>
+
+<!-- ══ QUEST-TYPEN ═══════════════════════════════════════════ -->
+<section class="types" id="types" aria-labelledby="types-h">
+  <h2 id="types-h" class="section-h reveal">Drei Arten, eine Quest zu gewinnen</h2>
+  <p class="section-sub reveal">
+    Nicht jeder Vorsatz lässt sich abhaken. Deshalb gibt es drei.
+  </p>
+
+  <div class="types__list">
+
+    <article class="type reveal" style="--accent: var(--green)">
+      <div class="type__text">
+        <p class="type__kind">Abhaken</p>
+        <h3>Einmal antippen, fertig</h3>
+        <p>
+          Für alles, was man entweder tut oder nicht tut. Du legst fest,
+          wie oft pro Woche oder Monat — und an welchen Wochentagen die
+          Quest überhaupt läuft. Am Ruhetag fordert sie nichts und
+          bestraft nichts.
+        </p>
+        <p class="type__ex">„10 Minuten Meditation" · „Gym, 5× die Woche"</p>
+      </div>
+      <img class="type__shot" src="/screens/type-check.webp" width="512" height="258"
+           loading="lazy" decoding="async"
+           alt="Quest-Karte „Gym“: Team Rot, 5× pro Woche, Montag bis Freitag, mit Check-in-Knopf.">
+    </article>
+
+    <article class="type reveal" style="--accent: var(--violet)">
+      <div class="type__text">
+        <p class="type__kind">Sammeln</p>
+        <h3>Ein Ziel, in Teilbeträgen</h3>
+        <p>
+          Menge und Einheit bestimmst du selbst. Du trägst mehrmals am
+          Tag ein, bis das Ziel voll ist — und darüber hinaus, wenn du
+          magst. Vertippt? Einträge lassen sich nachträglich ändern und
+          löschen.
+        </p>
+        <p class="type__ex">„100 Liegestütze" · „2,5 Liter Wasser" · „7500 Schritte"</p>
+      </div>
+      <img class="type__shot" src="/screens/type-progress.webp" width="512" height="314"
+           loading="lazy" decoding="async"
+           alt="Quest-Karte „100 push-ups“ mit gefülltem Fortschrittsbalken bei 100 von 100 Reps.">
+    </article>
+
+    <!-- Der Typ, den sonst kaum ein Tracker kann - deshalb bekommt er
+         mehr Platz und die Auszeichnung. -->
+    <article class="type type--hero reveal" style="--accent: var(--gold)">
+      <div class="type__text">
+        <p class="type__kind">Lassen</p>
+        <h3>Gewinnen, indem du nichts tust</h3>
+        <p>
+          Die meisten Tracker kennen nur „hab ich gemacht". Hier zählt
+          auch, was du <em>gelassen</em> hast — und das ist die Hälfte
+          aller Vorsätze, die Menschen überhaupt fassen.
+        </p>
+        <p>
+          Du meldest nur den Rückfall. Ein Tagesbudget legt fest, wie
+          viele du dir leistest: bei null zählt jeder sofort, bei zwei
+          hast du Luft. Läuft die Periode ab, ohne dass du das Budget
+          gerissen hast, bucht der Server den Erfolg von allein.
+        </p>
+        <p class="type__ex">„Nicht rauchen" (Budget 0) · „Höchstens 2 Kaffee" (Budget 2)</p>
+      </div>
+      <img class="type__shot" src="/screens/type-avoid.webp" width="512" height="258"
+           loading="lazy" decoding="async"
+           alt="Quest-Karte „No energy drinks“ mit dem Knopf „I slipped“ und dem Stand „Clean so far“.">
+    </article>
+
+  </div>
+</section>
+
+<!-- ══ SABOTAGE (Signature) ══════════════════════════════════ -->
+<section class="sabo" id="sabotage" aria-labelledby="sabo-h">
+  <div class="sabo__inner">
+    <p class="eyebrow eyebrow--light reveal">Der Teil, der Ärger macht</p>
+    <h2 id="sabo-h" class="section-h section-h--light reveal">
+      Aura ist kein Punktestand.<br>Es ist Munition.
+    </h2>
+    <p class="section-sub section-sub--light reveal">
+      Was du dir erarbeitest, kannst du gegen deine Mitspieler einsetzen.
+      Probier es aus — die Knöpfe sind echt, die Preise auch.
+    </p>
+
+    <div class="sabo__demo">
+      <div class="sabo__meter" aria-live="polite">
+        <span class="sabo__meter-label">Deine Aura</span>
+        <output class="sabo__meter-value" id="auraValue">1450</output>
+      </div>
+
+      <ul class="sabo__items">
+        <li>
+          <button class="attack" data-attack="roast" data-cost="120">
+            <span class="attack__name">Targeted Roast</span>
+            <span class="attack__desc">Legt einem Mitspieler einen Spruch über den Bildschirm. Drei Sekunden aussitzen.</span>
+            <span class="attack__cost">⚡ 120</span>
+          </button>
+        </li>
+        <li>
+          <button class="attack" data-attack="heist" data-cost="150">
+            <span class="attack__name">Aura Heist</span>
+            <span class="attack__desc">Klaut die Aura seines nächsten Check-ins. 150 = 25 %, 500 = 75 % Chance.</span>
+            <span class="attack__cost">⚡ 150</span>
+          </button>
+        </li>
+        <li>
+          <button class="attack" data-attack="blackout" data-cost="250">
+            <span class="attack__name">Blackout</span>
+            <span class="attack__desc">Zwei Stunden Sperre — morgens, mittags oder abends. Er kann nichts eintragen.</span>
+            <span class="attack__cost">⚡ 250</span>
+          </button>
+        </li>
+      </ul>
+
+      <div class="phone phone--sabo">
+        <img src="/screens/shop.webp" width="560" height="1195" loading="lazy" decoding="async"
+             alt="Der Quest-Shop mit den drei Angriffsgegenständen Targeted Roast, Aura Heist und Blackout samt Preisen.">
+      </div>
+    </div>
+
+    <p class="sabo__foot reveal">
+      Dazu Würfelduelle: Aura setzen, zwei Würfel, höhere Summe nimmt den
+      Topf. Höchstens ein Viertel deines Bestands — damit ein Wurf nicht
+      die ganze Quest entscheidet.
+    </p>
+  </div>
+
+  <!-- Wird von main.js fuer die Demo-Angriffe benutzt -->
+  <div class="overlay" id="overlay" hidden aria-live="assertive"></div>
+</section>
+
+<!-- ══ MODI ══════════════════════════════════════════════════ -->
+<section class="modes" id="modes" aria-labelledby="modes-h">
+  <h2 id="modes-h" class="section-h reveal">Vier Modi, vier Dynamiken</h2>
+  <p class="section-sub reveal">
+    Dieselbe Gewohnheit fühlt sich in jedem Modus anders an.
+  </p>
+  <div class="modes__grid">
+    <article class="mode reveal" style="--accent: var(--violet)">
+      <h3>Free for all</h3>
+      <p>Keine Teams. Jeder für sich, alle auf einer Rangliste. Der Einstieg.</p>
+    </article>
+    <article class="mode reveal" style="--accent: var(--green)">
+      <h3>Co-op</h3>
+      <p>Einer für alle. Verpasst <em>einer</em> eine Periode, zahlt die ganze Gruppe Strafe und Strike.</p>
+    </article>
+    <article class="mode reveal" style="--accent: var(--coral)">
+      <h3>Team Battle</h3>
+      <p>Rot gegen Blau. Am Ende zahlt das schwächere Team 25 % seiner Aura an die Gewinner.</p>
+    </article>
+    <article class="mode reveal" style="--accent: var(--gold)">
+      <h3>Last Standing</h3>
+      <p>Strikes aufgebraucht heißt raus. Wer am längsten durchhält, kassiert für jeden überlebten Rivalen.</p>
+    </article>
+  </div>
+
+  <div class="modes__proof">
+    <div class="phone phone--sm reveal"><img src="/screens/party.webp" width="560" height="1195" loading="lazy" decoding="async" alt="Team-Ansicht einer Quest: Team Rot gegen Team Blau mit Aura-Ständen der Mitglieder."></div>
+    <div class="modes__proof-copy reveal">
+      <h3>Und das Wichtigste:<br>Schummeln geht nicht</h3>
+      <p>
+        Jede Regel liegt in der Datenbank, nicht in der App. Check-ins,
+        Würfel, Diebstahlschancen und Abrechnungen entscheidet der
+        Server. Ein manipuliertes Gerät kann nichts erzwingen, was die
+        Datenbank nicht erlaubt.
+      </p>
+      <p class="modes__proof-note">
+        Läuft auf eigener Hardware in Deutschland. Keine Werbung, kein
+        Tracking, keine Analyse-Bibliotheken.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CTA ═══════════════════════════════════════════════════ -->
+<section class="get" id="get" aria-labelledby="get-h">
+  <h2 id="get-h" class="reveal">Deine Ausreden haben jetzt Konkurrenz.</h2>
+  <p class="reveal">
+    Quest anlegen, Freunde einladen, durchziehen. Oder eben nicht —
+    dann erfahren es die anderen.
+  </p>
+  <div class="get__cta reveal">
+    <a class="btn btn--primary btn--lg js-store" data-store="play" href="#get">
+      <span class="btn__sub">Jetzt laden für</span>
+      <span class="btn__main">Android</span>
+    </a>
+    <a class="btn btn--lg js-store" data-store="ios" href="#get">
+      <span class="btn__sub">Bald für</span>
+      <span class="btn__main">iPhone</span>
+    </a>
+  </div>
+  <p class="get__note reveal">
+    Noch nicht in den Stores — die Links gehen live, sobald die App
+    freigegeben ist.
+  </p>
+</section>
+
+</main>
+
+<footer class="foot">
+  <p><span class="bolt" aria-hidden="true">⚡</span> AURA QUEST</p>
+  <nav aria-label="Rechtliches">
+    <a href="/en/" hreflang="en" lang="en" class="js-lang">English</a>
+    <a href="https://legal.brenzel.uk/#datenschutz">Datenschutz</a>
+    <a href="https://legal.brenzel.uk/#impressum">Impressum</a>
+  </nav>
+</footer>
+
+<script src="/main.js" defer></script>
+</body>
+</html>

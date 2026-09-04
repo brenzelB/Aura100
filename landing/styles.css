@@ -1,0 +1,496 @@
+/* ═══════════════════════════════════════════════════════════
+   AURA QUEST — Landingpage
+
+   Die Gestaltung erbt die Designsprache der App (Kinetic
+   Neo-Brutalist): Creme-Grund, weisse Karten, harte schwarze
+   Rahmen, VERSETZTE VOLLE SCHATTEN ohne Weichzeichnung.
+   Deshalb gibt es hier bewusst keine Verlaeufe, kein Glas, kein
+   Leuchten - das waere eine andere Marke.
+
+   Farben und Schrift stammen aus lib/core/theme/app_colors.dart
+   bzw. pubspec.yaml, damit sich Seite und App wie dasselbe
+   Produkt anfuehlen.
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Farbe ─────────────────────────────────────────────── */
+  --paper:  #FBE9E1;   /* Grund, aus dem hellen App-Theme */
+  --card:   #FFFFFF;
+  --ink:    #12100F;
+  --ink-60: #5B5551;
+  --gold:   #FFC700;   /* Aura */
+  --violet: #7C3AED;   /* Aura-Werte, Shop */
+  --green:  #00A63E;   /* Erfolg */
+  --coral:  #FF4D3D;   /* Verlust, Strike — nur fuer Flaechen */
+  /* Dasselbe Rot als TEXT auf hellem Grund: #FF4D3D erreicht dort
+     nur 3.29:1 und faellt damit unter die Lesbarkeitsgrenze. */
+  --coral-text: #C42D1C;
+  --night:  #0D0F10;   /* Sabotage-Abschnitt */
+
+  /* ── Struktur ──────────────────────────────────────────── */
+  --line: 3px;
+  --r: 16px;
+  --shadow: 6px 6px 0 var(--ink);
+  --shadow-sm: 4px 4px 0 var(--ink);
+  --shadow-lg: 10px 10px 0 var(--ink);
+
+  /* ── Raster ────────────────────────────────────────────── */
+  --wrap: 1180px;
+  --gut: clamp(1.25rem, 4vw, 3rem);
+
+  /* ── Bewegung ──────────────────────────────────────────── */
+  /* Kraeftige Kurve statt des schwachen CSS-Standards. */
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 500 17px/1.6 'Space Grotesk', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+h1, h2, h3 {
+  font-family: 'Archivo Black', system-ui, sans-serif;
+  font-weight: 400;          /* Archivo Black hat nur einen Schnitt */
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+p { margin: 0; text-wrap: pretty; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+img { display: block; max-width: 100%; height: auto; }
+
+/* Tastaturbedienung muss sichtbar bleiben - der Fokusring wird
+   nie entfernt, nur an die Marke angepasst. */
+:focus-visible {
+  outline: var(--line) solid var(--violet);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.skip {
+  position: absolute; left: -9999px;
+  background: var(--ink); color: var(--paper);
+  padding: .75rem 1.25rem; z-index: 100; border-radius: 0 0 var(--r) 0;
+}
+.skip:focus { left: 0; top: 0; }
+
+/* ═══ Bausteine ═══════════════════════════════════════════ */
+
+.eyebrow {
+  font-family: 'Space Mono', monospace;
+  font-size: .78rem; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink-60); margin: 0 0 1rem;
+}
+.eyebrow--light { color: #8E9BA6; }
+
+.section-h {
+  font-size: clamp(2rem, 5.5vw, 3.6rem);
+  margin-bottom: .75rem;
+}
+.section-h--light { color: var(--paper); }
+
+.section-sub {
+  font-size: clamp(1rem, 1.6vw, 1.2rem);
+  color: var(--ink-60); max-width: 46ch;
+}
+.section-sub--light { color: #A8B3BC; }
+
+/* Die Markierung wird als Hintergrundbild gezeichnet, nicht als
+   Flaechenfarbe. Grund: Der Hintergrund eines Inline-Elements ist
+   immer so hoch wie die Schriftflaeche (~1.15em) - bei der engen
+   Zeilenhoehe der Ueberschrift (0.98) ragt er damit zwangslaeufig in
+   die Zeile darueber. Als Bild laesst sich die Hoehe festlegen. */
+.mark {
+  background-image: linear-gradient(var(--gold), var(--gold));
+  background-repeat: no-repeat;
+  /* Aus der Schriftmetrik gemessen, nicht geschaetzt: Im Inline-Kasten
+     (1.34em hoch) liegt die Grundlinie bei 1.03em, die Versalien
+     beginnen bei 0.30em. Die Zeile darueber endet - bei Zeilenhoehe
+     0.98 - bereits bei 0.05em. Der Streifen laeuft deshalb von 0.22em
+     bis 1.14em: oben 0.17em Luft zur Zeile darueber, unten 0.11em
+     Ueberstand unter der Grundlinie, damit er nicht klebt. */
+  background-size: 100% 0.92em;
+  background-position: 0 0.22em;
+  padding: 0 .12em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* ── Knoepfe ──────────────────────────────────────────── */
+.btn {
+  display: inline-flex; flex-direction: column; align-items: flex-start;
+  gap: 1px;
+  background: var(--card); color: var(--ink);
+  border: var(--line) solid var(--ink); border-radius: var(--r);
+  padding: .7rem 1.4rem; text-decoration: none;
+  box-shadow: var(--shadow-sm);
+  /* Nur transform und box-shadow - beide laufen auf der GPU. */
+  transition: transform 160ms var(--ease), box-shadow 160ms var(--ease);
+}
+.btn__sub  { font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-60); }
+.btn__main { font-family: 'Archivo Black', sans-serif; font-size: 1.05rem; }
+
+.btn:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow); }
+/* Druckgefuehl: der Knopf sinkt auf seinen Schatten. */
+.btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+
+.btn--primary { background: var(--gold); }
+.btn--lg { padding: .95rem 2rem; }
+.btn--sm { flex-direction: row; align-items: center; padding: .5rem 1rem;
+           font-family: 'Archivo Black', sans-serif; font-size: .85rem; }
+
+/* ── Geraeterahmen ────────────────────────────────────── */
+.phone {
+  border: var(--line) solid var(--ink);
+  border-radius: 30px;
+  background: var(--ink);
+  padding: 7px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  max-width: 300px;
+}
+.phone img { border-radius: 22px; }
+.phone--tilt { transform: rotate(-2.5deg); }
+.phone--sm { max-width: 230px; box-shadow: var(--shadow); }
+
+/* ═══ Navigation ══════════════════════════════════════════ */
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; gap: 1.5rem;
+  padding: .85rem var(--gut);
+  background: var(--paper);
+  border-bottom: var(--line) solid var(--ink);
+}
+/* Beruehrungsziele: mindestens 44 px hoch. Die Schrift bleibt
+   klein, die anklickbare Flaeche waechst ueber Innenabstand -
+   sonst trifft man die Links auf dem Telefon nicht. */
+.nav__brand {
+  display: inline-flex; align-items: center; min-height: 44px;
+  font-family: 'Archivo Black', sans-serif; font-size: 1rem;
+  letter-spacing: -.01em; color: var(--ink); text-decoration: none;
+  margin-right: auto;
+}
+.bolt { color: var(--gold); -webkit-text-stroke: 1px var(--ink); }
+.nav__links { display: flex; gap: .5rem; }
+.nav__links a {
+  display: inline-flex; align-items: center; min-height: 44px;
+  padding: 0 .6rem;
+  color: var(--ink); text-decoration: none; font-size: .95rem;
+  box-shadow: inset 0 -2px 0 transparent;
+  transition: box-shadow 160ms var(--ease);
+}
+.nav__links a:hover { box-shadow: inset 0 -2px 0 var(--gold); }
+
+/* Sprachumschalter: ein echter Verweis auf die andere Seite, kein
+   Umschalten per Skript. Damit funktioniert er ohne JavaScript, jede
+   Sprache hat eine eigene Adresse und laesst sich verlinken. */
+.lang {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; min-height: 44px;
+  font-family: 'Space Mono', monospace; font-size: .8rem;
+  letter-spacing: .08em;
+  color: var(--ink); text-decoration: none;
+  border: 2px solid var(--ink); border-radius: 999px;
+  transition: background-color 160ms var(--ease);
+}
+.lang:hover { background: var(--gold); }
+
+/* ═══ Hero ════════════════════════════════════════════════ */
+.hero { padding: clamp(3rem, 8vw, 6rem) var(--gut) clamp(3rem, 7vw, 5rem); }
+.hero__grid {
+  max-width: var(--wrap); margin: 0 auto;
+  display: grid; gap: clamp(2rem, 5vw, 4rem);
+  grid-template-columns: 1fr;
+  align-items: center;
+}
+.hero h1 {
+  font-size: clamp(2.6rem, 7.5vw, 5.2rem);
+  margin-bottom: 1.5rem;
+}
+.lede { font-size: clamp(1.05rem, 1.8vw, 1.25rem); color: var(--ink-60); max-width: 48ch; }
+
+.hero__cta { display: flex; flex-wrap: wrap; gap: .9rem; margin: 2rem 0; }
+
+.hero__stats { display: flex; gap: 2.5rem; margin: 0; padding-top: 1.5rem;
+               border-top: var(--line) solid var(--ink); }
+.hero__stats dt { font-family: 'Space Mono', monospace; font-size: .72rem;
+                  letter-spacing: .12em; text-transform: uppercase; color: var(--ink-60); }
+.hero__stats dd { font-family: 'Archivo Black', sans-serif; font-size: 1.9rem; margin: 0; }
+
+.hero__shot { justify-self: center; }
+
+/* ═══ Verfall ═════════════════════════════════════════════ */
+.decay { padding: clamp(3rem, 7vw, 5rem) var(--gut); max-width: var(--wrap); margin: 0 auto; }
+.decay__row { display: grid; gap: 1.25rem; grid-template-columns: 1fr; margin: 2rem 0; }
+.decay__card {
+  background: var(--card); border: var(--line) solid var(--ink);
+  border-radius: var(--r); padding: 1.5rem; box-shadow: var(--shadow-sm);
+}
+/* Die Karten verblassen mit dem Tag - der Zerfall ist die
+   Aussage, nicht Dekoration. */
+.decay__card[data-day="6"]  { opacity: .72; }
+.decay__card[data-day="17"] { opacity: .45; }
+.decay__day {
+  font-family: 'Space Mono', monospace; font-size: .8rem;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--coral-text);
+  display: block; margin-bottom: .5rem;
+}
+.decay__card p { font-family: 'Archivo Black', sans-serif; font-size: 1.3rem; line-height: 1.15; }
+.decay__punch { font-size: clamp(1.1rem, 2.2vw, 1.5rem); }
+
+/* ═══ So laeuft das ═══════════════════════════════════════ */
+.how { padding: clamp(3rem, 7vw, 5rem) var(--gut); max-width: var(--wrap); margin: 0 auto; }
+.how__intro { margin-bottom: 3rem; }
+.how__steps { display: grid; gap: 1.25rem; grid-template-columns: 1fr; }
+.step {
+  background: var(--card); border: var(--line) solid var(--ink);
+  border-radius: var(--r); padding: 1.75rem; box-shadow: var(--shadow-sm);
+}
+/* Die Nummerierung steht hier zu Recht: Es IST eine Reihenfolge. */
+.step__n {
+  font-family: 'Space Mono', monospace; font-size: .85rem;
+  color: var(--violet); letter-spacing: .1em;
+}
+.step h3 { font-size: 1.35rem; margin: .4rem 0 .6rem; }
+.step p { color: var(--ink-60); }
+.chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+.chips li {
+  font-family: 'Space Mono', monospace; font-size: .72rem;
+  border: 2px solid var(--ink); border-radius: 999px; padding: .25rem .7rem;
+}
+.how__shots {
+  display: flex; flex-wrap: wrap; gap: 1.5rem; justify-content: center;
+  margin: 3rem 0 0;
+}
+
+/* ═══ Quest-Typen ═════════════════════════════════════════ */
+.types { padding: clamp(3rem, 7vw, 5rem) var(--gut); max-width: var(--wrap); margin: 0 auto; }
+.types__list { display: grid; gap: 1.5rem; margin-top: 2.5rem; }
+
+.type {
+  display: grid; gap: 1.5rem;
+  background: var(--card); border: var(--line) solid var(--ink);
+  border-radius: var(--r); padding: clamp(1.4rem, 3vw, 2.2rem);
+  box-shadow: var(--shadow-sm);
+  border-left: 10px solid var(--accent);
+}
+/* Avoid bekommt Gewicht statt einer Fahne: mehr Schatten, dickerer
+   Rand. Die Aussage traegt der Text - ein Aufkleber "einzigartig!"
+   waere Behauptung statt Beleg. */
+.type--hero { box-shadow: var(--shadow); border-left-width: 16px; }
+
+.type__kind {
+  font-family: 'Space Mono', monospace; font-size: .75rem;
+  letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink-60); margin-bottom: .4rem;
+}
+.type h3 { font-size: clamp(1.3rem, 2.6vw, 1.8rem); margin-bottom: .7rem; }
+.type__text p + p { margin-top: .8rem; }
+.type__text > p:not(.type__kind):not(.type__ex) { color: var(--ink-60); }
+
+/* Die Beispiele sind das, was haengen bleibt - deshalb Monospace
+   und Rahmen, damit sie nicht im Fliesstext untergehen. */
+.type__ex {
+  font-family: 'Space Mono', monospace; font-size: .82rem;
+  margin-top: 1rem; padding-top: .9rem;
+  border-top: 2px solid var(--ink);
+}
+
+.type__shot {
+  border: var(--line) solid var(--ink); border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  width: 100%; max-width: 420px; justify-self: center;
+}
+
+/* ═══ Sabotage — das Herzstueck ═══════════════════════════ */
+.sabo {
+  position: relative;
+  background: var(--night); color: var(--paper);
+  border-block: var(--line) solid var(--ink);
+  padding: clamp(3.5rem, 8vw, 6rem) var(--gut);
+  overflow: hidden;
+}
+.sabo__inner { max-width: var(--wrap); margin: 0 auto; }
+.sabo__demo {
+  display: grid; gap: 2rem; grid-template-columns: 1fr;
+  margin: 2.5rem 0;
+}
+.sabo__meter {
+  display: flex; align-items: baseline; gap: .8rem;
+  border: var(--line) solid var(--gold); border-radius: var(--r);
+  padding: .9rem 1.3rem; background: rgba(255,199,0,.08);
+  width: max-content;
+}
+.sabo__meter-label {
+  font-family: 'Space Mono', monospace; font-size: .75rem;
+  letter-spacing: .12em; text-transform: uppercase; color: #A8B3BC;
+}
+.sabo__meter-value {
+  font-family: 'Archivo Black', sans-serif; font-size: 2rem; color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.sabo__items { display: grid; gap: 1rem; }
+.attack {
+  display: grid; gap: .35rem; text-align: left; width: 100%;
+  background: #16191B; color: var(--paper);
+  border: var(--line) solid #2C3236; border-radius: var(--r);
+  padding: 1.25rem 1.4rem; cursor: pointer; font: inherit;
+  transition: transform 160ms var(--ease), border-color 160ms var(--ease);
+}
+.attack:hover { transform: translate(-2px, -2px); border-color: var(--gold); }
+.attack:active { transform: translate(1px, 1px); }
+.attack[disabled] { opacity: .4; cursor: not-allowed; transform: none; }
+.attack__name { font-family: 'Archivo Black', sans-serif; font-size: 1.15rem; }
+.attack__desc { color: #A8B3BC; font-size: .95rem; }
+.attack__cost {
+  font-family: 'Space Mono', monospace; color: var(--gold);
+  font-size: .95rem; margin-top: .3rem;
+}
+
+.sabo .phone--sabo { max-width: 260px; justify-self: center; box-shadow: 10px 10px 0 #000; }
+.sabo__foot { color: #A8B3BC; max-width: 52ch; }
+
+/* Die Demo-Angriffe legen sich ueber den Abschnitt - genau das,
+   was sie in der App mit dem Bildschirm des Opfers tun. */
+.overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: grid; place-content: center; text-align: center;
+  padding: var(--gut);
+  background: rgba(6,7,8,.96);
+  opacity: 0;
+  transition: opacity 200ms var(--ease);
+}
+.overlay[hidden] { display: none; }
+.overlay.is-on { opacity: 1; }
+.overlay__title {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: clamp(1.8rem, 5vw, 3rem); color: var(--paper);
+  margin-bottom: .6rem;
+}
+.overlay__sub { color: #A8B3BC; font-size: 1.05rem; max-width: 40ch; margin-inline: auto; }
+.overlay__timer {
+  font-family: 'Space Mono', monospace; font-size: 2.4rem;
+  color: var(--coral); margin-top: 1rem; font-variant-numeric: tabular-nums;
+}
+
+/* ═══ Modi ════════════════════════════════════════════════ */
+.modes { padding: clamp(3rem, 7vw, 5rem) var(--gut); max-width: var(--wrap); margin: 0 auto; }
+.modes__grid { display: grid; gap: 1.25rem; grid-template-columns: 1fr; margin: 2.5rem 0 3.5rem; }
+.mode {
+  background: var(--card); border: var(--line) solid var(--ink);
+  border-radius: var(--r); padding: 1.6rem;
+  box-shadow: var(--shadow-sm);
+  border-left: 10px solid var(--accent);
+}
+.mode h3 { font-size: 1.25rem; margin-bottom: .5rem; }
+.mode p { color: var(--ink-60); font-size: .98rem; }
+
+.modes__proof {
+  display: grid; gap: 2.5rem; grid-template-columns: 1fr;
+  align-items: center;
+  background: var(--card); border: var(--line) solid var(--ink);
+  border-radius: var(--r); padding: clamp(1.5rem, 4vw, 3rem);
+  box-shadow: var(--shadow);
+}
+.modes__proof-copy h3 { font-size: clamp(1.4rem, 3vw, 2rem); margin-bottom: 1rem; }
+.modes__proof-copy p { color: var(--ink-60); margin-bottom: 1rem; }
+.modes__proof-note {
+  font-family: 'Space Mono', monospace; font-size: .82rem;
+  border-top: 2px solid var(--ink); padding-top: 1rem;
+}
+.modes__proof .phone { justify-self: center; }
+
+/* ═══ Abschluss ═══════════════════════════════════════════ */
+.get {
+  text-align: center; padding: clamp(3.5rem, 9vw, 7rem) var(--gut);
+  background: var(--gold); border-top: var(--line) solid var(--ink);
+}
+.get h2 { font-size: clamp(2rem, 6vw, 4rem); margin-bottom: 1rem; }
+.get > p { font-size: 1.15rem; max-width: 46ch; margin-inline: auto; }
+.get__cta { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin: 2.5rem 0 1.5rem; }
+.get .btn--primary { background: var(--ink); color: var(--paper); }
+.get .btn--primary .btn__sub { color: #A8B3BC; }
+.get__note { font-family: 'Space Mono', monospace; font-size: .8rem; }
+
+/* ═══ Fuss ════════════════════════════════════════════════ */
+.foot {
+  display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem var(--gut);
+  border-top: var(--line) solid var(--ink);
+  font-family: 'Archivo Black', sans-serif; font-size: .9rem;
+}
+.foot nav { display: flex; gap: .5rem; font-family: 'Space Grotesk', sans-serif; font-weight: 500; }
+.foot a {
+  display: inline-flex; align-items: center; min-height: 44px;
+  padding: 0 .6rem; color: var(--ink);
+}
+
+/* ═══ Scroll-Einblendung ══════════════════════════════════ */
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 500ms var(--ease), transform 500ms var(--ease);
+}
+.reveal.is-in { opacity: 1; transform: none; }
+
+/* ═══ Telefon ═════════════════════════════════════════════
+   Die Abschnittslinks fliegen raus, statt umzubrechen: Auf einer
+   Seite, die ohnehin an einem Stueck gescrollt wird, sind sie
+   Beiwerk - der Ladenknopf ist es nicht. Vorher schob er die
+   Zeile ueber den Rand und erzeugte waagerechtes Scrollen. */
+@media (max-width: 719px) {
+  .nav__links { display: none; }
+  .hero__stats { gap: 1.5rem; }
+  .hero__stats dd { font-size: 1.5rem; }
+  /* Die Knoepfe fuellen die Breite - Daumen treffen Kanten schlecht. */
+  .hero__cta .btn, .get__cta .btn { flex: 1 1 100%; align-items: center; }
+}
+
+/* ═══ Groessere Bildschirme ═══════════════════════════════ */
+@media (min-width: 720px) {
+  /* Bild neben Text. Der Ausschnitt steht rechts, weil die Erklaerung
+     zuerst gelesen wird und das Beispiel sie bestaetigt. */
+  .type { grid-template-columns: 1fr minmax(280px, 400px); align-items: center; }
+  .type__shot { justify-self: end; }
+  .decay__row { grid-template-columns: repeat(3, 1fr); }
+  .how__steps { grid-template-columns: repeat(2, 1fr); }
+  .modes__grid { grid-template-columns: repeat(2, 1fr); }
+  .sabo__items { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (min-width: 960px) {
+  .hero__grid { grid-template-columns: 1.15fr .85fr; }
+  .hero h1 { font-size: clamp(3.4rem, 5.6vw, 5.2rem); }
+  .phone { max-width: 340px; }
+  .modes__proof { grid-template-columns: auto 1fr; }
+  .sabo__demo { grid-template-columns: 1fr auto; align-items: start; }
+  .sabo__demo .sabo__meter { grid-column: 1; }
+  .sabo__demo .sabo__items { grid-column: 1; }
+  .sabo__demo .phone--sabo { grid-column: 2; grid-row: 1 / span 2; }
+}
+
+/* ═══ Bewegung reduzieren ═════════════════════════════════
+   Nicht nur Dauer auf 0 - auch der Versatz muss weg, sonst
+   springen Elemente sichtbar an ihren Platz. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  .reveal { opacity: 1; transform: none; }
+  .phone--tilt { transform: none; }
+}
