@@ -19,6 +19,7 @@
 #  liest einen konsistenten Schnappschuss.
 # =================================================================
 set -u
+umask 077
 
 ZIEL=/backups
 BEHALTEN=14
@@ -36,6 +37,13 @@ sichern() {
   if ! pg_dump -Fc > "$DATEI" 2>>"$ZIEL/backup.log"; then
     melde "FEHLER: pg_dump fehlgeschlagen - unvollstaendige Datei verworfen"
     rm -f "$DATEI"
+    return 1
+  fi
+
+  # Der Container schreibt als root; der NAS-Besitzer soll den geschützten
+  # Dump über SMB lesen können. Standard-UID/GID dieses NAS: denzel/admin.
+  if ! chown "${BACKUP_UID:-1000}:${BACKUP_GID:-10}" "$DATEI"; then
+    melde "FEHLER: Besitzer der Sicherung konnte nicht gesetzt werden"
     return 1
   fi
 

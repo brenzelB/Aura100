@@ -11,12 +11,13 @@ import 'package:unifiedpush/unifiedpush.dart' as up;
 
 import '../config/supabase_config.dart';
 import 'push_message.dart';
+import 'push_account_gate.dart';
 
 /// Everything about getting a notification onto the player's screen.
 ///
 /// Two routes run side by side on purpose:
 ///
-///  * **UnifiedPush** — our own server, no third party, full text. Needs
+///  * **UnifiedPush** — our own server with a content-free ping. Needs
 ///    a distributor app (ntfy) installed, so it cannot be the only route.
 ///  * **Firebase** — works on any phone with Play Services and is the
 ///    only way iOS will ever be reachable. Carries a content-free ping;
@@ -95,12 +96,22 @@ class PushService {
         try {
           final data = jsonDecode(payload) as Map<String, dynamic>;
           final message = PushMessage.tryParse(data);
-          if (message != null) onOpened?.call(message);
+          if (message != null) _openAuthorized(message);
         } catch (error) {
           debugPrint('⛔ [PushService] bad payload: $error');
         }
       },
     );
+
+    final launch = await _local.getNotificationAppLaunchDetails();
+    final payload = launch?.notificationResponse?.payload;
+    if (launch?.didNotificationLaunchApp == true && payload != null) {
+      try {
+        final message =
+            PushMessage.tryParse(jsonDecode(payload) as Map<String, dynamic>);
+        if (message != null) await _openAuthorized(message);
+      } catch (_) {}
+    }
 
     // Android needs the channel to exist before the first notification,
     // otherwise the importance we ask for here is ignored.
@@ -117,16 +128,9 @@ class PushService {
   /// Shows [message], fetching the real text first when the ping came
   /// through Firebase and carried none.
   Future<void> show(PushMessage message) async {
-    if (Supabase.instance.client.auth.currentUser == null) {
-      debugPrint('ℹ [PushService] Suppressing push: user is logged out');
-      return;
-    }
-
-    if (message.outboxId != null && !_seenOutboxIds.add(message.outboxId!)) {
-      return; // already shown via the other transport
-    }
-
-    final full = message.needsFetch ? await _fetchText(message) : message;
+    final full = await _authorize(message);
+    if (full == null) return;
+    if (!_seenOutboxIds.add(full.outboxId!)) return;
 
     await _local.show(
       // The outbox id doubles as the notification id, so a message that
@@ -158,25 +162,36 @@ class PushService {
 
   /// Asks our own server what the notification actually says.
   ///
-  /// Failure is not an error worth surfacing: the fallback text already
-  /// names the category, so the player still learns something happened.
-  /// Better a vague notification than none.
-  Future<PushMessage> _fetchText(PushMessage message) async {
+  /// Display requires an authorized row belonging to the current account.
+  /// Missing authorization or failed fetch suppresses the notification.
+  Future<PushMessage?> _authorize(PushMessage message) => authorizePushMessage(
+        message: message,
+        currentUserId: () => Supabase.instance.client.auth.currentUser?.id,
+        fetch: (id) async {
+          final rows = await Supabase.instance.client
+              .rpc<List<dynamic>>('get_notification', params: {'p_id': id});
+          if (rows.isEmpty) return null;
+          final row = rows.first as Map<String, dynamic>;
+          return PushMessage(
+              category: row['category'] as String,
+              refId: row['ref_id'] as String?,
+              outboxId: id,
+              title: row['title'] as String,
+              body: row['body'] as String);
+        },
+      );
+
+  Future<void> _openAuthorized(PushMessage message) async {
+    final verified = await _authorize(message);
+    if (verified != null) onOpened?.call(verified);
+  }
+
+  Future<void> clearAccountContext() async {
+    _seenOutboxIds.clear();
+    onOpened = null;
     try {
-      final rows = await Supabase.instance.client.rpc<List<dynamic>>(
-        'get_notification',
-        params: {'p_id': message.outboxId},
-      );
-      if (rows.isEmpty) return message;
-      final row = rows.first as Map<String, dynamic>;
-      return message.withText(
-        title: row['title'] as String,
-        body: row['body'] as String,
-      );
-    } catch (error) {
-      debugPrint('⚠ [PushService] could not fetch text: $error');
-      return message;
-    }
+      await _local.cancelAll();
+    } catch (_) {}
   }
 
   // ── Firebase ─────────────────────────────────────────────────────
@@ -242,7 +257,8 @@ class PushService {
           _register('unifiedpush', endpoint.url);
         },
         onRegistrationFailed: (reason, instance) {
-          debugPrint('⚠ [PushService] UnifiedPush registration failed: $reason');
+          debugPrint(
+              '⚠ [PushService] UnifiedPush registration failed: $reason');
         },
         onUnregistered: (instance) {
           debugPrint('ℹ [PushService] UnifiedPush unregistered');
@@ -283,9 +299,18 @@ class PushService {
 
   /// What the system currently says, without asking anything.
   Future<AuthorizationStatus> permissionStatus() async {
-    if (!_firebaseReady) return AuthorizationStatus.notDetermined;
+    if (!_firebaseReady) {
+      final enabled = await _local
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.areNotificationsEnabled();
+      return enabled == true
+          ? AuthorizationStatus.authorized
+          : AuthorizationStatus.notDetermined;
+    }
     try {
-      final settings = await FirebaseMessaging.instance.getNotificationSettings();
+      final settings =
+          await FirebaseMessaging.instance.getNotificationSettings();
       return settings.authorizationStatus;
     } catch (_) {
       return AuthorizationStatus.notDetermined;
@@ -297,7 +322,13 @@ class PushService {
   ///
   /// Call this only after the player has been told what it is for.
   Future<bool> askPermission() async {
-    if (!_firebaseReady) return false;
+    if (!_firebaseReady) {
+      return await _local
+              .resolvePlatformSpecificImplementation<
+                  AndroidFlutterLocalNotificationsPlugin>()
+              ?.requestNotificationsPermission() ??
+          false;
+    }
     try {
       final settings = await FirebaseMessaging.instance.requestPermission();
       final granted =
@@ -327,9 +358,8 @@ class PushService {
     try {
       await Supabase.instance.client.rpc<void>('register_device', params: {
         'p_provider': provider,
-        'p_platform': defaultTargetPlatform == TargetPlatform.iOS
-            ? 'ios'
-            : 'android',
+        'p_platform':
+            defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
         'p_token': token,
       });
       debugPrint('✅ [PushService] registered $provider device');
@@ -341,7 +371,7 @@ class PushService {
   /// Drops this device's tokens so the next player to sign in here does
   /// not inherit the previous one's notifications.
   Future<void> unregisterAll() async {
-    _seenOutboxIds.clear();
+    await clearAccountContext();
     final client = Supabase.instance.client;
 
     // 1. Unregister UnifiedPush endpoint if recorded
@@ -364,8 +394,7 @@ class PushService {
     }
     if (token != null) {
       try {
-        await client
-            .rpc<void>('unregister_device', params: {'p_token': token});
+        await client.rpc<void>('unregister_device', params: {'p_token': token});
         debugPrint('✅ [PushService] unregistered FCM token');
       } catch (error) {
         debugPrint('⚠ [PushService] unregister FCM failed: $error');
@@ -411,8 +440,7 @@ class PushService {
 ///
 /// This runs in its own isolate: nothing from the running app is
 /// available here, not even an initialized Supabase client. Both have to
-/// be set up from scratch — which is why the fetch can fail and the
-/// fallback text matters.
+/// be set up from scratch. Failed authorization suppresses display here too.
 @pragma('vm:entry-point')
 Future<void> firebaseBackgroundHandler(RemoteMessage remote) async {
   final message = PushMessage.tryParse(remote.data);

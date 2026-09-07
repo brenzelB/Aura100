@@ -9,6 +9,7 @@ Challenge _challenge({
   DateTime? joinedOn,
   CheckinPeriod checkinPeriod = CheckinPeriod.daily,
   int checkinsPerPeriod = 1,
+  bool isEndless = false,
 }) {
   return Challenge(
     id: 'c1',
@@ -24,12 +25,36 @@ Challenge _challenge({
     joinedOn: joinedOn,
     checkinPeriod: checkinPeriod,
     checkinsPerPeriod: checkinsPerPeriod,
+    isEndless: isEndless,
   );
 }
 
 DateTime _d(int day) => DateTime.utc(2026, 7, day);
 
 void main() {
+  test('endless timeline includes today beyond its nominal duration', () {
+    final today = DateTime.utc(2028, 7, 7);
+    final timeline = ChallengeTimeline.build(
+      challenge: _challenge(isEndless: true),
+      checkIns: {today: today},
+      today: today,
+    );
+    expect(timeline.days.length, lessThanOrEqualTo(365));
+    expect(timeline.days.last.date, today);
+    expect(timeline.days.last.status, DayStatus.done);
+  });
+  test('endless weekly target includes the remaining days of this week', () {
+    final timeline = ChallengeTimeline.build(
+      challenge: _challenge(
+          isEndless: true,
+          checkinPeriod: CheckinPeriod.weekly,
+          checkinsPerPeriod: 3),
+      checkIns: {_d(7): _d(7)},
+      today: _d(7),
+    );
+    expect(timeline.stats.doneCount, 0);
+    expect(timeline.stats.accountableCount, 0);
+  });
   group('ChallengeTimeline.build', () {
     test('mirrors the Morning Run demo data exactly', () {
       // Start 07-07, 14 days, check-ins on 7,8,9,11,12,13 — today is 07-14.
@@ -129,8 +154,7 @@ void main() {
       final timeline = ChallengeTimeline.build(
         challenge: _challenge(startsOn: _d(1), durationDays: 5),
         checkIns: {
-          for (final day in [1, 2, 3])
-            _d(day): DateTime.utc(2026, 7, day, 7),
+          for (final day in [1, 2, 3]) _d(day): DateTime.utc(2026, 7, day, 7),
         },
         today: _d(14),
       );
@@ -176,8 +200,7 @@ void main() {
       expect(timeline.stats.currentStreak, 0); // week 2 broke it
     });
 
-    test('weekly quest: current period counts once its target is reached',
-        () {
+    test('weekly quest: current period counts once its target is reached', () {
       // Start 07-08 (2x/week), today 07-10, check-ins 07-08 + 07-09:
       // the running week is already fulfilled.
       final checkIns = {

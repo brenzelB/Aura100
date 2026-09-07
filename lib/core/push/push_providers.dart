@@ -16,13 +16,25 @@ final pushGatewayProvider = Provider<void>((ref) {
   if (!SupabaseConfig.isConfigured) return;
 
   final user = ref.watch(currentUserProvider);
-  if (user == null) return;
+  if (user == null) {
+    PushService.instance.clearAccountContext();
+    return;
+  }
 
   final service = PushService.instance;
-  service.onOpened = (message) => _open(ref, message);
+  var active = true;
+  ref.onDispose(() {
+    active = false;
+    service.onOpened = null;
+  });
+  service.onOpened = (message) {
+    if (active) _open(ref, message);
+  };
   // start() is idempotent; on later sign-ins only the re-registration
   // below actually does anything.
-  service.start().then((_) => service.refreshRegistration());
+  service.start().then((_) {
+    if (active) return service.refreshRegistration();
+  });
 });
 
 /// Sends the player where the notification came from.

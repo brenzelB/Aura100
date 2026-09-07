@@ -35,8 +35,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final agendaAsync = ref.watch(homeAgendaProvider);
     final profile = ref.watch(currentProfileProvider).valueOrNull;
-    // Eagerly instantiate OfflineSyncService so the connectivity listener is active immediately
-    ref.watch(offlineSyncServiceProvider);
+    final syncNotice = ref.watch(offlineSyncNoticeProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('HOME')),
@@ -63,7 +62,7 @@ class HomeScreen extends ConsumerWidget {
           // Pull-to-refresh reloads the agenda; keep it on screen so it
           // updates in place instead of blanking to a spinner.
           skipLoadingOnReload: true,
-          loading: () =>  Center(
+          loading: () => Center(
             child: CircularProgressIndicator(color: AppColors.accentText),
           ),
           error: (error, _) => ListView(
@@ -84,6 +83,18 @@ class HomeScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
             children: [
               const TargetedRoastRefresher(),
+              if (syncNotice != null)
+                ListTile(
+                  leading: const Icon(Icons.info_outline),
+                  title: Text(syncNotice),
+                  trailing: IconButton(
+                    tooltip: 'Dismiss',
+                    icon: const Icon(Icons.close),
+                    onPressed: () => ref
+                        .read(offlineSyncNoticeProvider.notifier)
+                        .state = null,
+                  ),
+                ),
               const LossRoastGate(),
               const CelebrationGate(),
               _TodayHeader(agenda: agenda, username: profile?.username),
@@ -145,7 +156,7 @@ class HomeScreen extends ConsumerWidget {
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Row(
                       children: [
-                         Icon(Icons.schedule,
+                        Icon(Icons.schedule,
                             size: 14, color: AppColors.textSecondary),
                         const SizedBox(width: 8),
                         Expanded(
@@ -252,8 +263,7 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style:
-          Theme.of(context).textTheme.headlineSmall?.copyWith(color: color),
+      style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: color),
     );
   }
 }
@@ -294,7 +304,8 @@ class _TodayHeader extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: textTheme.displaySmall?.copyWith(
-                    color: allDone ? AppColors.successText : AppColors.textPrimary,
+                    color:
+                        allDone ? AppColors.successText : AppColors.textPrimary,
                     height: 1.05,
                   ),
                 ),
@@ -512,8 +523,7 @@ class _ReactionButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surfaceLight,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-              color: AppColors.neonPink.withValues(alpha: 0.25)),
+          border: Border.all(color: AppColors.neonPink.withValues(alpha: 0.25)),
         ),
         child: Text(emoji, style: const TextStyle(fontSize: 20)),
       ),
@@ -620,7 +630,7 @@ class _InboxRow extends StatelessWidget {
                   ],
                 ),
               ),
-               Icon(Icons.chevron_right,
+              Icon(Icons.chevron_right,
                   size: 18, color: AppColors.textSecondary),
             ],
           ),
@@ -738,8 +748,7 @@ class _EventsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final events =
-        ref.watch(settlementEventsProvider).valueOrNull ?? const [];
+    final events = ref.watch(settlementEventsProvider).valueOrNull ?? const [];
     if (events.isEmpty) return const SizedBox.shrink();
 
     final textTheme = Theme.of(context).textTheme;
@@ -747,7 +756,7 @@ class _EventsSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-         _SectionTitle('LATEST', color: AppColors.neonPurple),
+        _SectionTitle('LATEST', color: AppColors.neonPurple),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -761,7 +770,11 @@ class _EventsSection extends ConsumerWidget {
                     final (icon, color, text) = _describe(event);
                     return Row(
                       children: [
-                        ThemeIcon(icon: icon, matrixChar: '[A]', color: color, size: 15),
+                        ThemeIcon(
+                            icon: icon,
+                            matrixChar: '[A]',
+                            color: color,
+                            size: 15),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -854,12 +867,10 @@ class _CheckInButton extends ConsumerWidget {
         onPressed: null,
         style: OutlinedButton.styleFrom(
           disabledForegroundColor: AppColors.neonPurple,
-          side: BorderSide(
-              color: AppColors.neonPurple.withValues(alpha: 0.6)),
+          side: BorderSide(color: AppColors.neonPurple.withValues(alpha: 0.6)),
           minimumSize: const Size(0, 40),
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          textStyle:
-              const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         ),
         icon: const Icon(Icons.block, size: 15),
         label: Text(running.remainingLabel),
@@ -886,8 +897,7 @@ class _CheckInButton extends ConsumerWidget {
           foregroundColor: AppColors.background,
           minimumSize: const Size(0, 40),
           padding: const EdgeInsets.symmetric(horizontal: 14),
-          textStyle:
-              const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         ),
         icon: const Icon(Icons.add, size: 16),
         label: const Text('ADD'),
@@ -900,9 +910,7 @@ class _CheckInButton extends ConsumerWidget {
       return SlipButton(
         challenge: item.challenge,
         compact: true,
-        busy: ref
-            .watch(slipControllerProvider(item.challenge.id))
-            .isLoading,
+        busy: ref.watch(slipControllerProvider(item.challenge.id)).isLoading,
         onPressed: () => logSlipAndReveal(context, ref, item.challenge),
       );
     }
@@ -917,8 +925,7 @@ class _CheckInButton extends ConsumerWidget {
         foregroundColor: AppColors.background,
         minimumSize: const Size(0, 40),
         padding: const EdgeInsets.symmetric(horizontal: 14),
-        textStyle:
-            const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
       ),
       child: isLoading
           ? SizedBox(
@@ -949,7 +956,8 @@ class _AgendaCard extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: AppColors.panelDecoration(
-        accent: pendingRoast != null ? AppColors.neonPurple : AppColors.neonCyan,
+        accent:
+            pendingRoast != null ? AppColors.neonPurple : AppColors.neonCyan,
         glow: pendingRoast != null,
       ),
       child: Column(
@@ -994,7 +1002,8 @@ class _AgendaCard extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    Icon(Icons.lock_clock, color: AppColors.neonPurple, size: 20),
+                    Icon(Icons.lock_clock,
+                        color: AppColors.neonPurple, size: 20),
                   ],
                 ),
               ),
@@ -1009,8 +1018,8 @@ class _AgendaCard extends ConsumerWidget {
                           context, ref, pendingRoast);
                     }
                     if (context.mounted) {
-                      context.push(
-                          '${AppRoutes.challenges}/${item.challenge.id}');
+                      context
+                          .push('${AppRoutes.challenges}/${item.challenge.id}');
                     }
                   },
                   child: Column(
@@ -1092,7 +1101,8 @@ class _RiskCard extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: AppColors.panelDecoration(
-          accent: pendingRoast != null ? AppColors.neonPurple : AppColors.danger,
+          accent:
+              pendingRoast != null ? AppColors.neonPurple : AppColors.danger,
           isDanger: pendingRoast == null,
           glow: true),
       child: Column(
@@ -1137,7 +1147,8 @@ class _RiskCard extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    Icon(Icons.lock_clock, color: AppColors.neonPurple, size: 20),
+                    Icon(Icons.lock_clock,
+                        color: AppColors.neonPurple, size: 20),
                   ],
                 ),
               ),
@@ -1159,8 +1170,8 @@ class _RiskCard extends ConsumerWidget {
                           context, ref, pendingRoast);
                     }
                     if (context.mounted) {
-                      context.push(
-                          '${AppRoutes.challenges}/${item.challenge.id}');
+                      context
+                          .push('${AppRoutes.challenges}/${item.challenge.id}');
                     }
                   },
                   child: Text(
@@ -1262,8 +1273,9 @@ class _DoneRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isPending = ref.watch(pendingCheckInsProvider).any((p) =>
-        p.challengeId == item.challenge.id);
+    final isPending = ref
+        .watch(pendingCheckInsProvider)
+        .any((p) => p.challengeId == item.challenge.id);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
@@ -1294,7 +1306,8 @@ class _DoneRow extends ConsumerWidget {
                 color: AppColors.neonYellow.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(
-                    color: AppColors.neonYellow.withValues(alpha: 0.5), width: 1),
+                    color: AppColors.neonYellow.withValues(alpha: 0.5),
+                    width: 1),
               ),
               child: Text(
                 '⏳ Wartet auf Sync',

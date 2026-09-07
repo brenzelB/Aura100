@@ -29,18 +29,18 @@ final challengeRepositoryProvider = Provider<ChallengeRepository>((ref) {
   return ChallengeRepository(Supabase.instance.client);
 });
 
-List<Challenge> _lastKnownActiveChallenges = [];
-Map<String, Map<DateTime, DateTime>> _lastKnownServerCheckIns = {};
-final Map<String, Map<DateTime, DateTime>> _lastKnownChallengeCheckIns = {};
-String? _cachedChallengesUserId;
-
-/// Clears in-memory challenge caches on user switch or logout.
-void clearChallengeCache() {
-  _lastKnownActiveChallenges = [];
-  _lastKnownServerCheckIns = {};
-  _lastKnownChallengeCheckIns.clear();
-  _cachedChallengesUserId = null;
+class _ChallengeCache {
+  List<Challenge> active = [];
+  Map<String, Map<DateTime, DateTime>> checkIns = {};
+  final details = <String, Map<DateTime, DateTime>>{};
 }
+
+// A request retains its original cache object across awaits. A login change
+// creates a new object, so a late response can never repopulate another account.
+final _challengeCacheProvider = Provider<_ChallengeCache>((ref) {
+  ref.watch(currentUserProvider);
+  return _ChallengeCache();
+});
 
 /// The logged-in user's ACTIVE challenges (incl. per-challenge aura),
 /// newest first. Re-fetches on auth events; empty in skeleton mode.
@@ -50,21 +50,18 @@ final myChallengesProvider =
   ref.watch(authStateChangesProvider); // rebuild on login/logout
 
   final currentUserId = ref.watch(currentUserProvider)?.id;
-  if (currentUserId != _cachedChallengesUserId) {
-    clearChallengeCache();
-    _cachedChallengesUserId = currentUserId;
-  }
+  final cache = ref.watch(_challengeCacheProvider);
   if (currentUserId == null) return const [];
 
   try {
     final list =
         await ref.watch(challengeRepositoryProvider).fetchMyActiveChallenges();
-    _lastKnownActiveChallenges = list;
+    cache.active = list;
     return list;
   } catch (e) {
-    if (_isNetworkError(e) && _lastKnownActiveChallenges.isNotEmpty) {
+    if (_isNetworkError(e) && cache.active.isNotEmpty) {
       debugPrint('🔌 [myChallengesProvider] Offline, using cached challenges');
-      return _lastKnownActiveChallenges;
+      return cache.active;
     }
     rethrow;
   }
@@ -238,6 +235,7 @@ final myCheckInsProvider =
     FutureProvider.autoDispose<Map<String, Map<DateTime, DateTime>>>(
         (ref) async {
   if (!SupabaseConfig.isConfigured) return const {};
+  final cache = ref.watch(_challengeCacheProvider);
   final challenges = await ref.watch(myChallengesProvider.future);
   if (challenges.isEmpty) return const {};
 
@@ -246,11 +244,11 @@ final myCheckInsProvider =
     serverMap = await ref
         .watch(challengeRepositoryProvider)
         .fetchCheckInsForChallenges(challenges.map((c) => c.id).toList());
-    _lastKnownServerCheckIns = serverMap;
+    cache.checkIns = serverMap;
   } catch (e) {
     if (_isNetworkError(e)) {
       debugPrint('🔌 [myCheckInsProvider] Offline, using cached check-ins');
-      serverMap = _lastKnownServerCheckIns;
+      serverMap = cache.checkIns;
     } else {
       rethrow;
     }
@@ -279,17 +277,18 @@ final checkInsProvider = FutureProvider.autoDispose
     .family<Map<DateTime, DateTime>, String>((ref, challengeId) async {
   if (!SupabaseConfig.isConfigured) return const {};
   ref.watch(authStateChangesProvider);
+  final cache = ref.watch(_challengeCacheProvider);
 
   Map<DateTime, DateTime> serverMap = const {};
   try {
     serverMap =
         await ref.watch(challengeRepositoryProvider).fetchCheckIns(challengeId);
-    _lastKnownChallengeCheckIns[challengeId] = serverMap;
+    cache.details[challengeId] = serverMap;
   } catch (e) {
     if (_isNetworkError(e)) {
       debugPrint(
           '🔌 [checkInsProvider] Offline for $challengeId, using cached check-ins');
-      serverMap = _lastKnownChallengeCheckIns[challengeId] ?? const {};
+      serverMap = cache.details[challengeId] ?? const {};
     } else {
       rethrow;
     }
@@ -335,8 +334,7 @@ final progressEntriesProvider = FutureProvider.autoDispose
 final progressControllerProvider = AsyncNotifierProvider.autoDispose
     .family<ProgressController, void, String>(ProgressController.new);
 
-class ProgressController
-    extends AutoDisposeFamilyAsyncNotifier<void, String> {
+class ProgressController extends AutoDisposeFamilyAsyncNotifier<void, String> {
   @override
   FutureOr<void> build(String arg) {
     // Action-only notifier; `arg` is the challenge id.
@@ -465,7 +463,7 @@ class PendingCheckInsNotifier extends StateNotifier<List<PendingCheckIn>> {
 
   Future<void> load() async {
     final list = await _queue.getPending();
-    state = list;
+    if (mounted) state = list;
   }
 
   Future<bool> enqueue(PendingCheckIn checkIn) async {
@@ -498,10 +496,15 @@ final pendingCheckInsProvider =
   return PendingCheckInsNotifier(queue);
 });
 
+final offlineSyncNoticeProvider = StateProvider<String?>((ref) {
+  ref.watch(currentUserProvider);
+  return null;
+});
+
 final offlineSyncServiceProvider = Provider<OfflineSyncService>((ref) {
   final service = OfflineSyncService(
     queue: ref.watch(offlineCheckInQueueProvider),
-    currentUserIdGetter: () => ref.read(currentUserProvider)?.id,
+    currentUserIdGetter: () => Supabase.instance.client.auth.currentUser?.id,
   );
 
   service.initialize(
@@ -512,7 +515,16 @@ final offlineSyncServiceProvider = Provider<OfflineSyncService>((ref) {
       ref.invalidate(settlementEventsProvider);
       ref.invalidate(robbedNoticesProvider);
     },
-    () => service.syncPendingCheckIns(ref.read(challengeRepositoryProvider)),
+    () async {
+      final result = await service
+          .syncPendingCheckIns(ref.read(challengeRepositoryProvider));
+      if (result.discardedCount > 0 && !service.isDisposed) {
+        ref.read(offlineSyncNoticeProvider.notifier).state =
+            '${result.discardedCount} offline check-in(s) could not be applied. '
+            'Only the current UTC day and active quests can be synced.';
+      }
+      return result;
+    },
   );
 
   ref.onDispose(service.dispose);
@@ -555,6 +567,9 @@ class CheckInController extends AutoDisposeFamilyAsyncNotifier<void, String> {
   /// returns [CheckInResult.queuedOffline] with optimistic UI update.
   Future<CheckInResult> checkIn({String? questTitle}) async {
     final repo = ref.read(challengeRepositoryProvider);
+    final owner = ref.read(currentUserProvider)?.id;
+    final queue = ref.read(offlineCheckInQueueProvider);
+    final tappedAt = DateTime.now().toUtc();
     state = const AsyncLoading();
     int? gained;
     Object? caughtError;
@@ -567,6 +582,12 @@ class CheckInController extends AutoDisposeFamilyAsyncNotifier<void, String> {
       state = AsyncError(e, st);
     }
 
+    if (owner == null ||
+        Supabase.instance.client.auth.currentUser?.id != owner) {
+      return const CheckInResult(
+          status: CheckInStatus.failed,
+          errorMessage: 'Account changed. Please try again.');
+    }
     if (caughtError == null && gained != null) {
       ref.invalidate(myChallengesProvider);
       ref.invalidate(checkInsProvider(arg));
@@ -578,9 +599,9 @@ class CheckInController extends AutoDisposeFamilyAsyncNotifier<void, String> {
 
     // Check if offline/connection error
     if (caughtError != null && _isNetworkError(caughtError)) {
-      final nowUtc = DateTime.now().toUtc();
+      final nowUtc = tappedAt;
       final todayDate = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day);
-      final currentUserId = ref.read(currentUserProvider)?.id ?? '';
+      final currentUserId = owner;
       final pending = PendingCheckIn(
         challengeId: arg,
         questTitle: questTitle ?? 'Quest',
@@ -589,7 +610,19 @@ class CheckInController extends AutoDisposeFamilyAsyncNotifier<void, String> {
         userId: currentUserId,
       );
 
-      await ref.read(pendingCheckInsProvider.notifier).enqueue(pending);
+      final saved = await queue.enqueue(pending);
+      if (!saved) {
+        return const CheckInResult(
+            status: CheckInStatus.failed,
+            errorMessage: 'Could not save your check-in. Please try again.');
+      }
+      if (Supabase.instance.client.auth.currentUser?.id != owner) {
+        return const CheckInResult(
+            status: CheckInStatus.failed,
+            errorMessage:
+                'Account changed. Your check-in stays with the original account.');
+      }
+      await ref.read(pendingCheckInsProvider.notifier).load();
       state = const AsyncData(null);
 
       // Invalidate to update optimistic UI
@@ -616,8 +649,7 @@ final questMembersProvider = FutureProvider.autoDispose
     .family<List<QuestMember>, String>((ref, challengeId) async {
   if (!SupabaseConfig.isConfigured) return const [];
   final challenges = await ref.watch(myChallengesProvider.future);
-  final challenge =
-      challenges.where((c) => c.id == challengeId).firstOrNull;
+  final challenge = challenges.where((c) => c.id == challengeId).firstOrNull;
   if (challenge == null) return const [];
   return ref.watch(challengeRepositoryProvider).fetchQuestMembers(challenge);
 });
@@ -644,8 +676,7 @@ final activityByDayProvider =
 });
 
 /// The last completed week in numbers — feeds the Monday card.
-final weeklyRecapProvider =
-    FutureProvider.autoDispose<WeeklyRecap?>((ref) {
+final weeklyRecapProvider = FutureProvider.autoDispose<WeeklyRecap?>((ref) {
   if (!SupabaseConfig.isConfigured) return null;
   ref.watch(authStateChangesProvider);
   return ref.watch(challengeRepositoryProvider).fetchWeeklyRecap();
@@ -683,8 +714,9 @@ final myBlackoutProvider = FutureProvider.autoDispose
 });
 
 /// All of this player's reminders, keyed by quest id.
-final questRemindersProvider = FutureProvider.autoDispose<
-    Map<String, ({int hour, int minute})>>((ref) async {
+final questRemindersProvider =
+    FutureProvider.autoDispose<Map<String, ({int hour, int minute})>>(
+        (ref) async {
   if (!SupabaseConfig.isConfigured) return const {};
   ref.watch(authStateChangesProvider);
   return ref.watch(challengeRepositoryProvider).fetchQuestReminders();

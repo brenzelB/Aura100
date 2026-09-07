@@ -101,11 +101,24 @@ class ChallengeTimeline {
     final activeFrom = joined.isAfter(start) ? joined : start;
     final todayDate = _dateOnly(today);
     final daily = challenge.checkinPeriod == CheckinPeriod.daily;
+    // Endless quests show the most recent year, aligned to the original
+    // period boundaries so weekly/monthly statistics remain comparable.
+    final periodLen = challenge.checkinPeriod.lengthDays;
+    final elapsed = todayDate.difference(start).inDays;
+    final windowOffset = challenge.isEndless && elapsed > 364
+        ? ((elapsed - 364 + periodLen - 1) ~/ periodLen) * periodLen
+        : 0;
+    final windowStart = start.add(Duration(days: windowOffset));
+    final endExclusive = challenge.isEndless
+        ? (todayDate.isBefore(start) ? start : todayDate)
+            .add(const Duration(days: 1))
+        : start.add(Duration(days: challenge.durationDays));
 
     // ── Day-by-day grid ─────────────────────────────────────────
     final days = <TimelineDay>[];
-    for (var i = 0; i < challenge.durationDays; i++) {
-      final date = start.add(Duration(days: i));
+    for (var date = windowStart;
+        date.isBefore(endExclusive);
+        date = date.add(const Duration(days: 1))) {
       final checkedAt = checkIns[date];
       final isToday = date == todayDate;
 
@@ -137,9 +150,7 @@ class ChallengeTimeline {
     // ── Stats: units are days (daily) or periods (weekly/monthly) ──
     // One unified pass over anchored periods; for daily quests the
     // period length is 1, which reproduces the per-day semantics.
-    final periodLen = challenge.checkinPeriod.lengthDays;
     final target = daily ? 1 : challenge.checkinsPerPeriod;
-    final endExclusive = start.add(Duration(days: challenge.durationDays));
 
     var done = 0;
     var missed = 0;
@@ -147,9 +158,11 @@ class ChallengeTimeline {
     // true = fulfilled, false = failed; resolved units in order.
     final resolved = <bool>[];
 
-    var pStart = start;
+    var pStart = windowStart;
     while (pStart.isBefore(endExclusive)) {
-      final pEnd = _min(pStart.add(Duration(days: periodLen)), endExclusive);
+      final naturalEnd = pStart.add(Duration(days: periodLen));
+      final pEnd =
+          challenge.isEndless ? naturalEnd : _min(naturalEnd, endExclusive);
 
       // Skip periods from before the user joined (fair for late joiners).
       if (pStart.isBefore(activeFrom)) {
@@ -176,7 +189,8 @@ class ChallengeTimeline {
           .length;
       // The bar cannot ask for more check-ins than there are days to
       // give — the server caps the same way.
-      final fulfilled = doneInPeriod >= (target < activeDays ? target : activeDays);
+      final fulfilled =
+          doneInPeriod >= (target < activeDays ? target : activeDays);
       final completed = !pEnd.isAfter(todayDate);
 
       if (completed) {

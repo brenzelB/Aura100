@@ -1,0 +1,10 @@
+begin;
+select no_plan();
+select ok(not has_table_privilege('anon','public.challenge_participants','TRUNCATE'),'anonymous role cannot truncate participants');
+select ok(not has_table_privilege('authenticated','public.profiles','TRUNCATE'),'user role cannot truncate profiles');
+select ok(not has_table_privilege('authenticated','public.challenges','TRIGGER'),'user role cannot create quest triggers');
+set local role authenticated;
+select throws_ok('truncate public.profiles cascade','42501','permission denied for table profiles','TRUNCATE cannot bypass row-level security');
+reset role;
+select * from finish();
+rollback;

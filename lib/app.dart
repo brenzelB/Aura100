@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/push/push_providers.dart';
+import 'features/auth/application/auth_providers.dart';
 import 'core/realtime/realtime_sync.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_colors.dart';
@@ -29,6 +30,9 @@ class AuraQuestApp extends ConsumerWidget {
     // Registers this device for push and routes a tapped notification to
     // the quest, duel or friend it is about.
     ref.watch(pushGatewayProvider);
+    if (ref.watch(currentUserProvider) != null) {
+      ref.watch(offlineSyncServiceProvider);
+    }
 
     // Every design system ships a light and a dark palette; the mode is
     // resolved here, so `theme` is already the right one either way.
@@ -39,9 +43,8 @@ class AuraQuestApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: data,
       darkTheme: data,
-      themeMode: theme.mode == AppThemeMode.dark
-          ? ThemeMode.dark
-          : ThemeMode.light,
+      themeMode:
+          theme.mode == AppThemeMode.dark ? ThemeMode.dark : ThemeMode.light,
       routerConfig: router,
       builder: (context, child) {
         return AppThemeBackground(

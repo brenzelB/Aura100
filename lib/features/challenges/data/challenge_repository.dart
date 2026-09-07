@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/data/read_all_pages.dart';
 import '../domain/aura_heist.dart';
 import '../domain/benefit.dart';
 import '../domain/blackout.dart';
@@ -32,7 +33,7 @@ class ChallengeRepository {
     if (userId == null) return const [];
 
     try {
-      final rows = await _client
+      final rows = await _readAll(() => _client
           .from('challenge_participants')
           .select('challenge_aura, strikes_used, periods_missed, created_at, '
               'team, status, '
@@ -44,30 +45,32 @@ class ChallengeRepository {
               'lifecycle, is_endless, started_at, created_at)')
           .eq('user_id', userId)
           .inFilter('status', const ['active', 'failed', 'eliminated'])
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .order('id'));
 
       final questIds = rows
-          .map((r) =>
-              (r['challenges'] as Map<String, dynamic>)['id'] as String)
+          .map((r) => (r['challenges'] as Map<String, dynamic>)['id'] as String)
           .toList();
       if (questIds.isEmpty) return const [];
 
       // Which of these were checked in TODAY? (RLS → own rows only.)
-      final checkedRows = await _client
+      final checkedRows = await _readAll(() => _client
           .from('check_ins')
           .select('challenge_id')
           .eq('user_id', userId)
-          .eq('checked_on', _todayUtc());
+          .eq('checked_on', _todayUtc())
+          .order('id'));
       final checkedIds =
           checkedRows.map((r) => r['challenge_id'] as String).toSet();
 
       // Party size per quest (active members; RLS lets every signed-in
       // user read participant rows, so counts include quest-mates).
-      final memberRows = await _client
+      final memberRows = await _readAll(() => _client
           .from('challenge_participants')
           .select('challenge_id')
           .inFilter('challenge_id', questIds)
-          .eq('status', 'active');
+          .eq('status', 'active')
+          .order('id'));
       final membersByQuest = <String, int>{};
       for (final row in memberRows) {
         final id = row['challenge_id'] as String;
@@ -76,12 +79,13 @@ class ChallengeRepository {
 
       // Which UNUSED benefits does the user own per quest? Consumed
       // shields/half-damages are spent and no longer count as gear.
-      final purchaseRows = await _client
+      final purchaseRows = await _readAll(() => _client
           .from('benefit_purchases')
           .select('challenge_id, benefits(title)')
           .eq('user_id', userId)
           .inFilter('challenge_id', questIds)
-          .isFilter('consumed_at', null);
+          .isFilter('consumed_at', null)
+          .order('id'));
       final ownedByChallenge = <String, Set<String>>{};
       for (final row in purchaseRows) {
         final title =
@@ -90,65 +94,15 @@ class ChallengeRepository {
         (ownedByChallenge[row['challenge_id'] as String] ??= {}).add(title);
       }
 
-      // Collect current period start dates across active challenges to prevent
-      // PostgREST 1000-row limit truncation from dropping active period entries.
-      final currentPeriodStarts = rows
-          .map((r) => _dateOnly(Challenge.fromJson(
-                  r['challenges'] as Map<String, dynamic>)
-              .currentPeriodStart))
-          .toSet()
-          .toList();
-
-      // Progress quests: how much is logged in the CURRENT period.
-      // Constrained to currentPeriodStarts to never hit row truncation.
-      final progressRows = await _client
-          .from('progress_entries')
-          .select('challenge_id, amount, period_start')
-          .eq('user_id', userId)
-          .inFilter('challenge_id', questIds)
-          .inFilter('period_start', currentPeriodStarts);
-      final progressByQuest = <String, List<(String, double)>>{};
-      for (final row in progressRows) {
-        (progressByQuest[row['challenge_id'] as String] ??= []).add((
-          row['period_start'] as String,
-          (row['amount'] as num).toDouble(),
-        ));
-      }
-
-      // Avoid quests: how many slips are on the board this period.
-      // Constrained to currentPeriodStarts to never hit row truncation.
-      final slipRows = await _client
-          .from('slips')
-          .select('challenge_id, period_start')
-          .eq('user_id', userId)
-          .inFilter('challenge_id', questIds)
-          .inFilter('period_start', currentPeriodStarts);
-      final slipsByQuest = <String, List<String>>{};
-      for (final row in slipRows) {
-        (slipsByQuest[row['challenge_id'] as String] ??= [])
-            .add(row['period_start'] as String);
-      }
+      final totals =
+          await _client.rpc<Map<String, dynamic>>('get_my_period_totals');
 
       final result = rows.map((row) {
         final challenge =
             Challenge.fromJson(row['challenges'] as Map<String, dynamic>);
-        // Only the entries belonging to the period we are in right now.
-        var progress = 0.0;
-        if (challenge.isProgress) {
-          final current = _dateOnly(challenge.currentPeriodStart);
-          for (final (periodStart, amount)
-              in progressByQuest[challenge.id] ?? const <(String, double)>[]) {
-            if (periodStart == current) progress += amount;
-          }
-        }
-        var slips = 0;
-        if (challenge.isAvoid) {
-          final current = _dateOnly(challenge.currentPeriodStart);
-          for (final periodStart
-              in slipsByQuest[challenge.id] ?? const <String>[]) {
-            if (periodStart == current) slips++;
-          }
-        }
+        final total = totals[challenge.id] as Map<String, dynamic>?;
+        final progress = (total?['progress'] as num?)?.toDouble() ?? 0;
+        final slips = (total?['slips'] as num?)?.toInt() ?? 0;
         return challenge.copyWith(
           progressInPeriod: progress,
           slipsInPeriod: slips,
@@ -159,8 +113,8 @@ class ChallengeRepository {
           checkedInToday: checkedIds.contains(challenge.id),
           joinedOn: DateTime.parse(row['created_at'] as String).toUtc(),
           myTeam: row['team'] as String?,
-          ownedBenefits:
-              (ownedByChallenge[challenge.id] ?? const {}).toList()..sort(),
+          ownedBenefits: (ownedByChallenge[challenge.id] ?? const {}).toList()
+            ..sort(),
           myStatus: (row['status'] ?? 'active') as String,
         );
       }).toList();
@@ -185,17 +139,18 @@ class ChallengeRepository {
     if (userId == null || challengeIds.isEmpty) return const {};
 
     try {
-      final rows = await _client
+      final rows = await _readAll(() => _client
           .from('check_ins')
           .select('challenge_id, checked_on, created_at')
           .eq('user_id', userId)
-          .inFilter('challenge_id', challengeIds);
+          .inFilter('challenge_id', challengeIds)
+          .order('id'));
 
       final byQuest = <String, Map<DateTime, DateTime>>{};
       for (final row in rows) {
         final questId = row['challenge_id'] as String;
-        (byQuest[questId] ??= {})[
-                DateTime.parse('${row['checked_on']}T00:00:00Z')] =
+        (byQuest[questId] ??=
+                {})[DateTime.parse('${row['checked_on']}T00:00:00Z')] =
             DateTime.parse(row['created_at'] as String);
       }
       debugPrint('✅ [ChallengeRepository.fetchCheckInsForChallenges] '
@@ -231,11 +186,12 @@ class ChallengeRepository {
     if (userId == null) return const {};
 
     try {
-      final rows = await _client
+      final rows = await _readAll(() => _client
           .from('check_ins')
           .select('checked_on, created_at')
           .eq('user_id', userId)
-          .eq('challenge_id', challengeId);
+          .eq('challenge_id', challengeId)
+          .order('id'));
       final map = <DateTime, DateTime>{
         for (final row in rows)
           DateTime.parse('${row['checked_on']}T00:00:00Z'):
@@ -307,10 +263,11 @@ class ChallengeRepository {
 
     try {
       // Who is in the party (names + avatars for the feed rows).
-      final memberRows = await _client
+      final memberRows = await _readAll(() => _client
           .from('challenge_participants')
           .select('user_id, profiles(username, avatar_emoji)')
-          .eq('challenge_id', challengeId);
+          .eq('challenge_id', challengeId)
+          .order('id'));
       final names = <String, (String, String?)>{};
       for (final row in memberRows) {
         final profile = row['profiles'] as Map<String, dynamic>?;
@@ -516,12 +473,13 @@ class ChallengeRepository {
     if (userId == null) return const [];
 
     try {
-      final rows = await _client
+      final rows = await _readAll(() => _client
           .from('progress_entries')
           .select('id, amount, period_start, created_at')
           .eq('challenge_id', challengeId)
           .eq('user_id', userId)
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .order('id'));
 
       final entries = rows.map(ProgressEntry.fromJson).toList();
       debugPrint('✅ [ChallengeRepository.fetchProgressEntries] '
@@ -537,19 +495,21 @@ class ChallengeRepository {
   /// user's purchases.
   Future<List<Benefit>> fetchBenefits(String challengeId) async {
     try {
-      final rows = await _client
+      final rows = await _readAll(() => _client
           .from('benefits')
           .select('id, challenge_id, title, description, cost')
           .eq('challenge_id', challengeId)
-          .order('cost', ascending: true); // cheapest first
+          .order('cost', ascending: true)
+          .order('id')); // cheapest first
 
       // Own purchases in this challenge, split into ready vs consumed.
       final userId = _client.auth.currentUser?.id;
-      final purchases = await _client
+      final purchases = await _readAll(() => _client
           .from('benefit_purchases')
           .select('benefit_id, consumed_at')
           .eq('challenge_id', challengeId)
-          .eq('user_id', userId ?? '');
+          .eq('user_id', userId ?? '')
+          .order('id'));
       final ready = <String, int>{};
       final used = <String, int>{};
       for (final row in purchases) {
@@ -605,12 +565,13 @@ class ChallengeRepository {
       // once they are out of the running. Used to be Last Man Standing
       // only; now it holds for every mode, because losing no longer
       // removes anyone from a quest.
-      final rows = await _client
+      final rows = await _readAll(() => _client
           .from('challenge_participants')
           .select('user_id, challenge_aura, team, status, '
               'profiles(username, avatar_emoji)')
           .eq('challenge_id', challenge.id)
-          .order('challenge_aura', ascending: false);
+          .order('challenge_aura', ascending: false)
+          .order('id'));
 
       // Current period bounds (anchored to starts_on, like the server).
       final today = _parseDay(_todayUtc());
@@ -622,7 +583,9 @@ class ChallengeRepository {
           start.add(Duration(days: daysIn < 0 ? 0 : (daysIn ~/ len) * len));
       var periodEnd = periodStart.add(Duration(days: len));
       final endExclusive = start.add(Duration(days: challenge.durationDays));
-      if (periodEnd.isAfter(endExclusive)) periodEnd = endExclusive;
+      if (!challenge.isEndless && periodEnd.isAfter(endExclusive)) {
+        periodEnd = endExclusive;
+      }
       final target = challenge.checkinPeriod == CheckinPeriod.daily
           ? 1
           : challenge.checkinsPerPeriod;
@@ -630,10 +593,11 @@ class ChallengeRepository {
       // Everyone's check-ins over the WHOLE quest (quest-mates may
       // see each other since the social migration). One query feeds
       // both the current-period status and the versus scoreboard.
-      final checkRows = await _client
+      final checkRows = await _readAll(() => _client
           .from('check_ins')
           .select('user_id, checked_on')
-          .eq('challenge_id', challenge.id);
+          .eq('challenge_id', challenge.id)
+          .order('id'));
       final countByUser = <String, int>{};
       final totalByUser = <String, int>{};
       final todayByUser = <String>{};
@@ -655,11 +619,12 @@ class ChallengeRepository {
       // the party is meant to see each other's numbers.
       final progressByUser = <String, double>{};
       if (challenge.isProgress) {
-        final progressRows = await _client
+        final progressRows = await _readAll(() => _client
             .from('progress_entries')
             .select('user_id, amount')
             .eq('challenge_id', challenge.id)
-            .eq('period_start', _dateOnly(challenge.currentPeriodStart));
+            .eq('period_start', _dateOnly(challenge.currentPeriodStart))
+            .order('id'));
         for (final row in progressRows) {
           final uid = row['user_id'] as String;
           progressByUser[uid] =
@@ -671,11 +636,12 @@ class ChallengeRepository {
       // quest is fed by progress entries, everything else by check-ins —
       // the same split the Blackout item follows.
       final lastByUser = <String, DateTime>{};
-      final activityRows = await _client
+      final activityRows = await _readAll(() => _client
           .from(challenge.isProgress ? 'progress_entries' : 'check_ins')
           .select('user_id, created_at')
           .eq('challenge_id', challenge.id)
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .order('id'));
       for (final row in activityRows) {
         final uid = row['user_id'] as String;
         // Rows arrive newest first, so the first hit per member wins.
@@ -684,10 +650,11 @@ class ChallengeRepository {
       }
 
       // Everyone's gear in this quest.
-      final purchaseRows = await _client
+      final purchaseRows = await _readAll(() => _client
           .from('benefit_purchases')
           .select('user_id, benefits(title)')
-          .eq('challenge_id', challenge.id);
+          .eq('challenge_id', challenge.id)
+          .order('id'));
       final gearByUser = <String, Set<String>>{};
       for (final row in purchaseRows) {
         final title =
@@ -816,7 +783,7 @@ class ChallengeRepository {
     if (userId == null) return const [];
 
     try {
-      final rows = await _client
+      final rows = await _readAll(() => _client
           .from('duels')
           .select('id, stake, created_at, challenges(title), '
               'challenger:profiles!duels_challenger_id_fkey'
@@ -824,7 +791,8 @@ class ChallengeRepository {
           .eq('opponent_id', userId)
           .eq('status', 'pending')
           .gt('expires_at', DateTime.now().toUtc().toIso8601String())
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .order('id'));
 
       final duels = rows.map((row) {
         final challenger = row['challenger'] as Map<String, dynamic>;
@@ -906,8 +874,8 @@ class ChallengeRepository {
     required bool accept,
   }) async {
     try {
-      final json = await _client
-          .rpc<Map<String, dynamic>>('respond_to_duel', params: {
+      final json =
+          await _client.rpc<Map<String, dynamic>>('respond_to_duel', params: {
         'p_duel_id': duelId,
         'p_accept': accept,
       });
@@ -933,8 +901,12 @@ class ChallengeRepository {
           .select('kind, amount, challenge_id, period_start, created_at, '
               'challenges(title)')
           .eq('user_id', userId)
-          .gte('created_at',
-              DateTime.now().toUtc().subtract(const Duration(days: 7)).toIso8601String())
+          .gte(
+              'created_at',
+              DateTime.now()
+                  .toUtc()
+                  .subtract(const Duration(days: 7))
+                  .toIso8601String())
           .order('created_at', ascending: false)
           .limit(15);
 
@@ -943,8 +915,8 @@ class ChallengeRepository {
                 kind: row['kind'] as String,
                 amount: row['amount'] as int?,
                 challengeId: row['challenge_id'] as String,
-                questTitle: (row['challenges']
-                    as Map<String, dynamic>)['title'] as String,
+                questTitle: (row['challenges'] as Map<String, dynamic>)['title']
+                    as String,
                 createdAt: DateTime.parse(row['created_at'] as String),
               ))
           .toList();
@@ -978,7 +950,7 @@ class ChallengeRepository {
     if (userId == null) return const [];
 
     try {
-      final rows = await _client
+      final rows = await _readAll(() => _client
           .from('challenge_participants')
           .select('challenge_id, status, challenge_aura, periods_missed, '
               'finished_at, challenges(title)')
@@ -986,13 +958,14 @@ class ChallengeRepository {
           .inFilter('status', ['completed', 'failed'])
           // Entries the user removed from their room stay out of it.
           .isFilter('trophy_hidden_at', null)
-          .order('finished_at', ascending: false);
+          .order('finished_at', ascending: false)
+          .order('id'));
 
       final trophies = rows
           .map((row) => Trophy(
                 challengeId: row['challenge_id'] as String,
-                questTitle: (row['challenges']
-                    as Map<String, dynamic>)['title'] as String,
+                questTitle: (row['challenges'] as Map<String, dynamic>)['title']
+                    as String,
                 finalAura: row['challenge_aura'] as int,
                 completed: row['status'] == 'completed',
                 perfect: row['status'] == 'completed' &&
@@ -1023,8 +996,7 @@ class ChallengeRepository {
     required int durationSeconds,
   }) async {
     try {
-      final newBalance =
-          await _client.rpc<int>('send_targeted_roast', params: {
+      final newBalance = await _client.rpc<int>('send_targeted_roast', params: {
         'p_challenge_id': challengeId,
         'p_target_id': targetId,
         'p_roast_text': roastText,
@@ -1046,12 +1018,13 @@ class ChallengeRepository {
     if (userId == null) return const [];
 
     try {
-      final rows = await _client
+      final rows = await _readAll(() => _client
           .from('targeted_roasts')
           .select('*, sender:profiles!sender_id(username)')
           .eq('target_id', userId)
           .isFilter('acknowledged_at', null)
-          .order('created_at', ascending: true);
+          .order('created_at', ascending: true)
+          .order('id'));
       return rows.map(TargetedRoast.fromJson).toList();
     } on PostgrestException catch (e) {
       _log('fetchUnacknowledgedTargetedRoasts', e);
@@ -1063,10 +1036,9 @@ class ChallengeRepository {
   /// countdown has run out and they dismissed it).
   Future<void> acknowledgeTargetedRoast(String roastId) async {
     try {
-      await _client
-          .from('targeted_roasts')
-          .update({'acknowledged_at': DateTime.now().toUtc().toIso8601String()})
-          .eq('id', roastId);
+      await _client.from('targeted_roasts').update({
+        'acknowledged_at': DateTime.now().toUtc().toIso8601String()
+      }).eq('id', roastId);
     } on PostgrestException catch (e) {
       _log('acknowledgeTargetedRoast', e);
     }
@@ -1120,13 +1092,12 @@ class ChallengeRepository {
     required int cost,
   }) async {
     try {
-      final json = await _client.rpc<Map<String, dynamic>>(
-          'attempt_aura_heist',
-          params: {
-            'p_challenge_id': challengeId,
-            'p_target_id': targetId,
-            'p_cost': cost,
-          });
+      final json = await _client
+          .rpc<Map<String, dynamic>>('attempt_aura_heist', params: {
+        'p_challenge_id': challengeId,
+        'p_target_id': targetId,
+        'p_cost': cost,
+      });
       final result = AuraHeistResult.fromJson(json);
       debugPrint('✅ [ChallengeRepository.attemptAuraHeist] '
           '→ $targetId ($cost) hit=${result.succeeded}');
@@ -1177,9 +1148,10 @@ class ChallengeRepository {
   /// at once, and asking per quest would be a request per row.
   Future<Map<String, ({int hour, int minute})>> fetchQuestReminders() async {
     try {
-      final rows = await _client
+      final rows = await _readAll(() => _client
           .from('quest_reminders')
-          .select('challenge_id, remind_at, enabled');
+          .select('challenge_id, remind_at, enabled')
+          .order('id'));
       final out = <String, ({int hour, int minute})>{};
       for (final row in rows) {
         if (row['enabled'] != true) continue;
@@ -1187,7 +1159,8 @@ class ChallengeRepository {
         out[row['challenge_id'] as String] =
             (hour: int.parse(parts[0]), minute: int.parse(parts[1]));
       }
-      debugPrint('✅ [ChallengeRepository.fetchQuestReminders] ${out.length} set');
+      debugPrint(
+          '✅ [ChallengeRepository.fetchQuestReminders] ${out.length} set');
       return out;
     } on PostgrestException catch (e) {
       _log('fetchQuestReminders', e);
@@ -1206,7 +1179,8 @@ class ChallengeRepository {
       'p_challenge_id': challengeId,
       'p_remind_at': value,
     });
-    debugPrint('✅ [ChallengeRepository.setQuestReminder] $challengeId → $value');
+    debugPrint(
+        '✅ [ChallengeRepository.setQuestReminder] $challengeId → $value');
   }
 
   Future<void> clearQuestReminder(String challengeId) async {
@@ -1284,14 +1258,15 @@ class ChallengeRepository {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return const [];
     try {
-      final rows = await _client
+      final rows = await _readAll(() => _client
           .from('blackouts')
           .select('*, attacker:profiles!attacker_id(username), '
               'challenges(title)')
           .eq('target_id', userId)
           .lte('starts_at', DateTime.now().toUtc().toIso8601String())
           .isFilter('acknowledged_at', null)
-          .order('starts_at', ascending: true);
+          .order('starts_at', ascending: true)
+          .order('id'));
       return rows.map(Blackout.fromJson).toList();
     } on PostgrestException catch (e) {
       _log('fetchUnseenBlackouts', e);
@@ -1302,8 +1277,8 @@ class ChallengeRepository {
   /// Marks the lockout notices in this quest as seen.
   Future<void> ackBlackouts(String challengeId) async {
     try {
-      await _client.rpc<void>('ack_blackouts',
-          params: {'p_challenge_id': challengeId});
+      await _client
+          .rpc<void>('ack_blackouts', params: {'p_challenge_id': challengeId});
     } on PostgrestException catch (e) {
       _log('ackBlackouts', e);
     }
@@ -1317,7 +1292,8 @@ class ChallengeRepository {
       final minutes = DateTime.now().timeZoneOffset.inMinutes;
       await _client
           .rpc<void>('set_my_timezone', params: {'p_offset_minutes': minutes});
-      debugPrint('✅ [ChallengeRepository.reportTimezone] UTC${minutes >= 0 ? '+' : ''}$minutes min');
+      debugPrint(
+          '✅ [ChallengeRepository.reportTimezone] UTC${minutes >= 0 ? '+' : ''}$minutes min');
     } catch (e) {
       debugPrint('⚠️ [ChallengeRepository.reportTimezone] $e');
     }
@@ -1337,16 +1313,18 @@ class ChallengeRepository {
 
     try {
       final results = await Future.wait([
-        _client
+        _readAll(() => _client
             .from('check_ins')
             .select('checked_on')
             .eq('user_id', userId)
-            .gte('checked_on', fromDay),
-        _client
+            .gte('checked_on', fromDay)
+            .order('id')),
+        _readAll(() => _client
             .from('progress_entries')
             .select('created_at')
             .eq('user_id', userId)
-            .gte('created_at', from.toIso8601String()),
+            .gte('created_at', from.toIso8601String())
+            .order('id')),
       ]);
 
       final byDay = <DateTime, int>{};
@@ -1390,30 +1368,34 @@ class ChallengeRepository {
 
     try {
       final results = await Future.wait([
-        _client
+        _readAll(() => _client
             .from('check_ins')
             .select('checked_on')
             .eq('user_id', userId)
             .gte('checked_on', _dateOnly(prevStart))
-            .lt('checked_on', _dateOnly(end)),
-        _client
+            .lt('checked_on', _dateOnly(end))
+            .order('id')),
+        _readAll(() => _client
             .from('progress_entries')
             .select('created_at')
             .eq('user_id', userId)
             .gte('created_at', prevStart.toIso8601String())
-            .lt('created_at', end.toIso8601String()),
-        _client
+            .lt('created_at', end.toIso8601String())
+            .order('id')),
+        _readAll(() => _client
             .from('settlement_events')
             .select('kind, amount, created_at')
             .eq('user_id', userId)
             .gte('created_at', start.toIso8601String())
-            .lt('created_at', end.toIso8601String()),
-        _client
+            .lt('created_at', end.toIso8601String())
+            .order('id')),
+        _readAll(() => _client
             .from('duels')
             .select('challenger_id, opponent_id, winner_id, resolved_at')
             .not('winner_id', 'is', null)
             .gte('resolved_at', start.toIso8601String())
-            .lt('resolved_at', end.toIso8601String()),
+            .lt('resolved_at', end.toIso8601String())
+            .order('id')),
       ]);
 
       // ── Logged activity, split into last week and the one before ──
@@ -1528,10 +1510,10 @@ class ChallengeRepository {
 
     try {
       // Which quests are we both in?
-      final rows = await _client
+      final rows = await _readAll(() => _client
           .from('challenge_participants')
           .select('challenge_id, user_id, challenge_aura')
-          .inFilter('user_id', [userId, friendId]);
+          .inFilter('user_id', [userId, friendId]).order('id'));
 
       final mine = <String, int>{};
       final theirs = <String, int>{};
@@ -1544,21 +1526,21 @@ class ChallengeRepository {
           theirs[quest] = aura;
         }
       }
-      final shared =
-          mine.keys.where((id) => theirs.containsKey(id)).toList();
+      final shared = mine.keys.where((id) => theirs.containsKey(id)).toList();
       if (shared.isEmpty) return empty;
 
       final results = await Future.wait([
-        _client
+        _readAll(() => _client
             .from('check_ins')
             .select('user_id')
             .inFilter('challenge_id', shared)
-            .inFilter('user_id', [userId, friendId]),
-        _client
+            .inFilter('user_id', [userId, friendId]).order('id')),
+        _readAll(() => _client
             .from('duels')
             .select('challenger_id, opponent_id, winner_id')
             .not('winner_id', 'is', null)
-            .inFilter('challenge_id', shared),
+            .inFilter('challenge_id', shared)
+            .order('id')),
       ]);
 
       var myCheckIns = 0;
@@ -1619,14 +1601,15 @@ class ChallengeRepository {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return const [];
     try {
-      final rows = await _client
+      final rows = await _readAll(() => _client
           .from('aura_heists')
           .select('*, attacker:profiles!attacker_id(username)')
           .eq('target_id', userId)
           .eq('succeeded', true)
           .not('resolved_at', 'is', null)
           .isFilter('acknowledged_at', null)
-          .order('resolved_at', ascending: true);
+          .order('resolved_at', ascending: true)
+          .order('id'));
       return rows.map(RobbedNotice.fromJson).toList();
     } on PostgrestException catch (e) {
       _log('fetchUnseenRobbedNotices', e);
@@ -1637,13 +1620,27 @@ class ChallengeRepository {
   /// Marks a landed heist as seen by the victim.
   Future<void> acknowledgeRobbedNotice(String heistId) async {
     try {
-      await _client
-          .from('aura_heists')
-          .update({'acknowledged_at': DateTime.now().toUtc().toIso8601String()})
-          .eq('id', heistId);
+      await _client.from('aura_heists').update({
+        'acknowledged_at': DateTime.now().toUtc().toIso8601String()
+      }).eq('id', heistId);
     } on PostgrestException catch (e) {
       _log('acknowledgeRobbedNotice', e);
     }
+  }
+
+  Future<List<Map<String, dynamic>>> _readAll(
+      PostgrestTransformBuilder<List<Map<String, dynamic>>> Function() query) {
+    final owner = _client.auth.currentUser?.id;
+    return readAllPages((from, to) async {
+      if (_client.auth.currentUser?.id != owner) {
+        throw const AuthException('Account changed');
+      }
+      final rows = await query().range(from, to);
+      if (_client.auth.currentUser?.id != owner) {
+        throw const AuthException('Account changed');
+      }
+      return rows;
+    });
   }
 
   // ── Helpers ────────────────────────────────────────────────────

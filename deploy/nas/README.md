@@ -1,6 +1,9 @@
 # Aura Quest auf dem UGREEN NAS (NAS-BRA)
 
-Stand: 28.07.2026 — der Stack **läuft**. Dieses Dokument beschreibt, wie er
+Audit-Ergänzung 07.09.2026: Die September-Migrationen einschließlich
+`20260907200000` sind auf dem NAS angewendet. Der zuvor defekte Push-Reaper
+läuft erfolgreich. Details und Prüfgrenzen: [Prüfbericht](../../docs/2026-09-07-code-review.md).
+Die folgende Aufbauhistorie stammt vom 28.07.2026. Dieses Dokument beschreibt, wie er
 tatsächlich aufgesetzt ist, nicht mehr wie er aufgesetzt werden soll.
 
 | Sicht | Pfad |
@@ -111,6 +114,11 @@ einen Abzug in `backups/` ab und behält die **14 jüngsten**. Das Skript dazu i
 [`backup-loop.sh`](backup-loop.sh); es wird schreibgeschützt in den Container
 eingehängt.
 
+Seit dem Audit vom 07.09.2026 werden Dumps mit `umask 077` geschrieben und
+dem NAS-Besitzer `1000:10` zugeordnet (über `BACKUP_UID`/`BACKUP_GID`
+überschreibbar). Projekt- und Backup-Verzeichnis sind 700, `.env`, Compose-Datei
+und Dumps 600. Die Backup-Routine wurde danach mit einem echten Dump geprüft.
+
 Ein Dateikopie-Backup einer **laufenden** Datenbank ist nicht garantiert
 wiederherstellbar — mittendrin geschriebene Seiten ergeben eine Datenbank, die
 vielleicht startet und vielleicht nicht. `pg_dump` liest dagegen einen
@@ -141,17 +149,30 @@ ls -lht /volume2/Datenbanken/AuraQuest/backups/*.dump | head
 Zeilenzahlen stimmten überein — 6 Konten, 7 Quests, 27 Check-ins, und die Summe
 aller Aura-Stände exakt gleich (12325).
 
-### In eine frische Datenbank
+### In einen isolierten Wiederherstellungscontainer
+
+Am 07.09.2026 wurde das Tagesbackup mit Besitzern und ACLs fehlerfrei in
+einen separaten PostgreSQL-17-Container eingespielt. `pg_cron` war dort mit
+`cron.launch_active_jobs=off` angehalten und das Netzwerk deaktiviert.
+Die Supabase-Basisrollen müssen vorhanden sein; im Testimage fehlten
+`supabase_realtime_admin` und `supabase_functions_admin` und wurden vorab
+angelegt. Restore und Rollenänderungen ausschließlich am neuen Testcontainer
+durchführen. Den geprüften Dump zuerst als `/tmp/nas.dump` hineinkopieren.
 
 ```bash
-docker exec -i auraquest-db pg_restore -U postgres -d postgres \
-  --no-owner --no-privileges < backups/auraquest-JJJJMMTT-HHMM.dump
+docker exec aura100-nas-restore pg_restore -U postgres -d postgres \
+  --clean --if-exists --exit-on-error /tmp/nas.dump
 ```
 
-### Erwartbare Fehlermeldungen, die keine sind
+`--no-privileges` eignet sich nicht als unverifizierte Produktions-Restore-
+Anleitung: damit fehlen die wiederherzustellenden Zugriffssperren und Grants.
+Besitzer, RLS, Spaltenrechte und RPC-Rechte vor einer Freigabe explizit prüfen.
+
+### Fehler bei abweichenden Zielumgebungen
 
 Beim Zurückspielen in eine **andere** Datenbank als `postgres` erscheinen acht
-Fehler. Sie betreffen ausschließlich Infrastruktur, nie Spieldaten:
+Fehler. Diese dürfen nicht pauschal ignoriert werden: auch fehlende
+Infrastruktur und Berechtigungen verhindern einen vollständigen Restore.
 
 | Meldung | Grund |
 |---|---|
@@ -170,9 +191,10 @@ mit. An ihnen hängt die gesamte Spiel-Ökonomie:
 select jobname, schedule, command from cron.job;
 ```
 
-Erwartet werden fünf Einträge: `aura-settlement` (`5 * * * *`), `duel-expiry`
+Erwartet werden sechs Einträge: `aura-settlement` (`5 * * * *`), `duel-expiry`
 (`10 * * * *`), `deliver-notifications` (`* * * * *`), `reap-push-failures`
-(`*/15 * * * *`) und `prune-notification-outbox` (`30 4 * * *`). Fehlen sie,
+(`*/5 * * * *`), `send-quest-reminders` (`*/5 * * * *`) und
+`prune-notification-outbox` (`30 4 * * *`). Fehlen sie,
 müssen sie mit `cron.schedule(...)` neu angelegt werden — sonst laufen Strafen,
 Strikes und Quest-Abschlüsse stillschweigend nicht mehr.
 

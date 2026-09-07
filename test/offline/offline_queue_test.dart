@@ -35,7 +35,7 @@ void main() {
   });
 
   group('OfflineCheckInQueue', () {
-    const queue = OfflineCheckInQueue();
+    const queue = OfflineCheckInQueue(userId: 'test-user');
 
     test('starts with empty queue', () async {
       final items = await queue.getPending();
@@ -58,7 +58,8 @@ void main() {
       expect(items.first.questTitle, 'Cold Shower');
     });
 
-    test('prevents duplicate check-in for the same challenge on same day', () async {
+    test('prevents duplicate check-in for the same challenge on same day',
+        () async {
       final item1 = PendingCheckIn(
         challengeId: 'q1',
         questTitle: 'Cold Shower',
@@ -76,7 +77,7 @@ void main() {
       final added2 = await queue.enqueue(item2);
 
       expect(added1, isTrue);
-      expect(added2, isFalse);
+      expect(added2, isTrue);
 
       final items = await queue.getPending();
       expect(items.length, 1);
@@ -119,7 +120,9 @@ void main() {
       expect(items, isEmpty);
     });
 
-    test('isolates queue per userId to prevent cross-account check-in pollution', () async {
+    test(
+        'isolates queue per userId to prevent cross-account check-in pollution',
+        () async {
       const queueUserA = OfflineCheckInQueue(userId: 'user_A');
       const queueUserB = OfflineCheckInQueue(userId: 'user_B');
 

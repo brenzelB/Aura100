@@ -15,14 +15,14 @@ import 'package:intl/intl.dart';
 /// interface. The day the app speaks more languages, this is the single
 /// place to hand the device locale in.
 
-/// `Jul 29, 2026`
-String formatDate(DateTime at) => DateFormat.yMMMd().format(at.toLocal());
+/// Calendar date, e.g. `Jul 29, 2026`. UTC date-only values must not
+/// shift to the preceding day on devices west of Greenwich.
+String formatDate(DateTime at) => DateFormat.yMMMd().format(at);
 
 /// `Wednesday, Jul 29, 2026`
 String formatWeekdayDate(DateTime at) {
-  final local = at.toLocal();
-  return '${DateFormat.EEEE().format(local)}, '
-      '${DateFormat.yMMMd().format(local)}';
+  return '${DateFormat.EEEE().format(at)}, '
+      '${DateFormat.yMMMd().format(at)}';
 }
 
 /// `10:32` — 24-hour, the same as before. Now one place to change it.

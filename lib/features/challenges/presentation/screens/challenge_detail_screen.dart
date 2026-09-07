@@ -944,8 +944,8 @@ class _ProgressSection extends ConsumerWidget {
     final entriesAsync = ref.watch(progressEntriesProvider(challenge.id));
     final target = challenge.targetValue ?? 0;
     final done = challenge.progressInPeriod >= target && target > 0;
-    final ended =
-        !challenge.isEndless && !DateTime.now().toUtc().isBefore(challenge.endsAt);
+    final ended = challenge.isFinished ||
+        (!challenge.isEndless && !DateTime.now().toUtc().isBefore(challenge.endsAt));
     // A running lockout — null whenever nothing is blocking right now.
     final running = ref.watch(myBlackoutProvider(challenge.id)).valueOrNull;
     final blackout = (running != null && running.isRunning) ? running : null;

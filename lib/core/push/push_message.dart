@@ -2,8 +2,7 @@
 ///
 /// The two delivery routes hand over very different things:
 ///
-///  * **UnifiedPush** carries the full text. The server is ours, so
-///    there is nothing to hide from it and nothing to look up.
+///  * **UnifiedPush** carries a content-free wake-up ping.
 ///  * **Firebase** carries only a category and the row id. The text is
 ///    fetched from our own server afterwards — Google never sees who
 ///    attacked whom, in which quest, or with what.
@@ -64,17 +63,17 @@ class PushMessage {
   /// JSON our own delivery function posted. The keys are the same in
   /// both because the server writes them that way, so one parser does.
   static PushMessage? tryParse(Map<String, dynamic> data) {
-    final category = data['category'] as String?;
-    if (category == null) return null;
+    final category = data['category'];
+    if (category is! String) return null;
 
     final rawId = data['id'];
     final outboxId = rawId is int ? rawId : int.tryParse('${rawId ?? ''}');
-    final refId = data['refId'] as String?;
+    final refId = data['refId'] is String ? data['refId'] as String : null;
 
-    // UnifiedPush carries the text; Firebase does not.
-    final title = data['title'] as String?;
-    final body = (data['message'] ?? data['body']) as String?;
-    if (title == null || body == null) {
+    // Legacy text is parsed for compatibility, but never trusted for display.
+    final title = data['title'];
+    final body = data['message'] ?? data['body'];
+    if (title is! String || body is! String) {
       return PushMessage.fallback(
         category: category,
         refId: refId,

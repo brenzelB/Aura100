@@ -1,145 +1,103 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import '../config/supabase_config.dart';
 import 'pending_check_in.dart';
 
-/// Manages the local persistent FIFO queue of offline check-ins via [SharedPreferences].
+/// Durable queue owned by one account on one backend. Legacy queues remain
+/// quarantined: their missing backend/owner cannot be inferred from a login.
 class OfflineCheckInQueue {
-  const OfflineCheckInQueue({this.userId});
-
-  /// The active user ID for queue isolation, or null for global/unauthenticated fallback.
+  const OfflineCheckInQueue(
+      {this.userId, this.backendUrl = SupabaseConfig.url});
   final String? userId;
+  final String backendUrl;
+  static const defaultStorageKey = 'pending_offline_checkins';
+  static final _writes = <String, Future<void>>{};
+  bool get hasOwner => userId != null && userId!.isNotEmpty;
+  String get storageKey =>
+      'pending_checkins_v2_${base64Url.encode(utf8.encode(jsonEncode([
+            backendUrl,
+            userId
+          ])))}';
 
-  static const String defaultStorageKey = 'pending_offline_checkins';
-
-  /// Dynamically scopes storage key to the active user.
-  String get storageKey => (userId != null && userId!.isNotEmpty)
-      ? 'pending_offline_checkins_$userId'
-      : defaultStorageKey;
-
-  /// Reads all pending check-ins currently stored on device for this user scope.
-  Future<List<PendingCheckIn>> getPending() async {
+  Future<T> _exclusive<T>(Future<T> Function() action) async {
+    final previous = _writes[storageKey] ?? Future<void>.value();
+    final done = Completer<void>();
+    _writes[storageKey] = done.future;
+    await previous;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      var rawList = prefs.getStringList(storageKey);
-
-      // Migration fallback: if user-scoped key is not yet set, inspect legacy global key
-      if (rawList == null && userId != null && userId!.isNotEmpty) {
-        final legacy = prefs.getStringList(defaultStorageKey);
-        if (legacy != null && legacy.isNotEmpty) {
-          rawList = legacy;
-        }
+      return await action();
+    } finally {
+      done.complete();
+      if (identical(_writes[storageKey], done.future)) {
+        _writes.remove(storageKey);
       }
-
-      rawList ??= [];
-      final result = <PendingCheckIn>[];
-      for (final item in rawList) {
-        try {
-          final map = jsonDecode(item) as Map<String, dynamic>;
-          final parsed = PendingCheckIn.fromJson(map);
-          // If queue is user-scoped and parsed item has a different non-empty userId, ignore it
-          if (userId != null &&
-              userId!.isNotEmpty &&
-              parsed.userId.isNotEmpty &&
-              parsed.userId != userId) {
-            continue;
-          }
-          result.add(parsed);
-        } catch (e) {
-          debugPrint('⚠ [OfflineCheckInQueue] Dropping corrupted entry: $e');
-        }
-      }
-      return result;
-    } catch (e) {
-      debugPrint('⚠ [OfflineCheckInQueue] Failed to read queue: $e');
-      return [];
     }
   }
 
-  /// Appends a check-in to the queue. Idempotent: does not duplicate
-  /// an entry for the same challenge on the same day.
-  Future<bool> enqueue(PendingCheckIn checkIn) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final current = await getPending();
-
-      // Check if already in queue for this day
-      final exists = current.any((item) =>
-          item.challengeId == checkIn.challengeId &&
-          item.date.year == checkIn.date.year &&
-          item.date.month == checkIn.date.month &&
-          item.date.day == checkIn.date.day);
-
-      if (exists) {
-        debugPrint(
-            'ℹ [OfflineCheckInQueue] Check-in already queued: ${checkIn.questTitle}');
-        return false;
+  Future<List<PendingCheckIn>> _read() async {
+    if (!hasOwner) return [];
+    final prefs = await SharedPreferences.getInstance();
+    final items = <PendingCheckIn>[];
+    for (final raw in prefs.getStringList(storageKey) ?? <String>[]) {
+      try {
+        final item =
+            PendingCheckIn.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+        if (item.userId == userId) items.add(item);
+      } on FormatException catch (_) {
+        debugPrint('Ignoring malformed offline check-in');
+      } on TypeError catch (_) {
+        debugPrint('Ignoring malformed offline check-in');
       }
+    }
+    return items;
+  }
 
-      final itemToStore = (checkIn.userId.isEmpty &&
-              userId != null &&
-              userId!.isNotEmpty)
-          ? PendingCheckIn(
-              challengeId: checkIn.challengeId,
-              questTitle: checkIn.questTitle,
-              timestamp: checkIn.timestamp,
-              date: checkIn.date,
-              userId: userId!,
-            )
-          : checkIn;
+  Future<List<PendingCheckIn>> getPending() => _exclusive(_read);
 
-      current.add(itemToStore);
-      final rawList = current.map((item) => jsonEncode(item.toJson())).toList();
-      await prefs.setStringList(storageKey, rawList);
-      debugPrint(
-          '💾 [OfflineCheckInQueue] Enqueued offline check-in for "${checkIn.questTitle}" '
-          'in $storageKey (${current.length} total pending)');
-      return true;
-    } catch (e) {
-      debugPrint('⚠ [OfflineCheckInQueue] Failed to enqueue: $e');
+  /// True means the check-in is durably present (including a duplicate tap).
+  Future<bool> enqueue(PendingCheckIn item) async {
+    if (!hasOwner || (item.userId.isNotEmpty && item.userId != userId)) {
+      return false;
+    }
+    try {
+      return await _exclusive(() async {
+        final items = await _read();
+        if (items.any(
+            (p) => p.challengeId == item.challengeId && p.date == item.date)) {
+          return true;
+        }
+        items.add(PendingCheckIn(
+            challengeId: item.challengeId,
+            questTitle: item.questTitle,
+            timestamp: item.timestamp,
+            date: item.date,
+            userId: userId!));
+        return _save(items);
+      });
+    } catch (_) {
       return false;
     }
   }
 
-  /// Removes a specific check-in (after successful sync or cancellation).
-  Future<void> remove(String challengeId, {DateTime? date}) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final current = await getPending();
-      final before = current.length;
+  Future<bool> _save(List<PendingCheckIn> items) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.setStringList(
+        storageKey, items.map((p) => jsonEncode(p.toJson())).toList());
+  }
 
-      current.removeWhere((item) {
-        if (item.challengeId != challengeId) return false;
-        if (date != null) {
-          return item.date.year == date.year &&
-              item.date.month == date.month &&
-              item.date.day == date.day;
+  Future<void> remove(String challengeId, {DateTime? date}) =>
+      _exclusive(() async {
+        final items = await _read();
+        items.removeWhere((p) =>
+            p.challengeId == challengeId && (date == null || p.date == date));
+        if (!await _save(items)) {
+          throw StateError('Could not persist offline queue');
         }
-        return true;
       });
 
-      if (current.length != before) {
-        final rawList =
-            current.map((item) => jsonEncode(item.toJson())).toList();
-        await prefs.setStringList(storageKey, rawList);
-        debugPrint(
-            '🗑 [OfflineCheckInQueue] Removed check-in for $challengeId '
-            'from $storageKey (${current.length} remaining)');
-      }
-    } catch (e) {
-      debugPrint('⚠ [OfflineCheckInQueue] Failed to remove entry: $e');
-    }
-  }
-
-  /// Clears all pending check-ins for this user scope.
-  Future<void> clear() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(storageKey);
-      debugPrint('🧹 [OfflineCheckInQueue] Queue cleared ($storageKey)');
-    } catch (e) {
-      debugPrint('⚠ [OfflineCheckInQueue] Failed to clear queue: $e');
-    }
-  }
+  Future<void> clear() => _exclusive(() async {
+        if (!await _save([])) throw StateError('Could not clear offline queue');
+      });
 }

@@ -32,12 +32,13 @@ void main() {
   });
 
   group('OfflineSyncService', () {
-    const queue = OfflineCheckInQueue();
+    const queue = OfflineCheckInQueue(userId: 'test-user');
     late OfflineSyncService service;
     late FakeChallengeRepository fakeRepo;
 
     setUp(() {
-      service = OfflineSyncService(queue: queue);
+      service = OfflineSyncService(
+          queue: queue, currentUserIdGetter: () => 'test-user');
       fakeRepo = FakeChallengeRepository();
     });
 
@@ -104,7 +105,8 @@ void main() {
       expect(remaining, isEmpty);
     });
 
-    test('drops expired check-ins from yesterday since log_check_in only records today',
+    test(
+        'drops expired check-ins from yesterday since log_check_in only records today',
         () async {
       final nowUtc = DateTime.now().toUtc();
       final today = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day);

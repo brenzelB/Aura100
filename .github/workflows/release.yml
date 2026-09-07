@@ -15,6 +15,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     name: Run Tests & Static Analysis
@@ -33,6 +36,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          flutter-version: '3.44.6'
           cache: true
 
       - name: Install Dependencies
@@ -62,28 +66,33 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          flutter-version: '3.44.6'
           cache: true
 
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Configure Keystore (if secret present)
+      - name: Configure Required Release Keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KEY_PROPERTIES: ${{ secrets.ANDROID_KEY_PROPERTIES }}
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > android/aura-quest-release.jks
-            echo "$KEY_PROPERTIES" > android/key.properties
-          fi
+          test -n "$KEYSTORE_BASE64" && test -n "$KEY_PROPERTIES" || {
+            echo 'Release signing secrets are required.'; exit 1;
+          }
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > android/aura-quest-release.jks
+          printf '%s' "$KEY_PROPERTIES" > android/key.properties
 
       - name: Build App Bundle (.aab)
+        env:
+          BUILD_NUMBER: ${{ github.event.inputs.build_number }}
         run: |
-          BUILD_ARGS="--release"
-          if [ -n "${{ github.event.inputs.build_number }}" ]; then
-            BUILD_ARGS="$BUILD_ARGS --build-number=${{ github.event.inputs.build_number }}"
+          BUILD_ARGS=(--release)
+          if [ -n "$BUILD_NUMBER" ]; then
+            [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]] || exit 1
+            BUILD_ARGS+=("--build-number=$BUILD_NUMBER")
           fi
-          flutter build appbundle $BUILD_ARGS
+          flutter build appbundle "${BUILD_ARGS[@]}"
 
       - name: Upload Android Bundle Artifact
         uses: actions/upload-artifact@v4
@@ -104,18 +113,22 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          flutter-version: '3.44.6'
           cache: true
 
       - name: Install Dependencies
         run: flutter pub get
 
       - name: Build iOS Archive
+        env:
+          BUILD_NUMBER: ${{ github.event.inputs.build_number }}
         run: |
-          BUILD_ARGS="--release --no-codesign"
-          if [ -n "${{ github.event.inputs.build_number }}" ]; then
-            BUILD_ARGS="$BUILD_ARGS --build-number=${{ github.event.inputs.build_number }}"
+          BUILD_ARGS=(--release --no-codesign)
+          if [ -n "$BUILD_NUMBER" ]; then
+            [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]] || exit 1
+            BUILD_ARGS+=("--build-number=$BUILD_NUMBER")
           fi
-          flutter build ipa $BUILD_ARGS
+          flutter build ipa "${BUILD_ARGS[@]}"
 
       - name: Upload iOS Archive Artifact
         uses: actions/upload-artifact@v4
