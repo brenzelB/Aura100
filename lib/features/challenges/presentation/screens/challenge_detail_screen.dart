@@ -1915,24 +1915,30 @@ class _DayDetailsSheetState extends ConsumerState<_DayDetailsSheet> {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
 
-    final gained = await ref
+    final result = await ref
         .read(checkInControllerProvider(widget.challenge.id).notifier)
-        .checkIn();
+        .checkIn(questTitle: widget.challenge.title);
     if (!mounted) return;
 
-    if (gained == null) {
-      // Initiator reports the error (no ref.listen — the challenge card
-      // shares this controller and would duplicate the snackbar).
-      final error =
-          ref.read(checkInControllerProvider(widget.challenge.id)).error;
+    if (result.isQueuedOffline) {
+      navigator.pop();
       messenger.showSnackBar(SnackBar(
-        content: Text(error is PostgrestException
-            ? error.message
-            : 'Check-in failed - try again.'),
+        content: const Text(
+            '⚡ Offline erledigt! Wird synchronisiert, sobald wieder Netz da ist.'),
+        backgroundColor: AppColors.neonYellow,
+      ));
+      return;
+    }
+
+    if (!result.isSuccess) {
+      messenger.showSnackBar(SnackBar(
+        content: Text(result.errorMessage ?? 'Check-in failed - try again.'),
         backgroundColor: AppColors.danger,
       ));
       return;
     }
+
+    final gained = result.auraGained ?? 0;
 
     // A heist may have swiped this payout — reveal it over the sheet,
     // then close and skip the "+aura" toast (gained is 0 when robbed).

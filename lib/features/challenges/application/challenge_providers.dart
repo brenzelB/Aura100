@@ -1,9 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/supabase_config.dart';
+import '../../../core/offline/offline_check_in_queue.dart';
+import '../../../core/offline/offline_sync_service.dart';
+import '../../../core/offline/pending_check_in.dart';
 import '../../auth/application/auth_providers.dart';
 import '../data/challenge_repository.dart';
 import '../domain/benefit.dart';
@@ -24,13 +29,28 @@ final challengeRepositoryProvider = Provider<ChallengeRepository>((ref) {
   return ChallengeRepository(Supabase.instance.client);
 });
 
+List<Challenge> _lastKnownActiveChallenges = [];
+Map<String, Map<DateTime, DateTime>> _lastKnownServerCheckIns = {};
+final Map<String, Map<DateTime, DateTime>> _lastKnownChallengeCheckIns = {};
+
 /// The logged-in user's ACTIVE challenges (incl. per-challenge aura),
 /// newest first. Re-fetches on auth events; empty in skeleton mode.
 final myChallengesProvider =
-    FutureProvider.autoDispose<List<Challenge>>((ref) {
+    FutureProvider.autoDispose<List<Challenge>>((ref) async {
   if (!SupabaseConfig.isConfigured) return const [];
   ref.watch(authStateChangesProvider); // rebuild on login/logout
-  return ref.watch(challengeRepositoryProvider).fetchMyActiveChallenges();
+  try {
+    final list =
+        await ref.watch(challengeRepositoryProvider).fetchMyActiveChallenges();
+    _lastKnownActiveChallenges = list;
+    return list;
+  } catch (e) {
+    if (_isNetworkError(e) && _lastKnownActiveChallenges.isNotEmpty) {
+      debugPrint('🔌 [myChallengesProvider] Offline, using cached challenges');
+      return _lastKnownActiveChallenges;
+    }
+    rethrow;
+  }
 });
 
 /// Unacknowledged targeted roasts sent to the user.
@@ -195,26 +215,79 @@ class TrophyController extends AutoDisposeAsyncNotifier<void> {
 }
 
 /// The user's check-ins across ALL active quests, grouped by quest id.
-/// One request that feeds the whole Home dashboard.
+/// One request that feeds the whole Home dashboard. Merges pending
+/// offline check-ins so the UI optimistically flips to done immediately.
 final myCheckInsProvider =
     FutureProvider.autoDispose<Map<String, Map<DateTime, DateTime>>>(
         (ref) async {
   if (!SupabaseConfig.isConfigured) return const {};
   final challenges = await ref.watch(myChallengesProvider.future);
   if (challenges.isEmpty) return const {};
-  return ref
-      .watch(challengeRepositoryProvider)
-      .fetchCheckInsForChallenges(challenges.map((c) => c.id).toList());
+
+  Map<String, Map<DateTime, DateTime>> serverMap = const {};
+  try {
+    serverMap = await ref
+        .watch(challengeRepositoryProvider)
+        .fetchCheckInsForChallenges(challenges.map((c) => c.id).toList());
+    _lastKnownServerCheckIns = serverMap;
+  } catch (e) {
+    if (_isNetworkError(e)) {
+      debugPrint('🔌 [myCheckInsProvider] Offline, using cached check-ins');
+      serverMap = _lastKnownServerCheckIns;
+    } else {
+      rethrow;
+    }
+  }
+
+  // Merge pending offline check-ins
+  final pending = ref.watch(pendingCheckInsProvider);
+  if (pending.isEmpty) return serverMap;
+
+  final merged = <String, Map<DateTime, DateTime>>{};
+  for (final entry in serverMap.entries) {
+    merged[entry.key] = Map<DateTime, DateTime>.from(entry.value);
+  }
+  for (final p in pending) {
+    final questMap = merged.putIfAbsent(p.challengeId, () => {});
+    final pDate = DateTime.utc(p.date.year, p.date.month, p.date.day);
+    questMap[pDate] = p.timestamp;
+  }
+  return merged;
 });
 
 /// The user's check-in history for ONE challenge (family arg =
 /// challenge id): UTC day → check-in timestamp. Fuels the timeline
-/// on the detail screen. Invalidated after every check-in.
+/// on the detail screen. Merges pending offline check-ins.
 final checkInsProvider = FutureProvider.autoDispose
-    .family<Map<DateTime, DateTime>, String>((ref, challengeId) {
+    .family<Map<DateTime, DateTime>, String>((ref, challengeId) async {
   if (!SupabaseConfig.isConfigured) return const {};
   ref.watch(authStateChangesProvider);
-  return ref.watch(challengeRepositoryProvider).fetchCheckIns(challengeId);
+
+  Map<DateTime, DateTime> serverMap = const {};
+  try {
+    serverMap =
+        await ref.watch(challengeRepositoryProvider).fetchCheckIns(challengeId);
+    _lastKnownChallengeCheckIns[challengeId] = serverMap;
+  } catch (e) {
+    if (_isNetworkError(e)) {
+      debugPrint(
+          '🔌 [checkInsProvider] Offline for $challengeId, using cached check-ins');
+      serverMap = _lastKnownChallengeCheckIns[challengeId] ?? const {};
+    } else {
+      rethrow;
+    }
+  }
+
+  final pending = ref.watch(pendingCheckInsProvider);
+  final thisPending = pending.where((p) => p.challengeId == challengeId);
+  if (thisPending.isEmpty) return serverMap;
+
+  final merged = Map<DateTime, DateTime>.from(serverMap);
+  for (final p in thisPending) {
+    final pDate = DateTime.utc(p.date.year, p.date.month, p.date.day);
+    merged[pDate] = p.timestamp;
+  }
+  return merged;
 });
 
 /// The shared activity feed of ONE quest (family arg = challenge id):
@@ -348,6 +421,106 @@ final benefitsProvider = FutureProvider.autoDispose
   return ref.watch(challengeRepositoryProvider).fetchBenefits(challengeId);
 });
 
+bool _isNetworkError(Object error) {
+  if (error is SocketException ||
+      error is TimeoutException ||
+      error is HttpException) {
+    return true;
+  }
+  final errStr = error.toString().toLowerCase();
+  return errStr.contains('socket') ||
+      errStr.contains('network') ||
+      errStr.contains('connection') ||
+      errStr.contains('clientexception') ||
+      errStr.contains('failed host lookup') ||
+      errStr.contains('handshake') ||
+      errStr.contains('timeout') ||
+      errStr.contains('unreachable') ||
+      errStr.contains('os error');
+}
+
+class PendingCheckInsNotifier extends StateNotifier<List<PendingCheckIn>> {
+  PendingCheckInsNotifier(this._queue) : super(const []) {
+    load();
+  }
+
+  final OfflineCheckInQueue _queue;
+
+  Future<void> load() async {
+    final list = await _queue.getPending();
+    state = list;
+  }
+
+  Future<bool> enqueue(PendingCheckIn checkIn) async {
+    final success = await _queue.enqueue(checkIn);
+    if (success) {
+      await load();
+    }
+    return success;
+  }
+
+  Future<void> remove(String challengeId, {DateTime? date}) async {
+    await _queue.remove(challengeId, date: date);
+    await load();
+  }
+
+  Future<void> clear() async {
+    await _queue.clear();
+    state = const [];
+  }
+}
+
+final offlineCheckInQueueProvider = Provider<OfflineCheckInQueue>((ref) {
+  return const OfflineCheckInQueue();
+});
+
+final pendingCheckInsProvider =
+    StateNotifierProvider<PendingCheckInsNotifier, List<PendingCheckIn>>((ref) {
+  final queue = ref.watch(offlineCheckInQueueProvider);
+  return PendingCheckInsNotifier(queue);
+});
+
+final offlineSyncServiceProvider = Provider<OfflineSyncService>((ref) {
+  final service = OfflineSyncService(
+    queue: ref.watch(offlineCheckInQueueProvider),
+  );
+
+  service.initialize(
+    () async {
+      await ref.read(pendingCheckInsProvider.notifier).load();
+      ref.invalidate(myChallengesProvider);
+      ref.invalidate(myCheckInsProvider);
+      ref.invalidate(settlementEventsProvider);
+      ref.invalidate(robbedNoticesProvider);
+    },
+    () => service.syncPendingCheckIns(ref.read(challengeRepositoryProvider)),
+  );
+
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+enum CheckInStatus {
+  success,
+  queuedOffline,
+  failed,
+}
+
+class CheckInResult {
+  const CheckInResult({
+    required this.status,
+    this.auraGained,
+    this.errorMessage,
+  });
+
+  final CheckInStatus status;
+  final int? auraGained;
+  final String? errorMessage;
+
+  bool get isSuccess => status == CheckInStatus.success;
+  bool get isQueuedOffline => status == CheckInStatus.queuedOffline;
+}
+
 /// Runs the daily check-in for ONE challenge (family arg = challenge id)
 /// so each card has its own loading/error state.
 final checkInControllerProvider = AsyncNotifierProvider.autoDispose
@@ -359,27 +532,59 @@ class CheckInController extends AutoDisposeFamilyAsyncNotifier<void, String> {
     // Action-only notifier; `arg` is the challenge id.
   }
 
-  /// Returns the aura gained, or null on failure.
-  Future<int?> checkIn() async {
+  /// Runs the daily check-in. If offline, stores the check-in locally and
+  /// returns [CheckInResult.queuedOffline] with optimistic UI update.
+  Future<CheckInResult> checkIn({String? questTitle}) async {
     final repo = ref.read(challengeRepositoryProvider);
     state = const AsyncLoading();
     int? gained;
-    state = await AsyncValue.guard(() async {
-      gained = await repo.logCheckIn(arg);
-    });
-    if (state.hasError) return null;
+    Object? caughtError;
 
-    // Card flips to DONE, quest aura updates, timeline and the Home
-    // agenda get the new day. The event feed may hold a fresh streak
-    // milestone or an instant win, so refresh it too — that's what the
-    // Home celebration screen watches.
-    ref.invalidate(myChallengesProvider);
-    ref.invalidate(checkInsProvider(arg));
-    ref.invalidate(myCheckInsProvider);
-    ref.invalidate(settlementEventsProvider);
-    // A heist may have just fired on this check-in — surface the notice.
-    ref.invalidate(robbedNoticesProvider);
-    return gained;
+    try {
+      gained = await repo.logCheckIn(arg);
+      state = const AsyncData(null);
+    } catch (e, st) {
+      caughtError = e;
+      state = AsyncError(e, st);
+    }
+
+    if (caughtError == null && gained != null) {
+      ref.invalidate(myChallengesProvider);
+      ref.invalidate(checkInsProvider(arg));
+      ref.invalidate(myCheckInsProvider);
+      ref.invalidate(settlementEventsProvider);
+      ref.invalidate(robbedNoticesProvider);
+      return CheckInResult(status: CheckInStatus.success, auraGained: gained);
+    }
+
+    // Check if offline/connection error
+    if (caughtError != null && _isNetworkError(caughtError)) {
+      final nowUtc = DateTime.now().toUtc();
+      final todayDate = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day);
+      final pending = PendingCheckIn(
+        challengeId: arg,
+        questTitle: questTitle ?? 'Quest',
+        timestamp: nowUtc,
+        date: todayDate,
+      );
+
+      await ref.read(pendingCheckInsProvider.notifier).enqueue(pending);
+      state = const AsyncData(null);
+
+      // Invalidate to update optimistic UI
+      ref.invalidate(myCheckInsProvider);
+      ref.invalidate(checkInsProvider(arg));
+
+      return const CheckInResult(status: CheckInStatus.queuedOffline);
+    }
+
+    final message = caughtError is PostgrestException
+        ? caughtError.message
+        : 'Check-in failed - try again.';
+    return CheckInResult(
+      status: CheckInStatus.failed,
+      errorMessage: message,
+    );
   }
 }
 

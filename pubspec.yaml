@@ -27,9 +27,10 @@ dependencies:
   google_fonts: ^6.2.1 # 'Press Start 2P' (pixel) + 'Space Grotesk' (body)
   cupertino_icons: ^1.0.8
 
-  # ── Local storage ────────────────────────────────────────
-  # Tracks which defeats the player has already been roasted for.
+  # ── Local storage & Networking ───────────────────────────
+  # Tracks which defeats the player has already been roasted for and pending check-ins.
   shared_preferences: ^2.3.0
+  connectivity_plus: ^6.1.0
 
   # ── Text handling ────────────────────────────────────────
   # Grapheme clusters: an emoji like 🇩🇪 or 👨‍👩‍👧 is several codepoints

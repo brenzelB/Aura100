@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -27,23 +26,28 @@ class ChallengeCard extends ConsumerWidget {
     // (list invalidation) by the time the snackbar is shown.
     final messenger = ScaffoldMessenger.of(context);
 
-    final gained = await ref
+    final result = await ref
         .read(checkInControllerProvider(challenge.id).notifier)
-        .checkIn();
+        .checkIn(questTitle: challenge.title);
 
-    if (gained == null) {
-      // Report the error HERE (not via ref.listen): the detail screen's
-      // day sheet shares this controller, and two listeners would show
-      // the same snackbar twice.
-      final error = ref.read(checkInControllerProvider(challenge.id)).error;
+    if (result.isQueuedOffline) {
       messenger.showSnackBar(SnackBar(
-        content: Text(error is PostgrestException
-            ? error.message
-            : 'Check-in failed - try again.'),
+        content: const Text(
+            '⚡ Offline erledigt! Wird synchronisiert, sobald wieder Netz da ist.'),
+        backgroundColor: AppColors.neonYellow,
+      ));
+      return;
+    }
+
+    if (!result.isSuccess) {
+      messenger.showSnackBar(SnackBar(
+        content: Text(result.errorMessage ?? 'Check-in failed - try again.'),
         backgroundColor: AppColors.danger,
       ));
       return;
     }
+
+    final gained = result.auraGained ?? 0;
 
     // A heist may have swiped this payout — reveal it and skip the
     // "+aura" toast (gained is 0 when robbed).

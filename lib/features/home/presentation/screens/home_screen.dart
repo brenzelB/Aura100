@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -42,7 +41,12 @@ class HomeScreen extends ConsumerWidget {
       body: RefreshIndicator(
         color: AppColors.neonCyan,
         backgroundColor: AppColors.surface,
-        onRefresh: () {
+        onRefresh: () async {
+          // Trigger offline sync if any pending check-ins exist
+          await ref
+              .read(offlineSyncServiceProvider)
+              .syncPendingCheckIns(ref.read(challengeRepositoryProvider));
+          await ref.read(pendingCheckInsProvider.notifier).load();
           ref.invalidate(myInvitesProvider);
           ref.invalidate(myNudgesProvider);
           ref.invalidate(myCheckInsProvider);
@@ -797,21 +801,28 @@ class _CheckInButton extends ConsumerWidget {
     }
 
     final messenger = ScaffoldMessenger.of(context);
-    final gained = await ref
+    final result = await ref
         .read(checkInControllerProvider(item.challenge.id).notifier)
-        .checkIn();
+        .checkIn(questTitle: item.challenge.title);
 
-    if (gained == null) {
-      final error =
-          ref.read(checkInControllerProvider(item.challenge.id)).error;
+    if (result.isQueuedOffline) {
       messenger.showSnackBar(SnackBar(
-        content: Text(error is PostgrestException
-            ? error.message
-            : 'Check-in failed - try again.'),
+        content: const Text(
+            '⚡ Offline erledigt! Wird synchronisiert, sobald wieder Netz da ist.'),
+        backgroundColor: AppColors.neonYellow,
+      ));
+      return;
+    }
+
+    if (!result.isSuccess) {
+      messenger.showSnackBar(SnackBar(
+        content: Text(result.errorMessage ?? 'Check-in failed - try again.'),
         backgroundColor: AppColors.danger,
       ));
       return;
     }
+
+    final gained = result.auraGained ?? 0;
 
     // Checking in clears this quest's pokes (server-side trigger) —
     // refresh the inbox so they drop off Home immediately.
@@ -1242,22 +1253,25 @@ class _DoomedCard extends StatelessWidget {
 }
 
 /// One line per quest already satisfied this period.
-class _DoneRow extends StatelessWidget {
+class _DoneRow extends ConsumerWidget {
   const _DoneRow({required this.item});
 
   final AgendaItem item;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isPending = ref.watch(pendingCheckInsProvider).any((p) =>
+        p.challengeId == item.challenge.id);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
           ThemeIcon(
-            icon: Icons.check_circle,
-            matrixChar: '[X]',
+            icon: isPending ? Icons.hourglass_top : Icons.check_circle,
+            matrixChar: isPending ? '[~]' : '[X]',
             size: 14,
-            color: AppColors.neonGreen,
+            color: isPending ? AppColors.neonYellow : AppColors.neonGreen,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -1271,7 +1285,25 @@ class _DoneRow extends StatelessWidget {
                   ?.copyWith(color: AppColors.textSecondary),
             ),
           ),
-          if (item.challenge.checkinPeriod != CheckinPeriod.daily)
+          if (isPending)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.neonYellow.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                    color: AppColors.neonYellow.withValues(alpha: 0.5), width: 1),
+              ),
+              child: Text(
+                '⏳ Wartet auf Sync',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.warningText,
+                ),
+              ),
+            )
+          else if (item.challenge.checkinPeriod != CheckinPeriod.daily)
             Text(
               '${item.doneInPeriod}/${item.target}',
               style: Theme.of(context)

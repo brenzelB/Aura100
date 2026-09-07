@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
+  connectivity_plus
   firebase_core
   screen_retriever_windows
   url_launcher_windows
