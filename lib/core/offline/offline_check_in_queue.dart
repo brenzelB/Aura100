@@ -6,20 +6,46 @@ import 'pending_check_in.dart';
 
 /// Manages the local persistent FIFO queue of offline check-ins via [SharedPreferences].
 class OfflineCheckInQueue {
-  const OfflineCheckInQueue();
+  const OfflineCheckInQueue({this.userId});
 
-  static const String storageKey = 'pending_offline_checkins';
+  /// The active user ID for queue isolation, or null for global/unauthenticated fallback.
+  final String? userId;
 
-  /// Reads all pending check-ins currently stored on device.
+  static const String defaultStorageKey = 'pending_offline_checkins';
+
+  /// Dynamically scopes storage key to the active user.
+  String get storageKey => (userId != null && userId!.isNotEmpty)
+      ? 'pending_offline_checkins_$userId'
+      : defaultStorageKey;
+
+  /// Reads all pending check-ins currently stored on device for this user scope.
   Future<List<PendingCheckIn>> getPending() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final rawList = prefs.getStringList(storageKey) ?? [];
+      var rawList = prefs.getStringList(storageKey);
+
+      // Migration fallback: if user-scoped key is not yet set, inspect legacy global key
+      if (rawList == null && userId != null && userId!.isNotEmpty) {
+        final legacy = prefs.getStringList(defaultStorageKey);
+        if (legacy != null && legacy.isNotEmpty) {
+          rawList = legacy;
+        }
+      }
+
+      rawList ??= [];
       final result = <PendingCheckIn>[];
       for (final item in rawList) {
         try {
           final map = jsonDecode(item) as Map<String, dynamic>;
-          result.add(PendingCheckIn.fromJson(map));
+          final parsed = PendingCheckIn.fromJson(map);
+          // If queue is user-scoped and parsed item has a different non-empty userId, ignore it
+          if (userId != null &&
+              userId!.isNotEmpty &&
+              parsed.userId.isNotEmpty &&
+              parsed.userId != userId) {
+            continue;
+          }
+          result.add(parsed);
         } catch (e) {
           debugPrint('⚠ [OfflineCheckInQueue] Dropping corrupted entry: $e');
         }
@@ -51,12 +77,24 @@ class OfflineCheckInQueue {
         return false;
       }
 
-      current.add(checkIn);
+      final itemToStore = (checkIn.userId.isEmpty &&
+              userId != null &&
+              userId!.isNotEmpty)
+          ? PendingCheckIn(
+              challengeId: checkIn.challengeId,
+              questTitle: checkIn.questTitle,
+              timestamp: checkIn.timestamp,
+              date: checkIn.date,
+              userId: userId!,
+            )
+          : checkIn;
+
+      current.add(itemToStore);
       final rawList = current.map((item) => jsonEncode(item.toJson())).toList();
       await prefs.setStringList(storageKey, rawList);
       debugPrint(
           '💾 [OfflineCheckInQueue] Enqueued offline check-in for "${checkIn.questTitle}" '
-          '(${current.length} total pending)');
+          'in $storageKey (${current.length} total pending)');
       return true;
     } catch (e) {
       debugPrint('⚠ [OfflineCheckInQueue] Failed to enqueue: $e');
@@ -87,19 +125,19 @@ class OfflineCheckInQueue {
         await prefs.setStringList(storageKey, rawList);
         debugPrint(
             '🗑 [OfflineCheckInQueue] Removed check-in for $challengeId '
-            '(${current.length} remaining)');
+            'from $storageKey (${current.length} remaining)');
       }
     } catch (e) {
       debugPrint('⚠ [OfflineCheckInQueue] Failed to remove entry: $e');
     }
   }
 
-  /// Clears all pending check-ins.
+  /// Clears all pending check-ins for this user scope.
   Future<void> clear() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(storageKey);
-      debugPrint('🧹 [OfflineCheckInQueue] Queue cleared');
+      debugPrint('🧹 [OfflineCheckInQueue] Queue cleared ($storageKey)');
     } catch (e) {
       debugPrint('⚠ [OfflineCheckInQueue] Failed to clear queue: $e');
     }

@@ -32,6 +32,15 @@ final challengeRepositoryProvider = Provider<ChallengeRepository>((ref) {
 List<Challenge> _lastKnownActiveChallenges = [];
 Map<String, Map<DateTime, DateTime>> _lastKnownServerCheckIns = {};
 final Map<String, Map<DateTime, DateTime>> _lastKnownChallengeCheckIns = {};
+String? _cachedChallengesUserId;
+
+/// Clears in-memory challenge caches on user switch or logout.
+void clearChallengeCache() {
+  _lastKnownActiveChallenges = [];
+  _lastKnownServerCheckIns = {};
+  _lastKnownChallengeCheckIns.clear();
+  _cachedChallengesUserId = null;
+}
 
 /// The logged-in user's ACTIVE challenges (incl. per-challenge aura),
 /// newest first. Re-fetches on auth events; empty in skeleton mode.
@@ -39,6 +48,14 @@ final myChallengesProvider =
     FutureProvider.autoDispose<List<Challenge>>((ref) async {
   if (!SupabaseConfig.isConfigured) return const [];
   ref.watch(authStateChangesProvider); // rebuild on login/logout
+
+  final currentUserId = ref.watch(currentUserProvider)?.id;
+  if (currentUserId != _cachedChallengesUserId) {
+    clearChallengeCache();
+    _cachedChallengesUserId = currentUserId;
+  }
+  if (currentUserId == null) return const [];
+
   try {
     final list =
         await ref.watch(challengeRepositoryProvider).fetchMyActiveChallenges();
@@ -471,7 +488,8 @@ class PendingCheckInsNotifier extends StateNotifier<List<PendingCheckIn>> {
 }
 
 final offlineCheckInQueueProvider = Provider<OfflineCheckInQueue>((ref) {
-  return const OfflineCheckInQueue();
+  final user = ref.watch(currentUserProvider);
+  return OfflineCheckInQueue(userId: user?.id);
 });
 
 final pendingCheckInsProvider =
@@ -483,6 +501,7 @@ final pendingCheckInsProvider =
 final offlineSyncServiceProvider = Provider<OfflineSyncService>((ref) {
   final service = OfflineSyncService(
     queue: ref.watch(offlineCheckInQueueProvider),
+    currentUserIdGetter: () => ref.read(currentUserProvider)?.id,
   );
 
   service.initialize(
@@ -561,11 +580,13 @@ class CheckInController extends AutoDisposeFamilyAsyncNotifier<void, String> {
     if (caughtError != null && _isNetworkError(caughtError)) {
       final nowUtc = DateTime.now().toUtc();
       final todayDate = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day);
+      final currentUserId = ref.read(currentUserProvider)?.id ?? '';
       final pending = PendingCheckIn(
         challengeId: arg,
         questTitle: questTitle ?? 'Quest',
         timestamp: nowUtc,
         date: todayDate,
+        userId: currentUserId,
       );
 
       await ref.read(pendingCheckInsProvider.notifier).enqueue(pending);

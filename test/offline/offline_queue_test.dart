@@ -19,6 +19,7 @@ void main() {
         questTitle: 'Morning Workout',
         timestamp: now,
         date: date,
+        userId: 'user_xyz',
       );
 
       final json = checkIn.toJson();
@@ -28,6 +29,7 @@ void main() {
       expect(recovered.questTitle, 'Morning Workout');
       expect(recovered.timestamp, now);
       expect(recovered.date, date);
+      expect(recovered.userId, 'user_xyz');
       expect(recovered, checkIn);
     });
   });
@@ -115,6 +117,26 @@ void main() {
       await queue.clear();
       final items = await queue.getPending();
       expect(items, isEmpty);
+    });
+
+    test('isolates queue per userId to prevent cross-account check-in pollution', () async {
+      const queueUserA = OfflineCheckInQueue(userId: 'user_A');
+      const queueUserB = OfflineCheckInQueue(userId: 'user_B');
+
+      await queueUserA.enqueue(PendingCheckIn(
+        challengeId: 'q_alice',
+        questTitle: 'Alice Quest',
+        timestamp: DateTime.utc(2026, 9, 4, 10, 0, 0),
+        date: DateTime.utc(2026, 9, 4),
+        userId: 'user_A',
+      ));
+
+      final itemsA = await queueUserA.getPending();
+      final itemsB = await queueUserB.getPending();
+
+      expect(itemsA.length, 1);
+      expect(itemsA.first.questTitle, 'Alice Quest');
+      expect(itemsB, isEmpty);
     });
   });
 }

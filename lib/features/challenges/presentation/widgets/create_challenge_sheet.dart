@@ -41,9 +41,14 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
   final _descriptionController = TextEditingController();
   final _auraGainController = TextEditingController(text: '100');
   final _auraPenaltyController = TextEditingController(text: '50');
+  static DateTime _initialStartDate() {
+    final now = DateTime.now();
+    return DateTime.utc(now.year, now.month, now.day);
+  }
+
   int _maxStrikes = 1;
-  DateTime _startsOn = DateTime.now().toUtc();
-  DateTime _endsOn = DateTime.now().toUtc().add(const Duration(days: 6));
+  late DateTime _startsOn = _initialStartDate();
+  late DateTime _endsOn = _initialStartDate().add(const Duration(days: 6));
   CheckinPeriod _period = CheckinPeriod.daily;
   int _perPeriod = 3;
   QuestMode _mode = QuestMode.solo;
@@ -147,7 +152,7 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
     );
     if (picked == null) return;
     setState(() {
-      _startsOn = picked.toUtc();
+      _startsOn = DateTime.utc(picked.year, picked.month, picked.day);
       // Keep the end date valid: never before start, max 365 days.
       if (_endsOn.isBefore(_startsOn)) _endsOn = _startsOn;
       final maxEnd = _startsOn.add(const Duration(days: 364));
@@ -163,7 +168,10 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
       firstDate: _startsOn,
       lastDate: _startsOn.add(const Duration(days: 364)),
     );
-    if (picked != null) setState(() => _endsOn = picked.toUtc());
+    if (picked != null) {
+      setState(() =>
+          _endsOn = DateTime.utc(picked.year, picked.month, picked.day));
+    }
   }
 
   String _dateLabel(DateTime d, {required bool todayAllowed}) {

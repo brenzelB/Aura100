@@ -672,7 +672,7 @@ class _HeaderCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     final today = DateTime.now().toUtc();
-    final ended = !today.isBefore(challenge.endsAt);
+    final ended = !challenge.isEndless && !today.isBefore(challenge.endsAt);
     final lastDay = challenge.endsAt.subtract(const Duration(days: 1));
     // "Day X of Y" — clamped so pre-start shows 0 and post-end shows Y.
     final dayNumber = (today.difference(challenge.startsOn).inDays + 1)
@@ -944,7 +944,8 @@ class _ProgressSection extends ConsumerWidget {
     final entriesAsync = ref.watch(progressEntriesProvider(challenge.id));
     final target = challenge.targetValue ?? 0;
     final done = challenge.progressInPeriod >= target && target > 0;
-    final ended = !DateTime.now().toUtc().isBefore(challenge.endsAt);
+    final ended =
+        !challenge.isEndless && !DateTime.now().toUtc().isBefore(challenge.endsAt);
     // A running lockout — null whenever nothing is blocking right now.
     final running = ref.watch(myBlackoutProvider(challenge.id)).valueOrNull;
     final blackout = (running != null && running.isRunning) ? running : null;

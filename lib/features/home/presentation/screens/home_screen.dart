@@ -35,6 +35,8 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final agendaAsync = ref.watch(homeAgendaProvider);
     final profile = ref.watch(currentProfileProvider).valueOrNull;
+    // Eagerly instantiate OfflineSyncService so the connectivity listener is active immediately
+    ref.watch(offlineSyncServiceProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('HOME')),

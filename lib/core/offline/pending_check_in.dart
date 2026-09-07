@@ -11,6 +11,7 @@ class PendingCheckIn {
     required this.questTitle,
     required this.timestamp,
     required this.date,
+    this.userId = '',
   });
 
   /// The target challenge/quest ID.
@@ -25,11 +26,15 @@ class PendingCheckIn {
   /// Normalized UTC day (e.g. 2026-09-04 00:00:00Z) this check-in belongs to.
   final DateTime date;
 
+  /// The user ID this check-in belongs to, preventing cross-user sync pollution.
+  final String userId;
+
   Map<String, dynamic> toJson() => {
         'challenge_id': challengeId,
         'quest_title': questTitle,
         'timestamp': timestamp.toIso8601String(),
         'date': date.toIso8601String(),
+        'user_id': userId,
       };
 
   factory PendingCheckIn.fromJson(Map<String, dynamic> json) {
@@ -38,6 +43,7 @@ class PendingCheckIn {
       questTitle: (json['quest_title'] as String?) ?? 'Quest',
       timestamp: DateTime.parse(json['timestamp'] as String),
       date: DateTime.parse(json['date'] as String),
+      userId: (json['user_id'] as String?) ?? '',
     );
   }
 
@@ -47,14 +53,16 @@ class PendingCheckIn {
       other is PendingCheckIn &&
           runtimeType == other.runtimeType &&
           challengeId == other.challengeId &&
+          userId == other.userId &&
           date.year == other.date.year &&
           date.month == other.date.month &&
           date.day == other.date.day;
 
   @override
-  int get hashCode => Object.hash(challengeId, date.year, date.month, date.day);
+  int get hashCode =>
+      Object.hash(challengeId, userId, date.year, date.month, date.day);
 
   @override
   String toString() =>
-      'PendingCheckIn($questTitle [$challengeId] on ${date.toIso8601String()})';
+      'PendingCheckIn($questTitle [$challengeId] by $userId on ${date.toIso8601String()})';
 }

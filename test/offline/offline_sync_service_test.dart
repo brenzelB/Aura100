@@ -103,5 +103,28 @@ void main() {
       final remaining = await queue.getPending();
       expect(remaining, isEmpty);
     });
+
+    test('drops expired check-ins from yesterday since log_check_in only records today',
+        () async {
+      final nowUtc = DateTime.now().toUtc();
+      final today = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day);
+      final yesterday = today.subtract(const Duration(days: 1));
+
+      await queue.enqueue(PendingCheckIn(
+        challengeId: 'c_expired',
+        questTitle: 'Yesterday Quest',
+        timestamp: yesterday.add(const Duration(hours: 12)),
+        date: yesterday,
+      ));
+
+      final result = await service.syncPendingCheckIns(fakeRepo);
+
+      expect(result.syncedCount, 0);
+      expect(result.failedCount, 1);
+      expect(fakeRepo.loggedCalls, isEmpty);
+
+      final remaining = await queue.getPending();
+      expect(remaining, isEmpty);
+    });
   });
 }

@@ -110,9 +110,18 @@ class PushService {
         ?.createNotificationChannel(_androidChannel);
   }
 
+  /// Last known push endpoints for unregistration and session refresh.
+  String? _lastUnifiedPushEndpoint;
+  String? _lastFcmToken;
+
   /// Shows [message], fetching the real text first when the ping came
   /// through Firebase and carried none.
   Future<void> show(PushMessage message) async {
+    if (Supabase.instance.client.auth.currentUser == null) {
+      debugPrint('ℹ [PushService] Suppressing push: user is logged out');
+      return;
+    }
+
     if (message.outboxId != null && !_seenOutboxIds.add(message.outboxId!)) {
       return; // already shown via the other transport
     }
@@ -308,6 +317,12 @@ class PushService {
   // ── Server side ──────────────────────────────────────────────────
 
   Future<void> _register(String provider, String token) async {
+    if (provider == 'unifiedpush') {
+      _lastUnifiedPushEndpoint = token;
+    } else if (provider == 'fcm') {
+      _lastFcmToken = token;
+    }
+
     if (Supabase.instance.client.auth.currentSession == null) return;
     try {
       await Supabase.instance.client.rpc<void>('register_device', params: {
@@ -327,27 +342,67 @@ class PushService {
   /// not inherit the previous one's notifications.
   Future<void> unregisterAll() async {
     _seenOutboxIds.clear();
-    if (!_firebaseReady) return;
-    try {
-      final token = await FirebaseMessaging.instance.getToken();
-      if (token != null) {
-        await Supabase.instance.client
-            .rpc<void>('unregister_device', params: {'p_token': token});
+    final client = Supabase.instance.client;
+
+    // 1. Unregister UnifiedPush endpoint if recorded
+    if (_lastUnifiedPushEndpoint != null) {
+      try {
+        await client.rpc<void>('unregister_device',
+            params: {'p_token': _lastUnifiedPushEndpoint});
+        debugPrint('✅ [PushService] unregistered UnifiedPush endpoint');
+      } catch (error) {
+        debugPrint('⚠ [PushService] unregister UnifiedPush failed: $error');
       }
-    } catch (error) {
-      debugPrint('⚠ [PushService] unregister failed: $error');
+    }
+
+    // 2. Unregister FCM token
+    String? token = _lastFcmToken;
+    if (token == null && _firebaseReady) {
+      try {
+        token = await FirebaseMessaging.instance.getToken();
+      } catch (_) {}
+    }
+    if (token != null) {
+      try {
+        await client
+            .rpc<void>('unregister_device', params: {'p_token': token});
+        debugPrint('✅ [PushService] unregistered FCM token');
+      } catch (error) {
+        debugPrint('⚠ [PushService] unregister FCM failed: $error');
+      }
     }
   }
 
   /// Re-registers after a sign-in. The token itself does not change, but
   /// it has to be attached to the account that now holds the session.
   Future<void> refreshRegistration() async {
-    if (!_firebaseReady) return;
-    try {
-      final token = await FirebaseMessaging.instance.getToken();
-      if (token != null) await _register('fcm', token);
-    } catch (error) {
-      debugPrint('⚠ [PushService] refresh failed: $error');
+    if (Supabase.instance.client.auth.currentSession == null) return;
+
+    // 1. Re-register FCM
+    if (_firebaseReady) {
+      try {
+        final token = await FirebaseMessaging.instance.getToken();
+        if (token != null) await _register('fcm', token);
+      } catch (error) {
+        debugPrint('⚠ [PushService] refresh FCM failed: $error');
+      }
+    } else if (_lastFcmToken != null) {
+      await _register('fcm', _lastFcmToken!);
+    }
+
+    // 2. Re-register UnifiedPush
+    if (_lastUnifiedPushEndpoint != null) {
+      await _register('unifiedpush', _lastUnifiedPushEndpoint!);
+    } else {
+      try {
+        final hasDistributor =
+            await up.UnifiedPush.tryUseCurrentOrDefaultDistributor();
+        if (hasDistributor) {
+          await up.UnifiedPush.register();
+        }
+      } catch (error) {
+        debugPrint('⚠ [PushService] refresh UnifiedPush failed: $error');
+      }
     }
   }
 }

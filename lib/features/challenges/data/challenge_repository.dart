@@ -46,6 +46,12 @@ class ChallengeRepository {
           .inFilter('status', const ['active', 'failed', 'eliminated'])
           .order('created_at', ascending: false);
 
+      final questIds = rows
+          .map((r) =>
+              (r['challenges'] as Map<String, dynamic>)['id'] as String)
+          .toList();
+      if (questIds.isEmpty) return const [];
+
       // Which of these were checked in TODAY? (RLS → own rows only.)
       final checkedRows = await _client
           .from('check_ins')
@@ -57,10 +63,6 @@ class ChallengeRepository {
 
       // Party size per quest (active members; RLS lets every signed-in
       // user read participant rows, so counts include quest-mates).
-      final questIds = rows
-          .map((r) =>
-              (r['challenges'] as Map<String, dynamic>)['id'] as String)
-          .toList();
       final memberRows = await _client
           .from('challenge_participants')
           .select('challenge_id')
@@ -78,6 +80,7 @@ class ChallengeRepository {
           .from('benefit_purchases')
           .select('challenge_id, benefits(title)')
           .eq('user_id', userId)
+          .inFilter('challenge_id', questIds)
           .isFilter('consumed_at', null);
       final ownedByChallenge = <String, Set<String>>{};
       for (final row in purchaseRows) {
@@ -87,13 +90,23 @@ class ChallengeRepository {
         (ownedByChallenge[row['challenge_id'] as String] ??= {}).add(title);
       }
 
+      // Collect current period start dates across active challenges to prevent
+      // PostgREST 1000-row limit truncation from dropping active period entries.
+      final currentPeriodStarts = rows
+          .map((r) => _dateOnly(Challenge.fromJson(
+                  r['challenges'] as Map<String, dynamic>)
+              .currentPeriodStart))
+          .toSet()
+          .toList();
+
       // Progress quests: how much is logged in the CURRENT period.
-      // One query for all of them, summed client-side per quest.
+      // Constrained to currentPeriodStarts to never hit row truncation.
       final progressRows = await _client
           .from('progress_entries')
           .select('challenge_id, amount, period_start')
           .eq('user_id', userId)
-          .inFilter('challenge_id', questIds);
+          .inFilter('challenge_id', questIds)
+          .inFilter('period_start', currentPeriodStarts);
       final progressByQuest = <String, List<(String, double)>>{};
       for (final row in progressRows) {
         (progressByQuest[row['challenge_id'] as String] ??= []).add((
@@ -103,11 +116,13 @@ class ChallengeRepository {
       }
 
       // Avoid quests: how many slips are on the board this period.
+      // Constrained to currentPeriodStarts to never hit row truncation.
       final slipRows = await _client
           .from('slips')
           .select('challenge_id, period_start')
           .eq('user_id', userId)
-          .inFilter('challenge_id', questIds);
+          .inFilter('challenge_id', questIds)
+          .inFilter('period_start', currentPeriodStarts);
       final slipsByQuest = <String, List<String>>{};
       for (final row in slipRows) {
         (slipsByQuest[row['challenge_id'] as String] ??= [])

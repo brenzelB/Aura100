@@ -31,11 +31,14 @@ class OfflineSyncService {
   OfflineSyncService({
     OfflineCheckInQueue? queue,
     Connectivity? connectivity,
+    String? Function()? currentUserIdGetter,
   })  : _queue = queue ?? const OfflineCheckInQueue(),
-        _connectivity = connectivity ?? Connectivity();
+        _connectivity = connectivity ?? Connectivity(),
+        _currentUserIdGetter = currentUserIdGetter;
 
   final OfflineCheckInQueue _queue;
   final Connectivity _connectivity;
+  final String? Function()? _currentUserIdGetter;
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   bool _isSyncing = false;
@@ -57,9 +60,7 @@ class OfflineSyncService {
         debugPrint(
             '🌐 [OfflineSyncService] Network restored, attempting sync...');
         syncCallback().then((result) {
-          if (result.hasSynced) {
-            onSyncCompleted();
-          }
+          onSyncCompleted();
         });
       }
     });
@@ -90,19 +91,38 @@ class OfflineSyncService {
     try {
       final nowUtc = DateTime.now().toUtc();
       final todayDate = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day);
+      String? currentUserId;
+      if (_currentUserIdGetter != null) {
+        currentUserId = _currentUserIdGetter();
+      } else {
+        try {
+          currentUserId = Supabase.instance.client.auth.currentUser?.id;
+        } catch (_) {
+          // Uninitialized in unit tests or offline environments
+        }
+      }
 
       for (final item in pending) {
-        // Enforce same-day policy: if the check-in is from a previous day
+        // Cross-user safety: skip if check-in belongs to another user
+        if (item.userId.isNotEmpty &&
+            currentUserId != null &&
+            item.userId != currentUserId) {
+          debugPrint(
+              '⚠ [OfflineSyncService] Skipping check-in for "${item.questTitle}" '
+              '(belongs to user ${item.userId}, current is $currentUserId)');
+          continue;
+        }
+
+        // Enforce same-day policy: if the check-in is from a previous calendar day
         // that has already rolled over on the server, we drop it gracefully
-        // to avoid invalidating finished periods.
+        // because log_check_in only records check-ins for the current UTC day.
         final itemDate =
             DateTime.utc(item.date.year, item.date.month, item.date.day);
-        final differenceDays = todayDate.difference(itemDate).inDays;
 
-        if (differenceDays > 1) {
+        if (itemDate != todayDate) {
           debugPrint(
               '⚠ [OfflineSyncService] Dropping expired check-in for "${item.questTitle}" '
-              'from ${item.date.toIso8601String()} (> 1 day old)');
+              'from ${item.date.toIso8601String()} (calendar day already rolled over)');
           await _queue.remove(item.challengeId, date: item.date);
           failedCount++;
           continue;
