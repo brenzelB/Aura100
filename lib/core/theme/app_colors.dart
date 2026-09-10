@@ -107,21 +107,21 @@ class AppThemeColors {
 
 // ── Kinetic Neo-Brutalist ───────────────────────────────────────
 const neoBrutalistColors = AppThemeColors(
-  background: Color(0xFFFDEFE7),    // Tertiary warm off-white background
-  surface: Color(0xFFFFFFFF),       // Pure white card base
-  surfaceLight: Color(0xFFF0EDED),  // Surface container grey
-  neonCyan: Color(0xFFFFC700),      // Primary Yellow
-  neonPink: Color(0xFF0057FF),      // Secondary Blue
-  neonPurple: Color(0xFF7C3AED),    // Kinetic Purple accent
-  neonGreen: Color(0xFF00C853),     // Earthy Green success state
-  neonYellow: Color(0xFFFFC700),    // Warning Gold
-  textPrimary: Color(0xFF191919),    // Ink black primary text
-  textSecondary: Color(0xFF4F4632),  // Warm muted brown secondary text
-  danger: Color(0xFFBA1A1A),        // Clean red error
-  outline: Color(0xFF191919),       // Thick solid ink border
+  background: Color(0xFFF6F2DF), // Warm paper, inspired by the reference
+  surface: Color(0xFFFFFDF4),
+  surfaceLight: Color(0xFFE8E3CE),
+  neonCyan: Color(0xFFFFC700), // Primary Yellow
+  neonPink: Color(0xFF007D85), // Teal: social and secondary actions
+  neonPurple: Color(0xFF7043BE), // Violet: personal progression
+  neonGreen: Color(0xFF00C853), // Earthy Green success state
+  neonYellow: Color(0xFFFFC700), // Warning Gold
+  textPrimary: Color(0xFF191919), // Ink black primary text
+  textSecondary: Color(0xFF4F4632), // Warm muted brown secondary text
+  danger: Color(0xFFBA1A1A), // Clean red error
+  outline: Color(0xFF191919), // Thick solid ink border
   inputOutline: Color(0xFF191919),
-  shadow: Color(0xFF191919),        // Hard black offset shadow
-  onAccent: Color(0xFF191919),      // Ink text on the yellow button
+  shadow: Color(0xFF191919), // Hard black offset shadow
+  onAccent: Color(0xFF191919), // Ink text on the yellow button
   // The yellow reaches only 1.4:1 on white — fine as a button, illegible
   // as a heading. Same hue, darkened until it clears 4.5:1.
   accentText: Color(0xFF876900),
@@ -131,21 +131,21 @@ const neoBrutalistColors = AppThemeColors(
 );
 
 const neoBrutalistDarkColors = AppThemeColors(
-  background: Color(0xFF14120F),    // Warm near-black canvas
-  surface: Color(0xFF1E1B17),
-  surfaceLight: Color(0xFF2A2620),
-  neonCyan: Color(0xFFFFC700),      // The yellow carries straight over
-  neonPink: Color(0xFF5B8CFF),      // Blue lifted for dark contrast
-  neonPurple: Color(0xFFC084FC),    // Kinetic Purple accent (Dark mode)
+  background: Color(0xFF141615),
+  surface: Color(0xFF222724),
+  surfaceLight: Color(0xFF343D36),
+  neonCyan: Color(0xFFFFC700), // The yellow carries straight over
+  neonPink: Color(0xFF63D7D0), // Teal lifted for dark contrast
+  neonPurple: Color(0xFFC084FC), // Kinetic Purple accent (Dark mode)
   neonGreen: Color(0xFF00E676),
   neonYellow: Color(0xFFFFC700),
   textPrimary: Color(0xFFF7F5F2),
   textSecondary: Color(0xFFB5AC9B),
   danger: Color(0xFFFF6B5E),
-  outline: Color(0xFFF7F5F2),       // Brutalist border, inverted to white
+  outline: Color(0xFFF7F5F2), // Brutalist border, inverted to white
   inputOutline: Color(0xFFF7F5F2),
-  shadow: Color(0xFFF7F5F2),        // High contrast offset matching the outline
-  onAccent: Color(0xFF191919),      // Ink text on the yellow button
+  shadow: Color(0xFF080B09), // Recessed hard shadow, separate from bright edges
+  onAccent: Color(0xFF191919), // Ink text on the yellow button
   // On the dark canvas the accents already read at 10:1 and up — the
   // readable twins are simply the accents themselves.
   accentText: Color(0xFFFFC700),
@@ -156,21 +156,21 @@ const neoBrutalistDarkColors = AppThemeColors(
 
 // ── Editorial Growth ────────────────────────────────────────────
 const editorialColors = AppThemeColors(
-  background: Color(0xFFFFF8F2),    // Cream base background
-  surface: Color(0xFFFFFFFF),       // White card floating tier
-  surfaceLight: Color(0xFFF5F2ED),  // Cream/off-white neutral base
-  neonCyan: Color(0xFFE65C4F),      // Primary Terracotta
-  neonPink: Color(0xFF2D2D2D),      // Secondary Dark Slate
-  neonPurple: Color(0xFFA93027),    // Accent Dark Terracotta
-  neonGreen: Color(0xFF4A7C59),     // Earthy Sage Green for success
-  neonYellow: Color(0xFFD4A373),    // Earthy Ochre/Gold
-  textPrimary: Color(0xFF1E1B16),    // Dark brown/slate primary text
-  textSecondary: Color(0xFF58413E),  // Warm muted brown secondary text
-  danger: Color(0xFFBA1A1A),        // Clean red error
-  outline: Color(0xFFE0BFBB),       // outline-variant grey-red
-  inputOutline: Color(0xFF8C716D),  // Stronger slate/brown field border
-  shadow: Color(0xFFE65C4F),        // Soft terracotta ambient shadow
-  onAccent: Color(0xFFFFF8F2),      // Cream text on the dark slate button
+  background: Color(0xFFFFF8F2), // Cream base background
+  surface: Color(0xFFFFFFFF), // White card floating tier
+  surfaceLight: Color(0xFFF5F2ED), // Cream/off-white neutral base
+  neonCyan: Color(0xFFE65C4F), // Primary Terracotta
+  neonPink: Color(0xFF2D2D2D), // Secondary Dark Slate
+  neonPurple: Color(0xFFA93027), // Accent Dark Terracotta
+  neonGreen: Color(0xFF4A7C59), // Earthy Sage Green for success
+  neonYellow: Color(0xFFD4A373), // Earthy Ochre/Gold
+  textPrimary: Color(0xFF1E1B16), // Dark brown/slate primary text
+  textSecondary: Color(0xFF58413E), // Warm muted brown secondary text
+  danger: Color(0xFFBA1A1A), // Clean red error
+  outline: Color(0xFFE0BFBB), // outline-variant grey-red
+  inputOutline: Color(0xFF8C716D), // Stronger slate/brown field border
+  shadow: Color(0xFFE65C4F), // Soft terracotta ambient shadow
+  onAccent: Color(0xFFFFF8F2), // Cream text on the dark slate button
   // Terracotta reads 3.5:1 on white and the ochre only 2.2:1 — both
   // deepened just enough, hue untouched. The sage green already passed.
   accentText: Color(0xFFD72F1F),
@@ -180,11 +180,11 @@ const editorialColors = AppThemeColors(
 );
 
 const editorialDarkColors = AppThemeColors(
-  background: Color(0xFF17120F),    // Warm dark paper
+  background: Color(0xFF17120F), // Warm dark paper
   surface: Color(0xFF201A16),
   surfaceLight: Color(0xFF2B231E),
-  neonCyan: Color(0xFFFF8672),      // Terracotta lifted for dark
-  neonPink: Color(0xFFEDE4DA),      // Slate inverts to warm light
+  neonCyan: Color(0xFFFF8672), // Terracotta lifted for dark
+  neonPink: Color(0xFFEDE4DA), // Slate inverts to warm light
   neonPurple: Color(0xFFD9695B),
   neonGreen: Color(0xFF7FB08D),
   neonYellow: Color(0xFFE0B183),
@@ -193,8 +193,8 @@ const editorialDarkColors = AppThemeColors(
   danger: Color(0xFFFF6B5E),
   outline: Color(0xFF4A3A33),
   inputOutline: Color(0xFF6E5A51),
-  shadow: Color(0xFFFF8672),        // Warm terracotta glow
-  onAccent: Color(0xFF17120F),      // Dark text on the light button
+  shadow: Color(0xFFFF8672), // Warm terracotta glow
+  onAccent: Color(0xFF17120F), // Dark text on the light button
   accentText: Color(0xFFFF8672),
   successText: Color(0xFF7FB08D),
   warningText: Color(0xFFE0B183),
@@ -203,21 +203,21 @@ const editorialDarkColors = AppThemeColors(
 
 // ── Auralis ─────────────────────────────────────────────────────
 const auralisColors = AppThemeColors(
-  background: Color(0xFFF9F9F9),   // Soft cool white background
-  surface: Color(0xFFFFFFFF),      // Pure white container
+  background: Color(0xFFF9F9F9), // Soft cool white background
+  surface: Color(0xFFFFFFFF), // Pure white container
   surfaceLight: Color(0xFFEEEEEE), // Light grey divider/scaffolding
-  neonCyan: Color(0xFF1A1C1C),     // Deep charcoal primary
-  neonPink: Color(0xFF5E5E5E),     // Slate grey secondary
-  neonPurple: Color(0xFF5457E8),   // Indigo accent for Aura, more decisive
-  neonGreen: Color(0xFF0F5132),    // Restrained dark green for success
-  neonYellow: Color(0xFFB85C00),   // Restrained amber warning
-  textPrimary: Color(0xFF1A1C1C),  // Deep charcoal text
+  neonCyan: Color(0xFF1A1C1C), // Deep charcoal primary
+  neonPink: Color(0xFF5E5E5E), // Slate grey secondary
+  neonPurple: Color(0xFF5457E8), // Indigo accent for Aura, more decisive
+  neonGreen: Color(0xFF0F5132), // Restrained dark green for success
+  neonYellow: Color(0xFFB85C00), // Restrained amber warning
+  textPrimary: Color(0xFF1A1C1C), // Deep charcoal text
   textSecondary: Color(0xFF5F5E5E), // Muted grey text
-  danger: Color(0xFFBA1A1A),       // Clean red error
-  outline: Color(0xFFE3E5E9),      // Crisper hairline; depth via shadow
+  danger: Color(0xFFBA1A1A), // Clean red error
+  outline: Color(0xFFE3E5E9), // Crisper hairline; depth via shadow
   inputOutline: Color(0xFFDDE0E5),
-  shadow: Color(0xFF0B1220),       // Cool ambient shadow
-  onAccent: Color(0xFFFFFFFF),     // White text on the charcoal button
+  shadow: Color(0xFF0B1220), // Cool ambient shadow
+  onAccent: Color(0xFFFFFFFF), // White text on the charcoal button
   // Auralis was built restrained enough to pass on its own; only the
   // amber needed a hair of depth to clear 4.5:1 on the tinted canvas.
   accentText: Color(0xFF1A1C1C),
@@ -227,21 +227,21 @@ const auralisColors = AppThemeColors(
 );
 
 const auralisDarkColors = AppThemeColors(
-  background: Color(0xFF0C0E0F),   // Deeper base so lifted cards read
-  surface: Color(0xFF1A1F22),      // Lifted so cards float off the canvas
+  background: Color(0xFF0C0E0F), // Deeper base so lifted cards read
+  surface: Color(0xFF1A1F22), // Lifted so cards float off the canvas
   surfaceLight: Color(0xFF262C30),
-  neonCyan: Color(0xFFF1F3F3),     // Charcoal primary inverts to near-white
+  neonCyan: Color(0xFFF1F3F3), // Charcoal primary inverts to near-white
   neonPink: Color(0xFF9AA1A5),
-  neonPurple: Color(0xFF8B93FF),   // Indigo, a touch more vivid on dark
+  neonPurple: Color(0xFF8B93FF), // Indigo, a touch more vivid on dark
   neonGreen: Color(0xFF34D399),
   neonYellow: Color(0xFFFBBF24),
   textPrimary: Color(0xFFF1F3F3),
   textSecondary: Color(0xFF9AA1A5),
   danger: Color(0xFFFF6B5E),
-  outline: Color(0xFF343B41),      // Visible hairline for card edges
+  outline: Color(0xFF343B41), // Visible hairline for card edges
   inputOutline: Color(0xFF343B41),
   shadow: Color(0xFF000000),
-  onAccent: Color(0xFF0C0E0F),     // Dark text on the near-white button
+  onAccent: Color(0xFF0C0E0F), // Dark text on the near-white button
   accentText: Color(0xFFF1F3F3),
   successText: Color(0xFF34D399),
   warningText: Color(0xFFFBBF24),
@@ -318,29 +318,33 @@ abstract class AppColors {
     bool glow = false,
   }) {
     final type = activeType;
-    final effectiveFill = fill != null ? Color.alphaBlend(fill, surface) : surface;
+    final effectiveFill =
+        fill != null ? Color.alphaBlend(fill, surface) : surface;
     switch (type) {
       case AppThemeType.neoBrutalist:
         return BoxDecoration(
           color: effectiveFill,
-          borderRadius: BorderRadius.circular(radius ?? 8.0), // Rounded 8px corners
+          borderRadius: BorderRadius.circular(radius ?? 6.0),
           border: Border.all(
             color: isDanger ? danger : outline, // Thick solid border
             width: 2.0,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: shadow, // Hard offset shadow
-              offset: const Offset(4, 4),
-              blurRadius: 0,
-              spreadRadius: 0,
-            )
-          ],
+          boxShadow: glow
+              ? [
+                  BoxShadow(
+                    color: shadow, // Hard offset shadow
+                    offset: const Offset(4, 4),
+                    blurRadius: 0,
+                    spreadRadius: 0,
+                  )
+                ]
+              : [],
         );
       case AppThemeType.editorial:
         return BoxDecoration(
           color: effectiveFill,
-          borderRadius: BorderRadius.circular(radius ?? 24.0), // Rounded modern/tactile corners
+          borderRadius: BorderRadius.circular(
+              radius ?? 24.0), // Rounded modern/tactile corners
           border: Border.all(
             color: isDanger ? danger : outline, // outline-variant
             width: 1.0,

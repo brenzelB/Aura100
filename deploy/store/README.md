@@ -1,107 +1,38 @@
-# Release-Signatur für den Play Store
+# Store builds
 
-Der Build ist fertig verdrahtet: [`android/app/build.gradle.kts`](../../android/app/build.gradle.kts)
-liest `android/key.properties` und signiert damit. Fehlt die Datei, fällt
-er auf den Debug-Schlüssel zurück — praktisch für `flutter run --release`,
-aber **vom Play Store abgelehnt**.
+Flutter is pinned to 3.44.6 in both GitHub workflows. The marketing version
+comes from pubspec.yaml. Both platforms share the same CI build number.
+Use a number greater than every previously submitted build.
 
-Es fehlt nur der Schlüssel. Den musst du selbst erzeugen, weil dabei ein
-Passwort gewählt wird.
+## Android
 
----
+Release builds require a real keystore. Missing signing properties or a
+missing keystore stop the build; there is no debug-signing fallback.
+Local credentials live in android/key.properties. storeFile is relative
+to android/app. Keep and back up the existing upload key.
 
-## 1. Keystore erzeugen
+GitHub Actions requires encrypted repository secrets:
+- ANDROID_KEYSTORE_BASE64: base64 of the existing upload keystore.
+- ANDROID_KEY_PROPERTIES: the four signing properties, using
+  storeFile=../aura-quest-release.jks for CI.
 
-In **PowerShell**, im Projektordner:
+Never commit signing credentials. With Play App Signing, a lost upload key
+can be reset through Play Console; it differs from Google's app signing key.
 
-```bash
-keytool -genkey -v -keystore android/aura-quest-release.jks -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias aura-quest
-```
+Build: flutter build appbundle --release --build-number=2
+Verify the resulting AAB with keytool -printcert -jarfile.
+The certificate must not identify Android Debug.
 
-`keytool` liegt bei der Java-Installation, die Android Studio mitbringt.
-Wird es nicht gefunden, hilft der volle Pfad, etwa:
-`"C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe"`.
+## Apple
 
-Das Werkzeug fragt nacheinander:
+The workflow produces an **unsigned xcarchive**, not a distributable IPA.
+Its artifact name says ios-unsigned-archive. It checks iOS SDK >=26 on macOS 26
+and fails if the archive is missing.
 
-| Frage | Hinweis |
-|---|---|
-| Keystore-Passwort | **Frei wählbar. Merken.** Ohne dieses Passwort ist der Schlüssel verloren. |
-| Vor- und Nachname, Organisation, Ort, Land | Erscheint nirgends öffentlich; Name und Land genügen |
-| Schlüssel-Passwort | Enter drücken übernimmt das Keystore-Passwort |
+Store export needs an Apple Developer team, distribution certificate,
+provisioning profile for com.auraquest.auraQuest and export options.
+Configure them after the account/app identity is confirmed.
+iOS Firebase/APNs and physical-device testing are also outstanding.
 
-`-validity 10000` sind gut 27 Jahre. Google verlangt eine Gültigkeit
-mindestens bis zum 22. Oktober 2033.
-
----
-
-## 2. `android/key.properties` anlegen
-
-Neue Datei, vier Zeilen:
-
-```properties
-storePassword=DEIN_KEYSTORE_PASSWORT
-keyPassword=DEIN_SCHLUESSEL_PASSWORT
-keyAlias=aura-quest
-storeFile=../aura-quest-release.jks
-```
-
-**Zum Pfad:** `storeFile` wird von Gradle im Modul `android/app`
-aufgelöst. Der Keystore liegt nach Schritt 1 eine Ebene höher unter
-`android/`, deshalb das vorangestellte `../`. Ein falscher Pfad wirft
-keinen Fehler — der Build fällt still auf die Debug-Signatur zurück.
-Genau dafür ist Schritt 4 da.
-
----
-
-## 3. Beides aus der Versionsverwaltung heraushalten
-
-Diese zwei Dateien sind Zugangsdaten:
-
-```
-android/aura-quest-release.jks
-android/key.properties
-```
-
-Wer sie in ein Repository legt, gibt die Kontrolle über künftige
-Aktualisierungen der App aus der Hand. Gehört in `.gitignore`, sobald das
-Projekt versioniert wird.
-
-**Sichere den Keystore getrennt** — Passwortmanager, verschlüsselter
-USB-Stick, was auch immer. Geht er verloren, lässt sich eine
-veröffentlichte App **nie wieder aktualisieren**; sie müsste unter neuem
-Paketnamen neu eingereicht werden, und alle Installationen wären
-abgeschnitten. Das ist die einzige wirklich unumkehrbare Stelle im
-gesamten Veröffentlichungsweg.
-
----
-
-## 4. Prüfen, ob es greift
-
-```bash
-flutter build appbundle --release
-```
-
-Danach:
-
-```bash
-keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab
-```
-
-Steht dort dein Name aus Schritt 1, ist alles richtig. Steht dort
-`CN=Android Debug`, wurde `key.properties` nicht gefunden — meist ein
-falscher `storeFile`-Pfad.
-
----
-
-## Was danach noch fehlt
-
-- **Play Console:** Entwicklerkonto, einmalig 25 USD
-- **Store-Eintrag:** Beschreibung, Bildschirmfotos, Alterseinstufung,
-  Link zur Datenschutzerklärung → `https://legal.brenzel.uk`
-- **Datensicherheitsformular:** Google fragt ab, welche Daten die App
-  erhebt. Die Antworten stehen in
-  [`legal/datenschutz.md`](../../legal/datenschutz.md) — Konto, Spieldaten,
-  Geräte-Kennung für Push; keine Werbung, kein Tracking.
-- **`applicationId`** ist `com.auraquest.aura_quest` und liegt nach der
-  ersten Veröffentlichung fest.
+No store upload or review submission happens automatically.
+See docs/2026-09-10-store-readiness.md for remaining blockers.

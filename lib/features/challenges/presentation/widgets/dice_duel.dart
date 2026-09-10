@@ -1,3 +1,5 @@
+import 'package:aura_quest/core/theme/design_tokens.dart';
+import 'package:aura_quest/core/widgets/app_states.dart';
 import 'dart:async';
 import 'dart:math';
 
@@ -37,17 +39,25 @@ class DiceFace extends StatelessWidget {
     2: [Alignment(-0.6, -0.6), Alignment(0.6, 0.6)],
     3: [Alignment(-0.6, -0.6), Alignment.center, Alignment(0.6, 0.6)],
     4: [
-      Alignment(-0.6, -0.6), Alignment(0.6, -0.6),
-      Alignment(-0.6, 0.6), Alignment(0.6, 0.6),
+      Alignment(-0.6, -0.6),
+      Alignment(0.6, -0.6),
+      Alignment(-0.6, 0.6),
+      Alignment(0.6, 0.6),
     ],
     5: [
-      Alignment(-0.6, -0.6), Alignment(0.6, -0.6), Alignment.center,
-      Alignment(-0.6, 0.6), Alignment(0.6, 0.6),
+      Alignment(-0.6, -0.6),
+      Alignment(0.6, -0.6),
+      Alignment.center,
+      Alignment(-0.6, 0.6),
+      Alignment(0.6, 0.6),
     ],
     6: [
-      Alignment(-0.6, -0.6), Alignment(0.6, -0.6),
-      Alignment(-0.6, 0.0), Alignment(0.6, 0.0),
-      Alignment(-0.6, 0.6), Alignment(0.6, 0.6),
+      Alignment(-0.6, -0.6),
+      Alignment(0.6, -0.6),
+      Alignment(-0.6, 0.0),
+      Alignment(0.6, 0.0),
+      Alignment(-0.6, 0.6),
+      Alignment(0.6, 0.6),
     ],
   };
 
@@ -228,7 +238,7 @@ class _StakeDialogState extends State<StakeDialog> {
     final textTheme = Theme.of(context).textTheme;
     final stake = _stake;
 
-    return AlertDialog(
+    return AppDialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(
@@ -362,8 +372,8 @@ class _StakeDialogState extends State<StakeDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text('CANCEL',
-              style: TextStyle(color: AppColors.textSecondary)),
+          child:
+              Text('CANCEL', style: TextStyle(color: AppColors.textSecondary)),
         ),
         ElevatedButton.icon(
           onPressed:
@@ -473,12 +483,12 @@ class DuelSheet extends ConsumerStatefulWidget {
   static Future<void> show(BuildContext context, IncomingDuel duel) {
     return showModalBottomSheet(
       context: context,
+      useSafeArea: true,
+      useRootNavigator: true,
       isScrollControlled: true,
       isDismissible: true,
       backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      shape: AppShapes.sheet,
       builder: (_) => DuelSheet(duel: duel),
     );
   }
@@ -521,7 +531,7 @@ class _DuelSheetState extends ConsumerState<DuelSheet> {
         await ref.read(duelControllerProvider.notifier).decline(widget.duel.id);
     if (!mounted) return;
     navigator.pop();
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(AppSnackBar(
       content: Text(ok
           ? 'Duel declined - @${widget.duel.challengerName} got their '
               '${widget.duel.stake} aura back.'
@@ -546,7 +556,7 @@ class _DuelSheetState extends ConsumerState<DuelSheet> {
 
     if (result == null) {
       Navigator.of(context).pop();
-      messenger.showSnackBar(SnackBar(
+      messenger.showSnackBar(AppSnackBar(
         content: Text(_errorText()),
         backgroundColor: AppColors.danger,
       ));
@@ -560,6 +570,14 @@ class _DuelSheetState extends ConsumerState<DuelSheet> {
     });
 
     // Tumble: shuffle random faces + jitter every 90ms.
+    if (MediaQuery.disableAnimationsOf(context)) {
+      setState(() {
+        _landed.fillRange(0, 4, true);
+        _phase = _DuelPhase.result;
+        _showBanner = true;
+      });
+      return;
+    }
     _shuffleTimer = Timer.periodic(const Duration(milliseconds: 90), (_) {
       if (!mounted) return;
       setState(() {
@@ -573,7 +591,12 @@ class _DuelSheetState extends ConsumerState<DuelSheet> {
     });
 
     // Staggered landings: their dice first, mine last (drama!).
-    for (final (index, delayMs) in const [(0, 1100), (1, 1450), (2, 1900), (3, 2350)]) {
+    for (final (index, delayMs) in const [
+      (0, 1100),
+      (1, 1450),
+      (2, 1900),
+      (3, 2350)
+    ]) {
       Future.delayed(Duration(milliseconds: delayMs), () {
         if (!mounted) return;
         setState(() => _landed[index] = true);
@@ -606,15 +629,15 @@ class _DuelSheetState extends ConsumerState<DuelSheet> {
     return PopScope(
       // No slipping away mid-roll — the result deserves its moment.
       canPop: _phase != _DuelPhase.rolling,
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               'DICE DUEL',
-              style: textTheme.headlineMedium
-                  ?.copyWith(color: AppColors.neonPink),
+              style:
+                  textTheme.headlineMedium?.copyWith(color: AppColors.neonPink),
             ),
             const SizedBox(height: 6),
             Text(
@@ -635,13 +658,14 @@ class _DuelSheetState extends ConsumerState<DuelSheet> {
                   color: AppColors.danger,
                 ),
                 const SizedBox(width: 10),
-                Text(
+                Flexible(
+                    child: Text(
                   '@${duel.challengerName}',
                   style: textTheme.bodyLarge
                       ?.copyWith(fontWeight: FontWeight.w700),
-                ),
+                )),
                 if (_phase != _DuelPhase.offer) ...[
-                  const Spacer(),
+                  const SizedBox(width: 8),
                   _DiceSum(
                     dice: theirDice,
                     landed: _landed[0] && _landed[1],
@@ -699,8 +723,8 @@ class _DuelSheetState extends ConsumerState<DuelSheet> {
             const SizedBox(height: 18),
             Text(
               'VS',
-              style:
-                  textTheme.headlineSmall?.copyWith(color: AppColors.warningText),
+              style: textTheme.headlineSmall
+                  ?.copyWith(color: AppColors.warningText),
             ),
             const SizedBox(height: 18),
 
@@ -755,41 +779,35 @@ class _DuelSheetState extends ConsumerState<DuelSheet> {
 
             // ── Actions / result banner ──────────────────────
             if (_phase == _DuelPhase.offer)
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: busy ? null : _decline,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.textSecondary,
-                        side:
-                             BorderSide(color: AppColors.surfaceLight),
-                        minimumSize: const Size(0, 48),
-                      ),
-                      child: const Text('DECLINE'),
+                  OutlinedButton(
+                    onPressed: busy ? null : _decline,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textSecondary,
+                      side: BorderSide(color: AppColors.surfaceLight),
+                      minimumSize: const Size(0, 48),
                     ),
+                    child: const Text('DECLINE'),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton.icon(
-                      onPressed: busy ? null : _acceptAndRoll,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.neonGreen,
-                        foregroundColor: AppColors.background,
-                        minimumSize: const Size(0, 48),
-                      ),
-                      icon: busy
-                          ?  SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.background),
-                            )
-                          : const Icon(Icons.casino),
-                      label: const Text('ROLL THE DICE'),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: busy ? null : _acceptAndRoll,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.neonGreen,
+                      foregroundColor: AppColors.background,
+                      minimumSize: const Size(0, 48),
                     ),
+                    icon: busy
+                        ? SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: AppColors.background),
+                          )
+                        : const Icon(Icons.casino),
+                    label: const Text('ROLL THE DICE'),
                   ),
                 ],
               )
@@ -813,7 +831,8 @@ class _DuelSheetState extends ConsumerState<DuelSheet> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: AppColors.panelDecoration(
                       accent: _iWon ? AppColors.neonGreen : AppColors.danger,
-                      fill: (_iWon ? AppColors.neonGreen : AppColors.danger).withValues(alpha: 0.12),
+                      fill: (_iWon ? AppColors.neonGreen : AppColors.danger)
+                          .withValues(alpha: 0.12),
                       isDanger: !_iWon,
                       glow: true,
                     ),
@@ -826,15 +845,15 @@ class _DuelSheetState extends ConsumerState<DuelSheet> {
                               : 'YOU LOSE -${duel.stake} ⚡',
                           textAlign: TextAlign.center,
                           style: textTheme.headlineSmall?.copyWith(
-                            color:
-                                _iWon ? AppColors.successText : AppColors.danger,
+                            color: _iWon
+                                ? AppColors.successText
+                                : AppColors.danger,
                           ),
                         ),
                         if (!_iWon) ...[
                           const SizedBox(height: 8),
                           Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
                               _roast,
                               textAlign: TextAlign.center,
@@ -932,11 +951,11 @@ class DuelReplaySheet extends StatefulWidget {
     if (uid == null || duel.status != 'resolved') return Future.value();
     return showModalBottomSheet(
       context: context,
+      useSafeArea: true,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      shape: AppShapes.sheet,
       builder: (_) => DuelReplaySheet(
         duel: duel,
         questTitle: questTitle,
@@ -963,8 +982,7 @@ class _DuelReplaySheetState extends State<DuelReplaySheet> {
 
   List<int> get _theirDice =>
       widget.duel.theirDice(widget.myUserId) ?? const [1, 1];
-  List<int> get _myDice =>
-      widget.duel.myDice(widget.myUserId) ?? const [1, 1];
+  List<int> get _myDice => widget.duel.myDice(widget.myUserId) ?? const [1, 1];
   bool get _iWon => widget.duel.wonBy(widget.myUserId);
 
   @override
@@ -976,6 +994,13 @@ class _DuelReplaySheetState extends State<DuelReplaySheet> {
 
   void _startReplay() {
     if (!mounted) return;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      setState(() {
+        _landed.fillRange(0, 4, true);
+        _showBanner = true;
+      });
+      return;
+    }
     _shuffleTimer = Timer.periodic(const Duration(milliseconds: 90), (_) {
       if (!mounted) return;
       setState(() {
@@ -988,8 +1013,12 @@ class _DuelReplaySheetState extends State<DuelReplaySheet> {
       });
     });
 
-    for (final (index, delayMs)
-        in const [(0, 1100), (1, 1450), (2, 1900), (3, 2350)]) {
+    for (final (index, delayMs) in const [
+      (0, 1100),
+      (1, 1450),
+      (2, 1900),
+      (3, 2350)
+    ]) {
       Future.delayed(Duration(milliseconds: delayMs), () {
         if (!mounted) return;
         setState(() => _landed[index] = true);
@@ -1019,24 +1048,23 @@ class _DuelReplaySheetState extends State<DuelReplaySheet> {
     final theirName = duel.otherName(widget.myUserId);
     final net = _iWon ? duel.stake : -duel.stake;
 
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             'DUEL REPLAY',
-            style: textTheme.headlineMedium
-                ?.copyWith(color: AppColors.neonPurple),
+            style:
+                textTheme.headlineMedium?.copyWith(color: AppColors.neonPurple),
           ),
           const SizedBox(height: 6),
           Text(
             '${widget.questTitle} · ${duel.stake * 2} ⚡ was in the pot',
-            style: textTheme.bodyMedium
-                ?.copyWith(color: AppColors.textSecondary),
+            style:
+                textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 24),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -1049,8 +1077,8 @@ class _DuelReplaySheetState extends State<DuelReplaySheet> {
               const SizedBox(width: 10),
               Text(
                 '@$theirName',
-                style: textTheme.bodyLarge
-                    ?.copyWith(fontWeight: FontWeight.w700),
+                style:
+                    textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
               const Spacer(),
               _DiceSum(
@@ -1081,15 +1109,13 @@ class _DuelReplaySheetState extends State<DuelReplaySheet> {
               ),
             ],
           ),
-
           const SizedBox(height: 18),
           Text(
             'VS',
-            style: textTheme.headlineSmall
-                ?.copyWith(color: AppColors.warningText),
+            style:
+                textTheme.headlineSmall?.copyWith(color: AppColors.warningText),
           ),
           const SizedBox(height: 18),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -1125,7 +1151,6 @@ class _DuelReplaySheetState extends State<DuelReplaySheet> {
               ),
             ],
           ),
-
           const SizedBox(height: 24),
           AnimatedScale(
             scale: _showBanner ? 1.0 : 0.6,
@@ -1212,14 +1237,14 @@ Future<void> startDuelFlow(
   if (!context.mounted) return;
 
   if (ok) {
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(AppSnackBar(
       content: Text('🎲 Duel sent - $stake ⚡ escrowed until '
           '@${opponent.username} answers.'),
       backgroundColor: AppColors.neonPink,
     ));
   } else {
     final error = ref.read(duelControllerProvider).error;
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(AppSnackBar(
       content: Text(error is PostgrestException
           ? error.message
           : 'Could not send the duel - try again.'),

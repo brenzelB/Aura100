@@ -34,6 +34,7 @@ class Benefit {
     'Strike Repair',
     'Targeted Roast',
     'Aura Heist',
+    'Aura Ward',
   };
 
   /// Own-once emblems worn next to the player's name in the party. Both
@@ -58,8 +59,10 @@ class Benefit {
   }
 
   /// Every owned emblem, weakest→strongest, for showing all badges.
-  static List<String> ownedTitles(Iterable<String> owned) =>
-      [for (final t in titles) if (owned.contains(t)) t];
+  static List<String> ownedTitles(Iterable<String> owned) => [
+        for (final t in titles)
+          if (owned.contains(t)) t
+      ];
 
   factory Benefit.fromJson(Map<String, dynamic> json) => Benefit(
         id: json['id'] as String,

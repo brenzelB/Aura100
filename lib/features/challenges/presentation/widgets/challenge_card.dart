@@ -1,3 +1,4 @@
+import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,9 +14,7 @@ import 'challenge_shop_sheet.dart';
 import 'progress_widgets.dart';
 import 'slip_widgets.dart';
 
-/// One quest in the Challenges list — Cyber-Pixel style:
-/// dark surface, neon-yellow accent, stakes as glowing chips,
-/// and the daily CHECK-IN button.
+/// A quest with readable stakes and a separate row of actions.
 class ChallengeCard extends ConsumerWidget {
   const ChallengeCard({super.key, required this.challenge});
 
@@ -31,7 +30,7 @@ class ChallengeCard extends ConsumerWidget {
         .checkIn(questTitle: challenge.title);
 
     if (result.isQueuedOffline) {
-      messenger.showSnackBar(SnackBar(
+      messenger.showSnackBar(AppSnackBar(
         content: const Text(
             '⚡ Offline erledigt! Wird synchronisiert, sobald wieder Netz da ist.'),
         backgroundColor: AppColors.neonYellow,
@@ -40,7 +39,7 @@ class ChallengeCard extends ConsumerWidget {
     }
 
     if (!result.isSuccess) {
-      messenger.showSnackBar(SnackBar(
+      messenger.showSnackBar(AppSnackBar(
         content: Text(result.errorMessage ?? 'Check-in failed - try again.'),
         backgroundColor: AppColors.danger,
       ));
@@ -56,7 +55,7 @@ class ChallengeCard extends ConsumerWidget {
       if (robbed != null) return;
     }
 
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(AppSnackBar(
       content: Text('⚡ +$gained Aura! Quest checked in.'),
       backgroundColor: AppColors.neonGreen,
     ));
@@ -70,278 +69,271 @@ class ChallengeCard extends ConsumerWidget {
     // button here still invites a tap the server will refuse.
     final runningBlackout =
         ref.watch(myBlackoutProvider(challenge.id)).valueOrNull;
-    final blackout =
-        (runningBlackout != null && runningBlackout.isRunning)
-            ? runningBlackout
-            : null;
+    final blackout = (runningBlackout != null && runningBlackout.isRunning)
+        ? runningBlackout
+        : null;
 
     return Pressable(
       // Tapping the card (outside its buttons) opens the detail view.
       onTap: () => context.push('${AppRoutes.challenges}/${challenge.id}'),
       child: Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: AppColors.panelDecoration(accent: AppColors.neonYellow),
-      child: Row(
-        children: [
-          // ── Trophy badge ─────────────────────────────────
-          // Owning the "Title Badge" turns the quest icon golden —
-          // that's literally what the shop item promises.
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: AppColors.panelDecoration(
-              accent: AppColors.neonYellow,
-              fill: AppColors.surfaceLight,
-              radius: 8.0,
-              glow: challenge.ownedBenefits.contains('Title Badge'),
-            ),
-            child: Icon(Icons.emoji_events,
-                color: AppColors.warningText, size: 28),
-          ),
-          const SizedBox(width: 16),
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: AppColors.panelDecoration(accent: AppColors.neonYellow),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              // ── Trophy badge ─────────────────────────────────
+              // Owning the "Title Badge" turns the quest icon golden —
+              // that's literally what the shop item promises.
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: AppColors.panelDecoration(
+                  accent: AppColors.neonYellow,
+                  fill: AppColors.surfaceLight,
+                  radius: 8.0,
+                  glow: challenge.ownedBenefits.contains('Title Badge'),
+                ),
+                child: Icon(Icons.emoji_events,
+                    color: AppColors.warningText, size: 28),
+              ),
+              const SizedBox(width: 16),
 
-          // ── Title + stakes ───────────────────────────────
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+              Expanded(
+                child: Text(
                   challenge.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    // Party size first — social quests should pop.
-                    _StatChip(
-                      icon: challenge.memberCount > 1
-                          ? Icons.group
-                          : Icons.person,
-                      label: '${challenge.memberCount}',
-                      color: challenge.memberCount > 1
-                          ? AppColors.neonPink
-                          : AppColors.textSecondary,
-                    ),
-                    // Team quests wear their mode on the sleeve.
-                    if (challenge.mode == QuestMode.coop)
-                      _StatChip(
-                        icon: Icons.handshake,
-                        label: 'CO-OP',
-                        color: AppColors.neonPurple,
-                      ),
-                    if (challenge.mode == QuestMode.versus)
-                      _StatChip(
-                        icon: Icons.sports_kabaddi,
-                        label: challenge.myTeam == 'blue'
-                            ? 'TEAM BLUE'
-                            : 'TEAM RED',
-                        color: challenge.myTeam == 'blue'
-                            ? AppColors.neonCyan
-                            : AppColors.danger,
-                      ),
-                    _StatChip(
-                      icon: Icons.hourglass_bottom,
-                      label: challenge.timeLeftLabel,
-                      color: AppColors.neonCyan,
-                    ),
-                    _StatChip(
-                      icon: Icons.bolt,
-                      label: '+${challenge.auraGain}',
-                      color: AppColors.neonGreen,
-                    ),
-                    _StatChip(
-                      icon: Icons.heart_broken,
-                      label: '-${challenge.auraPenalty}',
-                      color: AppColors.danger,
-                    ),
-                    _StatChip(
-                      icon: Icons.shield_outlined,
-                      label:
-                          '${challenge.strikesUsed}/${challenge.maxStrikes} strikes',
-                      // Turns red once the budget is fully burnt.
-                      color: challenge.strikesUsed >= challenge.maxStrikes
-                          ? AppColors.danger
-                          : AppColors.textSecondary,
-                    ),
-                    // Flexible schedules get their frequency shown;
-                    // plain daily is the default and needs no chip.
-                    if (challenge.checkinPeriod != CheckinPeriod.daily)
-                      _StatChip(
-                        icon: Icons.repeat,
-                        label: '${challenge.checkinsPerPeriod}x/'
-                            '${challenge.checkinPeriod == CheckinPeriod.weekly ? 'week' : 'month'}',
-                        color: AppColors.neonPink,
-                      ),
-                    // Rest days change when the quest is due, so they
-                    // belong on the card even for a daily quest.
-                    if (challenge.hasRestDays)
-                      _StatChip(
-                        icon: Icons.event_repeat,
-                        label: challenge.weekdayLabel,
-                        color: AppColors.neonPink,
-                      ),
-                    // Owned shop gear, right in the overview.
-                    for (final title in challenge.ownedBenefits)
-                      BenefitChip(title: title),
-                  ],
+              ),
+            ]),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                // Party size first — social quests should pop.
+                _StatChip(
+                  icon: challenge.memberCount > 1 ? Icons.group : Icons.person,
+                  label: '${challenge.memberCount}',
+                  color: challenge.memberCount > 1
+                      ? AppColors.neonPink
+                      : AppColors.textSecondary,
                 ),
-                // Live progress read-out for progress quests.
-                if (challenge.isProgress) ...[
-                  const SizedBox(height: 10),
-                  QuestProgressBar(challenge: challenge, compact: true),
-                ],
-                // Slip budget for negative quests.
-                if (challenge.isAvoid) ...[
-                  const SizedBox(height: 10),
-                  SlipMeter(challenge: challenge, compact: true),
-                ],
+                // Team quests wear their mode on the sleeve.
+                if (challenge.mode == QuestMode.coop)
+                  _StatChip(
+                    icon: Icons.handshake,
+                    label: 'CO-OP',
+                    color: AppColors.neonPurple,
+                  ),
+                if (challenge.mode == QuestMode.versus)
+                  _StatChip(
+                    icon: Icons.sports_kabaddi,
+                    label:
+                        challenge.myTeam == 'blue' ? 'TEAM BLUE' : 'TEAM RED',
+                    color: challenge.myTeam == 'blue'
+                        ? AppColors.neonCyan
+                        : AppColors.danger,
+                  ),
+                _StatChip(
+                  icon: Icons.hourglass_bottom,
+                  label: challenge.timeLeftLabel,
+                  color: AppColors.neonCyan,
+                ),
+                _StatChip(
+                  icon: Icons.bolt,
+                  label: '+${challenge.auraGain}',
+                  color: AppColors.neonGreen,
+                ),
+                _StatChip(
+                  icon: Icons.heart_broken,
+                  label: '-${challenge.auraPenalty}',
+                  color: AppColors.danger,
+                ),
+                _StatChip(
+                  icon: Icons.shield_outlined,
+                  label:
+                      '${challenge.strikesUsed}/${challenge.maxStrikes} strikes',
+                  // Turns red once the budget is fully burnt.
+                  color: challenge.strikesUsed >= challenge.maxStrikes
+                      ? AppColors.danger
+                      : AppColors.textSecondary,
+                ),
+                // Flexible schedules get their frequency shown;
+                // plain daily is the default and needs no chip.
+                if (challenge.checkinPeriod != CheckinPeriod.daily)
+                  _StatChip(
+                    icon: Icons.repeat,
+                    label: '${challenge.checkinsPerPeriod}x/'
+                        '${challenge.checkinPeriod == CheckinPeriod.weekly ? 'week' : 'month'}',
+                    color: AppColors.neonPink,
+                  ),
+                // Rest days change when the quest is due, so they
+                // belong on the card even for a daily quest.
+                if (challenge.hasRestDays)
+                  _StatChip(
+                    icon: Icons.event_repeat,
+                    label: challenge.weekdayLabel,
+                    color: AppColors.neonPink,
+                  ),
+                // Owned shop gear, right in the overview.
+                for (final title in challenge.ownedBenefits)
+                  BenefitChip(title: title),
               ],
             ),
-          ),
-          const SizedBox(width: 12),
-
-          // ── Quest aura + actions ─────────────────────────
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              // THIS challenge's aura balance — the shop currency.
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                   Icon(Icons.bolt,
-                      size: 18, color: AppColors.neonPurple),
-                  Text(
-                    '${challenge.myAura}',
-                    style: textTheme.titleLarge
-                        ?.copyWith(color: AppColors.neonPurple),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              // Out of the running: the quest stays on the list so the
-              // player can keep watching, but the action slot turns into
-              // a plain marker. Tapping the card still opens everything.
-              if (challenge.amIOut)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                  decoration: BoxDecoration(
-                    color: AppColors.danger.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: AppColors.danger.withValues(alpha: 0.5)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('☠️', style: TextStyle(fontSize: 12)),
-                      const SizedBox(width: 5),
-                      Text('OUT',
-                          style: TextStyle(
-                            color: AppColors.danger,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          )),
-                    ],
-                  ),
-                )
-              // Locked out for the next couple of hours: the same pill
-              // treatment, with the time left instead of a verb.
-              else if (blackout != null)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                  decoration: BoxDecoration(
-                    color: AppColors.neonPurple.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: AppColors.neonPurple.withValues(alpha: 0.5)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('🌑', style: TextStyle(fontSize: 12)),
-                      const SizedBox(width: 5),
-                      Text(blackout.remainingLabel,
-                          style: TextStyle(
-                            color: AppColors.neonPurple,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          )),
-                    ],
-                  ),
-                )
-              // A lobby quest can't be checked into yet — it shows a
-              // quiet "LOBBY" pill and is opened from the detail screen.
-              else if (challenge.isLobby)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                  decoration: BoxDecoration(
-                    color: AppColors.neonYellow.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: AppColors.neonYellow.withValues(alpha: 0.5)),
-                  ),
-                  child: Text('LOBBY',
-                      style: TextStyle(
-                        color: AppColors.warningText,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      )),
-                )
-              // Progress quests collect towards a target instead of
-              // being ticked off.
-              else if (challenge.isProgress)
-                _AddProgressButton(
-                  done: challenge.checkedInToday,
-                  onPressed: () =>
-                      showAddProgressSheet(context, ref, challenge),
-                )
-              // Negative quests are won by inaction — there is nothing
-              // to tick off, only a slip to own up to.
-              else if (challenge.isAvoid)
-                SlipButton(
-                  challenge: challenge,
-                  compact: true,
-                  busy: ref
-                      .watch(slipControllerProvider(challenge.id))
-                      .isLoading,
-                  onPressed: () => logSlipAndReveal(context, ref, challenge),
-                )
-              else
-                _CheckInButton(
-                  checkedInToday: challenge.checkedInToday,
-                  isLoading: checkInState.isLoading,
-                  onPressed: () => _checkIn(context, ref),
-                ),
-              // Opens the shop scoped to exactly this challenge.
-              TextButton.icon(
-                onPressed: challenge.amIOut
-                    ? null
-                    : () => ChallengeShopSheet.show(context, challenge),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.neonPurple,
-                  disabledForegroundColor: AppColors.textSecondary,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  minimumSize: const Size(0, 32),
-                  textStyle: const TextStyle(
-                      fontSize: 11, fontWeight: FontWeight.w700),
-                ),
-                icon: const Icon(Icons.storefront, size: 14),
-                label: const Text('SHOP'),
-              ),
+            // Live progress read-out for progress quests.
+            if (challenge.isProgress) ...[
+              const SizedBox(height: 10),
+              QuestProgressBar(challenge: challenge, compact: true),
             ],
-          ),
-        ],
-      ),
+            // Slip budget for negative quests.
+            if (challenge.isAvoid) ...[
+              const SizedBox(height: 10),
+              SlipMeter(challenge: challenge, compact: true),
+            ],
+            const SizedBox(height: 16),
+
+            // ── Quest aura + actions ─────────────────────────
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                // THIS challenge's aura balance — the shop currency.
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.bolt, size: 18, color: AppColors.neonPurple),
+                    Text(
+                      '${challenge.myAura}',
+                      style: textTheme.titleLarge
+                          ?.copyWith(color: AppColors.neonPurple),
+                    ),
+                  ],
+                ),
+                // Out of the running: the quest stays on the list so the
+                // player can keep watching, but the action slot turns into
+                // a plain marker. Tapping the card still opens everything.
+                if (challenge.amIOut)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: AppColors.danger.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: AppColors.danger.withValues(alpha: 0.5)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('☠️', style: TextStyle(fontSize: 12)),
+                        const SizedBox(width: 5),
+                        Text('OUT',
+                            style: TextStyle(
+                              color: AppColors.danger,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            )),
+                      ],
+                    ),
+                  )
+                // Locked out for the next couple of hours: the same pill
+                // treatment, with the time left instead of a verb.
+                else if (blackout != null)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: AppColors.neonPurple.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: AppColors.neonPurple.withValues(alpha: 0.5)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('🌑', style: TextStyle(fontSize: 12)),
+                        const SizedBox(width: 5),
+                        Text(blackout.remainingLabel,
+                            style: TextStyle(
+                              color: AppColors.neonPurple,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            )),
+                      ],
+                    ),
+                  )
+                // A lobby quest can't be checked into yet — it shows a
+                // quiet "LOBBY" pill and is opened from the detail screen.
+                else if (challenge.isLobby)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: AppColors.neonYellow.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: AppColors.neonYellow.withValues(alpha: 0.5)),
+                    ),
+                    child: Text('LOBBY',
+                        style: TextStyle(
+                          color: AppColors.warningText,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        )),
+                  )
+                // Progress quests collect towards a target instead of
+                // being ticked off.
+                else if (challenge.isProgress)
+                  _AddProgressButton(
+                    done: challenge.checkedInToday,
+                    onPressed: () =>
+                        showAddProgressSheet(context, ref, challenge),
+                  )
+                // Negative quests are won by inaction — there is nothing
+                // to tick off, only a slip to own up to.
+                else if (challenge.isAvoid)
+                  SlipButton(
+                    challenge: challenge,
+                    compact: true,
+                    busy: ref
+                        .watch(slipControllerProvider(challenge.id))
+                        .isLoading,
+                    onPressed: () => logSlipAndReveal(context, ref, challenge),
+                  )
+                else
+                  _CheckInButton(
+                    checkedInToday: challenge.checkedInToday,
+                    isLoading: checkInState.isLoading,
+                    onPressed: () => _checkIn(context, ref),
+                  ),
+                // Opens the shop scoped to exactly this challenge.
+                TextButton.icon(
+                  onPressed: challenge.amIOut
+                      ? null
+                      : () => ChallengeShopSheet.show(context, challenge),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.neonPurple,
+                    disabledForegroundColor: AppColors.textSecondary,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: const Size(0, 48),
+                    textStyle: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w700),
+                  ),
+                  icon: const Icon(Icons.storefront, size: 14),
+                  label: const Text('PERKS'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -363,11 +355,10 @@ class _AddProgressButton extends StatelessWidget {
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.successText,
-          minimumSize: const Size(0, 40),
+          minimumSize: const Size(0, 48),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           side: BorderSide(color: AppColors.neonGreen),
-          textStyle:
-              const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         ),
         icon: const Icon(Icons.check, size: 15),
         label: const Text('MORE'),
@@ -379,7 +370,7 @@ class _AddProgressButton extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.neonPurple,
         foregroundColor: AppColors.background,
-        minimumSize: const Size(0, 40),
+        minimumSize: const Size(0, 48),
         padding: const EdgeInsets.symmetric(horizontal: 12),
         textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
       ),
@@ -408,7 +399,7 @@ class _CheckInButton extends StatelessWidget {
       return OutlinedButton(
         onPressed: null,
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(0, 40),
+          minimumSize: const Size(0, 48),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           disabledForegroundColor: AppColors.textSecondary,
           side: BorderSide(
@@ -429,7 +420,7 @@ class _CheckInButton extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.neonGreen,
         foregroundColor: AppColors.background,
-        minimumSize: const Size(0, 40),
+        minimumSize: const Size(0, 48),
         padding: const EdgeInsets.symmetric(horizontal: 12),
         textStyle: const TextStyle(
           fontSize: 12,
@@ -438,7 +429,7 @@ class _CheckInButton extends StatelessWidget {
         ),
       ),
       child: isLoading
-          ?  SizedBox(
+          ? SizedBox(
               width: 16,
               height: 16,
               child: CircularProgressIndicator(
@@ -476,14 +467,15 @@ class _StatChip extends StatelessWidget {
         children: [
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 4),
-          Text(
+          Flexible(
+              child: Text(
             label,
             style: TextStyle(
-              color: color,
+              color: AppColors.textPrimary,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
-          ),
+          )),
         ],
       ),
     );

@@ -6,22 +6,16 @@ import '../theme/app_colors.dart';
 /// Rebuilds its subtree whenever the design system or light/dark mode
 /// changes.
 ///
-/// Screens read their colours from the global [AppColors] at build
-/// time rather than from an InheritedWidget, so a theme switch alone
-/// does not repaint them — a screen kept alive by the shell's
-/// IndexedStack would keep serving the previous palette. Re-keying the
-/// subtree forces a clean rebuild with the new colours.
+/// Rebuild screens with the current palette while preserving their State,
+/// scroll positions and text-field drafts when the theme changes.
 class ThemeScope extends ConsumerWidget {
-  const ThemeScope({super.key, required this.child});
+  const ThemeScope({super.key, required this.builder});
 
-  final Widget child;
+  final WidgetBuilder builder;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = ref.watch(themeProvider);
-    return KeyedSubtree(
-      key: ValueKey('${theme.type.name}-${theme.mode.name}'),
-      child: child,
-    );
+    ref.watch(themeProvider);
+    return builder(context);
   }
 }

@@ -17,7 +17,8 @@ import '../../../challenges/domain/weekly_recap.dart';
 /// somebody already looked at is not worth a table, and getting it wrong
 /// costs nothing worse than seeing the card twice.
 class WeeklyRecapCard extends ConsumerStatefulWidget {
-  const WeeklyRecapCard({super.key});
+  const WeeklyRecapCard({super.key, this.compact = false});
+  final bool compact;
 
   @override
   ConsumerState<WeeklyRecapCard> createState() => _WeeklyRecapCardState();
@@ -59,12 +60,12 @@ class _WeeklyRecapCardState extends ConsumerState<WeeklyRecapCard> {
     final better = recap.checkInDelta > 0;
     final same = recap.checkInDelta == 0;
 
-    return Padding(
+    final content = Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Container(
         padding: const EdgeInsets.all(18),
-        decoration: AppColors.panelDecoration(
-            accent: AppColors.neonPurple, glow: true),
+        decoration:
+            AppColors.panelDecoration(accent: AppColors.neonPurple, glow: true),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -93,7 +94,7 @@ class _WeeklyRecapCardState extends ConsumerState<WeeklyRecapCard> {
             Text(
               '${formatDate(recap.weekStart)} – ${formatDate(recap.weekEnd)}',
               style: textTheme.bodySmall
-                  ?.copyWith(color: AppColors.textSecondary, fontSize: 11),
+                  ?.copyWith(color: AppColors.textSecondary, fontSize: 12),
             ),
             const SizedBox(height: 14),
 
@@ -135,7 +136,9 @@ class _WeeklyRecapCardState extends ConsumerState<WeeklyRecapCard> {
               same
                   ? AppColors.textSecondary
                   : (better ? AppColors.successText : AppColors.danger),
-              same ? Icons.remove : (better ? Icons.trending_up : Icons.trending_down),
+              same
+                  ? Icons.remove
+                  : (better ? Icons.trending_up : Icons.trending_down),
             ),
             if (recap.bestDay != null && recap.bestDayCount > 1)
               _line(
@@ -173,10 +176,23 @@ class _WeeklyRecapCardState extends ConsumerState<WeeklyRecapCard> {
         ),
       ),
     );
+    if (!widget.compact) return content;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: AppColors.panelDecoration(accent: AppColors.neonPurple),
+      child: ExpansionTile(
+        shape: const Border(),
+        collapsedShape: const Border(),
+        leading: Icon(Icons.date_range, color: AppColors.accentText),
+        title: const Text('WEEKLY RECAP'),
+        subtitle: Text(
+            '${recap.checkIns} logged · ${recap.activeDays}/7 days active'),
+        children: [content],
+      ),
+    );
   }
 
-  Widget _line(
-      TextTheme textTheme, String text, Color color, IconData icon) {
+  Widget _line(TextTheme textTheme, String text, Color color, IconData icon) {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Row(
@@ -224,7 +240,7 @@ class _Figure extends StatelessWidget {
           Text(
             label,
             style: textTheme.bodySmall
-                ?.copyWith(color: AppColors.textSecondary, fontSize: 10),
+                ?.copyWith(color: AppColors.textSecondary, fontSize: 12),
           ),
         ],
       ),

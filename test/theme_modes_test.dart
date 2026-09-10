@@ -60,7 +60,7 @@ void main() {
 
     test('light palettes keep their original hand-picked values', () {
       // Guards the user's design work against accidental drift.
-      expect(neoBrutalistColors.background, const Color(0xFFFDEFE7));
+      expect(neoBrutalistColors.background, const Color(0xFFF6F2DF));
       expect(neoBrutalistColors.outline, const Color(0xFF191919));
       expect(editorialColors.neonCyan, const Color(0xFFE65C4F));
       expect(editorialColors.inputOutline, const Color(0xFF8C716D));

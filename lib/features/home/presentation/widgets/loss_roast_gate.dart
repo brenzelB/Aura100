@@ -1,3 +1,4 @@
+import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -56,7 +57,7 @@ class _LossRoastGateState extends ConsumerState<LossRoastGate> {
       barrierDismissible: false,
       builder: (dialogContext) => PopScope(
         canPop: false,
-        child: AlertDialog(
+        child: AppDialog(
           backgroundColor: AppColors.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -103,7 +104,7 @@ class _LossRoastGateState extends ConsumerState<LossRoastGate> {
                 onPressed: () => Navigator.of(dialogContext).pop(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.danger,
-                  foregroundColor: AppColors.textPrimary,
+                  foregroundColor: Theme.of(context).colorScheme.onError,
                   minimumSize: const Size(0, 48),
                 ),
                 child: const Text('YES, I AM A LOSER'),
@@ -136,8 +137,7 @@ class _LossRoastGateState extends ConsumerState<LossRoastGate> {
     // widget appeared.
     final current = ref.watch(settlementEventsProvider).valueOrNull;
     if (current != null) {
-      WidgetsBinding.instance
-          .addPostFrameCallback((_) => _maybeRoast(current));
+      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeRoast(current));
     }
 
     return const SizedBox.shrink();

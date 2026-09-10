@@ -1,3 +1,4 @@
+import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
@@ -20,10 +21,11 @@ class FriendsScreen extends ConsumerWidget {
     final controller = TextEditingController();
     final username = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => AppDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppColors.activeType == AppThemeType.auralis ? 24 : 20),
+          borderRadius: BorderRadius.circular(
+              AppColors.activeType == AppThemeType.auralis ? 24 : 20),
           side: BorderSide(
             color: AppColors.activeType == AppThemeType.auralis
                 ? AppColors.outline
@@ -42,13 +44,12 @@ class FriendsScreen extends ConsumerWidget {
           controller: controller,
           autofocus: true,
           decoration: const InputDecoration(hintText: 'Username'),
-          onSubmitted: (value) =>
-              Navigator.of(dialogContext).pop(value.trim()),
+          onSubmitted: (value) => Navigator.of(dialogContext).pop(value.trim()),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child:  Text('CANCEL',
+            child: Text('CANCEL',
                 style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
@@ -62,11 +63,12 @@ class FriendsScreen extends ConsumerWidget {
     if (username == null || username.isEmpty || !context.mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
-    final status =
-        await ref.read(friendshipControllerProvider.notifier).sendRequest(username);
+    final status = await ref
+        .read(friendshipControllerProvider.notifier)
+        .sendRequest(username);
     if (status == null) return; // error → ref.listen
 
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(AppSnackBar(
       content: Text(status == 'accepted'
           // They had already asked us — asking back seals it instantly.
           ? '🤝 You and @$username are now friends!'
@@ -83,10 +85,11 @@ class FriendsScreen extends ConsumerWidget {
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => AppDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppColors.activeType == AppThemeType.auralis ? 24 : 20),
+          borderRadius: BorderRadius.circular(
+              AppColors.activeType == AppThemeType.auralis ? 24 : 20),
           side: BorderSide(
             color: AppColors.activeType == AppThemeType.auralis
                 ? AppColors.outline
@@ -112,15 +115,15 @@ class FriendsScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child:  Text('CANCEL',
-                style: TextStyle(color: AppColors.accentText)),
+            child:
+                Text('CANCEL', style: TextStyle(color: AppColors.accentText)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.danger,
-              foregroundColor: AppColors.textPrimary,
-              minimumSize: const Size(0, 40),
+              foregroundColor: Theme.of(context).colorScheme.onError,
+              minimumSize: const Size(0, 48),
             ),
             child: const Text('REMOVE'),
           ),
@@ -130,11 +133,12 @@ class FriendsScreen extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
-    final ok =
-        await ref.read(friendshipControllerProvider.notifier).remove(friend.userId);
+    final ok = await ref
+        .read(friendshipControllerProvider.notifier)
+        .remove(friend.userId);
     if (!ok) return;
 
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(AppSnackBar(
       content: Text('@${friend.username} removed.'),
       backgroundColor: AppColors.surfaceLight,
     ));
@@ -152,12 +156,11 @@ class FriendsScreen extends ConsumerWidget {
         .respond(friendshipId: request.id, accept: accept);
     if (!ok) return;
 
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(AppSnackBar(
       content: Text(accept
           ? '🤝 You and @${request.fromName} are now friends!'
           : 'Request from @${request.fromName} declined.'),
-      backgroundColor:
-          accept ? AppColors.neonGreen : AppColors.surfaceLight,
+      backgroundColor: accept ? AppColors.neonGreen : AppColors.surfaceLight,
     ));
   }
 
@@ -173,12 +176,11 @@ class FriendsScreen extends ConsumerWidget {
         .respond(inviteId: invite.id, accept: accept);
     if (!success) return; // error → ref.listen below
 
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(AppSnackBar(
       content: Text(accept
           ? '⚡ You joined "${invite.questTitle}"!'
           : 'Invite to "${invite.questTitle}" declined.'),
-      backgroundColor:
-          accept ? AppColors.neonGreen : AppColors.surfaceLight,
+      backgroundColor: accept ? AppColors.neonGreen : AppColors.surfaceLight,
     ));
   }
 
@@ -189,8 +191,7 @@ class FriendsScreen extends ConsumerWidget {
     final requestsAsync = ref.watch(friendRequestsProvider);
     final invitesAsync = ref.watch(myInvitesProvider);
     final nudgesAsync = ref.watch(myNudgesProvider);
-    final responding =
-        ref.watch(respondInviteControllerProvider).isLoading;
+    final responding = ref.watch(respondInviteControllerProvider).isLoading;
     final friendBusy = ref.watch(friendshipControllerProvider).isLoading;
 
     // Both controllers surface server rejections the same way.
@@ -205,7 +206,8 @@ class FriendsScreen extends ConsumerWidget {
             ? error.message
             : 'Something went wrong - try again.';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), backgroundColor: AppColors.danger),
+          AppSnackBar(
+              content: Text(message), backgroundColor: AppColors.danger),
         );
       });
     }
@@ -216,7 +218,7 @@ class FriendsScreen extends ConsumerWidget {
         actions: [
           IconButton(
             tooltip: 'Add friend',
-            icon:  Icon(Icons.person_add, color: AppColors.accentText),
+            icon: Icon(Icons.person_add, color: AppColors.accentText),
             onPressed: friendBusy ? null : () => _addFriend(context, ref),
           ),
         ],
@@ -273,12 +275,14 @@ class FriendsScreen extends ConsumerWidget {
             const SizedBox(height: 12),
             friendsAsync.when(
               data: (friends) => friends.isEmpty
-                  ? const _EmptyHint(
-                      icon: Icons.person_add_alt,
-                      motif: SpotMotif.friends,
-                      title: 'No friends yet',
-                      text: 'Tap the + above to add someone by username '
-                          'and start questing together.')
+                  ? AppStatePanel(
+                      title: 'Good habits. Better company.',
+                      message:
+                          'Add a friend by username, then invite them to a quest.',
+                      icon: Icons.group_add_outlined,
+                      actionLabel: 'ADD A FRIEND',
+                      onAction:
+                          friendBusy ? null : () => _addFriend(context, ref))
                   : Column(
                       children: [
                         for (final friend in friends)
@@ -290,18 +294,18 @@ class FriendsScreen extends ConsumerWidget {
                           ),
                       ],
                     ),
-              loading: () =>  Padding(
+              loading: () => Padding(
                 padding: EdgeInsets.all(24),
                 child: Center(
-                  child:
-                      CircularProgressIndicator(color: AppColors.accentText),
+                  child: CircularProgressIndicator(color: AppColors.accentText),
                 ),
               ),
-              error: (error, _) => Text(
-                'Could not load friends.\n$error',
-                style:
-                    textTheme.bodyMedium?.copyWith(color: AppColors.danger),
-              ),
+              error: (error, _) => AppStatePanel(
+                  title: 'Friends could not load',
+                  message: 'Check your connection and try again.',
+                  icon: Icons.cloud_off,
+                  actionLabel: 'RETRY',
+                  onAction: () => ref.invalidate(myFriendsProvider)),
             ),
             const SizedBox(height: 28),
 
@@ -333,17 +337,16 @@ class FriendsScreen extends ConsumerWidget {
                           ),
                       ],
                     ),
-              loading: () =>  Padding(
+              loading: () => Padding(
                 padding: EdgeInsets.all(24),
                 child: Center(
-                  child: CircularProgressIndicator(
-                      color: AppColors.warningText),
+                  child:
+                      CircularProgressIndicator(color: AppColors.warningText),
                 ),
               ),
               error: (error, _) => Text(
-                'Could not load invites.\n$error',
-                style:
-                    textTheme.bodyMedium?.copyWith(color: AppColors.danger),
+                'Could not load invites. Please try again.',
+                style: textTheme.bodyMedium?.copyWith(color: AppColors.danger),
               ),
             ),
             const SizedBox(height: 28),
@@ -351,8 +354,8 @@ class FriendsScreen extends ConsumerWidget {
             // ── Pokes ─────────────────────────────────────────
             Text(
               'POKES',
-              style: textTheme.headlineSmall
-                  ?.copyWith(color: AppColors.neonPink),
+              style:
+                  textTheme.headlineSmall?.copyWith(color: AppColors.neonPink),
             ),
             const SizedBox(height: 12),
             nudgesAsync.when(
@@ -368,17 +371,15 @@ class FriendsScreen extends ConsumerWidget {
                         for (final nudge in nudges) _NudgeTile(nudge),
                       ],
                     ),
-              loading: () =>  Padding(
+              loading: () => Padding(
                 padding: EdgeInsets.all(24),
                 child: Center(
-                  child:
-                      CircularProgressIndicator(color: AppColors.neonPink),
+                  child: CircularProgressIndicator(color: AppColors.neonPink),
                 ),
               ),
               error: (error, _) => Text(
-                'Could not load pokes.\n$error',
-                style:
-                    textTheme.bodyMedium?.copyWith(color: AppColors.danger),
+                'Could not load pokes. Please try again.',
+                style: textTheme.bodyMedium?.copyWith(color: AppColors.danger),
               ),
             ),
           ],
@@ -451,7 +452,7 @@ class _FriendTile extends ConsumerWidget {
           IconButton(
             tooltip: 'Remove friend',
             onPressed: busy ? null : onRemove,
-            icon:  Icon(Icons.person_remove_outlined,
+            icon: Icon(Icons.person_remove_outlined,
                 size: 20, color: AppColors.textSecondary),
           ),
           IconButton(
@@ -464,8 +465,8 @@ class _FriendTile extends ConsumerWidget {
                       userId: friend.userId,
                       username: friend.username,
                     ),
-            icon: Icon(Icons.more_vert,
-                size: 18, color: AppColors.textSecondary),
+            icon:
+                Icon(Icons.more_vert, size: 18, color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -525,14 +526,14 @@ class _RequestTile extends StatelessWidget {
           IconButton(
             tooltip: 'Decline',
             onPressed: busy ? null : onDecline,
-            icon:  Icon(Icons.close, color: AppColors.danger),
+            icon: Icon(Icons.close, color: AppColors.danger),
           ),
           ElevatedButton(
             onPressed: busy ? null : onAccept,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.neonGreen,
               foregroundColor: AppColors.background,
-              minimumSize: const Size(0, 38),
+              minimumSize: const Size(0, 48),
               padding: const EdgeInsets.symmetric(horizontal: 14),
               textStyle:
                   const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
@@ -568,8 +569,7 @@ class _InviteTile extends StatelessWidget {
       decoration: AppColors.panelDecoration(accent: AppColors.neonYellow),
       child: Row(
         children: [
-           Icon(Icons.emoji_events,
-              color: AppColors.warningText, size: 24),
+          Icon(Icons.emoji_events, color: AppColors.warningText, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -593,14 +593,14 @@ class _InviteTile extends StatelessWidget {
           IconButton(
             tooltip: 'Decline',
             onPressed: busy ? null : onDecline,
-            icon:  Icon(Icons.close, color: AppColors.danger),
+            icon: Icon(Icons.close, color: AppColors.danger),
           ),
           ElevatedButton(
             onPressed: busy ? null : onAccept,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.neonGreen,
               foregroundColor: AppColors.background,
-              minimumSize: const Size(0, 38),
+              minimumSize: const Size(0, 48),
               padding: const EdgeInsets.symmetric(horizontal: 14),
               textStyle:
                   const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
@@ -636,7 +636,7 @@ class _NudgeTile extends StatelessWidget {
                 children: [
                   TextSpan(
                     text: '@${nudge.fromName}',
-                    style:  TextStyle(
+                    style: TextStyle(
                       color: AppColors.neonPink,
                       fontWeight: FontWeight.w700,
                     ),
@@ -660,8 +660,8 @@ class _NudgeTile extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             nudge.timeAgo(DateTime.now()),
-            style: textTheme.bodySmall
-                ?.copyWith(color: AppColors.textSecondary),
+            style:
+                textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -711,18 +711,18 @@ class _EmptyHint extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 22),
+      padding: const EdgeInsets.all(16),
       decoration: AppColors.panelDecoration(accent: AppColors.outline),
       child: Column(
         children: [
-          SpotIllustration(motif: motif!, size: 100),
-          const SizedBox(height: 16),
+          SpotIllustration(motif: motif!, size: 44),
+          const SizedBox(height: 8),
           if (title != null) ...[
             Text(
               title!,
               textAlign: TextAlign.center,
-              style: textTheme.headlineMedium
-                  ?.copyWith(color: AppColors.textPrimary),
+              style:
+                  textTheme.titleMedium?.copyWith(color: AppColors.textPrimary),
             ),
             const SizedBox(height: 5),
           ],

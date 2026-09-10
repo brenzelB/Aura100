@@ -10,8 +10,7 @@ plugins {
 
 // Release signing credentials live OUTSIDE the repository, in
 // android/key.properties (see deploy/store/README.md). The file is
-// optional: without it the build falls back to debug signing so
-// `flutter run --release` keeps working during development.
+// required for release tasks. Never produce a debug-signed store bundle.
 val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties().apply {
     if (keystorePropertiesFile.exists()) {
@@ -19,7 +18,16 @@ val keystoreProperties = Properties().apply {
     }
 }
 val hasReleaseKeystore = keystorePropertiesFile.exists() &&
-        keystoreProperties.getProperty("storeFile") != null
+        listOf("storeFile", "storePassword", "keyAlias", "keyPassword").all {
+            !keystoreProperties.getProperty(it).isNullOrBlank()
+        }
+
+gradle.taskGraph.whenReady {
+    if (allTasks.any { it.project == project && it.name.contains("Release") }) {
+        check(hasReleaseKeystore) { "Release signing requires android/key.properties with all four signing properties." }
+        check(file(keystoreProperties.getProperty("storeFile")).isFile) { "Release keystore file is missing." }
+    }
+}
 
 android {
     namespace = "com.auraquest.aura_quest"
@@ -61,8 +69,7 @@ android {
             signingConfig = if (hasReleaseKeystore) {
                 signingConfigs.getByName("release")
             } else {
-                // Debug keys: fine for local testing, REJECTED by Play.
-                signingConfigs.getByName("debug")
+                null
             }
             isMinifyEnabled = true
             isShrinkResources = true

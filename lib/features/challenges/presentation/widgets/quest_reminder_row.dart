@@ -1,3 +1,4 @@
+import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -42,14 +43,14 @@ class QuestReminderRow extends ConsumerWidget {
           );
       ref.invalidate(questReminderProvider(challenge.id));
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(AppSnackBar(
         content: Text('Reminder set for ${_label(picked.hour, picked.minute)}. '
             'Skipped on days you already logged.'),
         backgroundColor: AppColors.surfaceLight,
       ));
     } catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(AppSnackBar(
         content: const Text('Could not save the reminder.'),
         backgroundColor: AppColors.danger,
       ));
@@ -63,13 +64,13 @@ class QuestReminderRow extends ConsumerWidget {
           .clearQuestReminder(challenge.id);
       ref.invalidate(questReminderProvider(challenge.id));
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(AppSnackBar(
         content: const Text('Reminder off.'),
         backgroundColor: AppColors.surfaceLight,
       ));
     } catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(AppSnackBar(
         content: const Text('Could not turn it off.'),
         backgroundColor: AppColors.danger,
       ));

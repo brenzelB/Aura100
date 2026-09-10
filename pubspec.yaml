@@ -5,7 +5,7 @@
 name: aura_quest
 description: "Gamified social habit-tracker where friends compete in challenges using Aura points."
 publish_to: "none" # This is an app, not a package — never publish to pub.dev.
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.5.0

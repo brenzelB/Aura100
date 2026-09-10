@@ -1,9 +1,12 @@
+import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/theme/design_tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../../../core/text/dates.dart';
 import '../../../../core/text/roasts_300.dart';
+import '../../domain/quest_balance.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/motion.dart';
 import '../../application/challenge_providers.dart';
@@ -32,11 +35,11 @@ class ChallengeShopSheet extends ConsumerStatefulWidget {
   static Future<void> show(BuildContext context, Challenge challenge) {
     return showModalBottomSheet(
       context: context,
+      useSafeArea: true,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      shape: AppShapes.sheet,
       // Swipe down to leave: DraggableScrollableSheet hands the drag
       // back to the sheet when the stock list is scrolled to the top.
       builder: (_) => DraggableScrollableSheet(
@@ -53,8 +56,7 @@ class ChallengeShopSheet extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<ChallengeShopSheet> createState() =>
-      _ChallengeShopSheetState();
+  ConsumerState<ChallengeShopSheet> createState() => _ChallengeShopSheetState();
 }
 
 class _ChallengeShopSheetState extends ConsumerState<ChallengeShopSheet> {
@@ -84,7 +86,7 @@ class _ChallengeShopSheetState extends ConsumerState<ChallengeShopSheet> {
       );
 
       if (newBalance != null && mounted) {
-        messenger.showSnackBar(SnackBar(
+        messenger.showSnackBar(AppSnackBar(
           content: Text('🔥 Targeted Roast sent! ⚡$newBalance left.'),
           backgroundColor: AppColors.neonPurple,
         ));
@@ -113,7 +115,7 @@ class _ChallengeShopSheetState extends ConsumerState<ChallengeShopSheet> {
         // started, so the lock had jumped to the next day.
         final from = formatTime(armed.startsAt);
         final to = formatTime(armed.endsAt);
-        messenger.showSnackBar(SnackBar(
+        messenger.showSnackBar(AppSnackBar(
           content: Text(armed.isRunning
               ? '🌑 Blackout live — they are locked out until $to.'
               : '🌑 Blackout armed — $from to $to.'),
@@ -132,7 +134,7 @@ class _ChallengeShopSheetState extends ConsumerState<ChallengeShopSheet> {
     if (mounted) setState(() => _pendingBenefitId = null);
     if (newBalance == null) return; // error → surfaced by ref.listen
 
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(AppSnackBar(
       content: Text('🛒 "${benefit.title}" unlocked! ⚡$newBalance left.'),
       backgroundColor: AppColors.neonPurple,
     ));
@@ -153,31 +155,20 @@ class _ChallengeShopSheetState extends ConsumerState<ChallengeShopSheet> {
           ? error.message
           : 'Purchase failed — try again.';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: AppColors.danger),
+        AppSnackBar(content: Text(message), backgroundColor: AppColors.danger),
       );
     });
 
     return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       controller: widget.scrollController,
       padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Grab handle: the visual cue that this can be swiped away.
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: AppColors.textSecondary.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
           Text(
-            'QUEST SHOP',
+            'QUEST PERKS',
             textAlign: TextAlign.center,
             style:
                 textTheme.headlineMedium?.copyWith(color: AppColors.neonPurple),
@@ -188,8 +179,8 @@ class _ChallengeShopSheetState extends ConsumerState<ChallengeShopSheet> {
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: textTheme.bodyMedium
-                ?.copyWith(color: AppColors.textSecondary),
+            style:
+                textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 16),
 
@@ -204,26 +195,52 @@ class _ChallengeShopSheetState extends ConsumerState<ChallengeShopSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                 Icon(Icons.bolt, color: AppColors.neonPurple, size: 20),
+                Icon(Icons.bolt, color: AppColors.neonPurple, size: 20),
                 const SizedBox(width: 6),
-                Text(
+                Flexible(
+                    child: Text(
                   '$balance quest aura',
                   style: textTheme.bodyLarge?.copyWith(
                     color: AppColors.neonPurple,
                     fontWeight: FontWeight.w700,
                   ),
-                ),
+                )),
               ],
             ),
           ),
           const SizedBox(height: 20),
 
           // ── Stock ─────────────────────────────────────────────
+          Text(widget.challenge.auraGain > 0
+              ? 'Prices follow this quest’s ${widget.challenge.auraGain} Aura base reward. Your XP and level stay when you spend Aura.'
+              : 'Perks are unavailable for quests with a zero Aura reward.'),
+          const SizedBox(height: 8),
+          Text(widget.challenge.attacksEnabled
+              ? '3 outgoing attacks per account / UTC day. One successful incoming heist per day. Aura Ward blocks a hit.'
+              : 'Attacks are disabled in this quest.'),
+          const SizedBox(height: 12),
           benefitsAsync.when(
             data: (benefits) => Column(
               children: benefits
+                  .where((b) =>
+                      widget.challenge.auraGain > 0 &&
+                      (widget.challenge.attacksEnabled ||
+                          !const [
+                            'Aura Heist',
+                            'Targeted Roast',
+                            'Blackout',
+                            'Aura Ward'
+                          ].contains(b.title)) &&
+                      (!widget.challenge.isAvoid ||
+                          !const [
+                            'Aura Heist',
+                            'Blackout',
+                            'Aura Ward',
+                            'Double Down'
+                          ].contains(b.title)))
                   .map((b) => _BenefitTile(
                         benefit: b,
+                        baseReward: widget.challenge.auraGain,
                         balance: balance,
                         isPending: _pendingBenefitId == b.id,
                         anyPending: purchaseState.isLoading,
@@ -231,7 +248,7 @@ class _ChallengeShopSheetState extends ConsumerState<ChallengeShopSheet> {
                       ))
                   .toList(),
             ),
-            loading: () =>  Padding(
+            loading: () => Padding(
               padding: EdgeInsets.all(32),
               child: Center(
                 child: CircularProgressIndicator(color: AppColors.neonPurple),
@@ -240,10 +257,9 @@ class _ChallengeShopSheetState extends ConsumerState<ChallengeShopSheet> {
             error: (error, _) => Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                'Could not load the shop.\n$error',
+                'Could not load perks. Please try again.',
                 textAlign: TextAlign.center,
-                style:
-                    textTheme.bodyMedium?.copyWith(color: AppColors.danger),
+                style: textTheme.bodyMedium?.copyWith(color: AppColors.danger),
               ),
             ),
           ),
@@ -257,6 +273,7 @@ class _ChallengeShopSheetState extends ConsumerState<ChallengeShopSheet> {
 class _BenefitTile extends StatelessWidget {
   const _BenefitTile({
     required this.benefit,
+    required this.baseReward,
     required this.balance,
     required this.isPending,
     required this.anyPending,
@@ -264,6 +281,7 @@ class _BenefitTile extends StatelessWidget {
   });
 
   final Benefit benefit;
+  final int baseReward;
   final int balance;
   final bool isPending;
   final bool anyPending;
@@ -292,6 +310,9 @@ class _BenefitTile extends StatelessWidget {
                   style: textTheme.bodyLarge
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
+                Text(
+                    '${(benefit.cost / baseReward).toStringAsFixed(2)} base rewards',
+                    style: textTheme.bodySmall),
                 const SizedBox(height: 2),
                 Text(
                   benefit.description,
@@ -316,7 +337,7 @@ class _BenefitTile extends StatelessWidget {
                       style: textTheme.bodySmall?.copyWith(
                         color: AppColors.successText,
                         fontWeight: FontWeight.w700,
-                        fontSize: 10,
+                        fontSize: 12,
                       ),
                     ),
                   ),
@@ -326,7 +347,7 @@ class _BenefitTile extends StatelessWidget {
                     child: Text(
                       '${benefit.usedCount}x used',
                       style: textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary, fontSize: 10),
+                          color: AppColors.textSecondary, fontSize: 12),
                     ),
                   ),
                 _BuyButton(
@@ -378,14 +399,15 @@ class _BuyButton extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.neonPurple,
         foregroundColor: AppColors.isDark ? AppColors.background : Colors.white,
-        disabledBackgroundColor: AppColors.textSecondary.withValues(alpha: 0.15),
+        disabledBackgroundColor:
+            AppColors.textSecondary.withValues(alpha: 0.15),
         disabledForegroundColor: AppColors.textSecondary.withValues(alpha: 0.5),
-        minimumSize: const Size(0, 38),
+        minimumSize: const Size(0, 48),
         padding: const EdgeInsets.symmetric(horizontal: 12),
         textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
       ),
       child: isPending
-          ?  SizedBox(
+          ? SizedBox(
               width: 16,
               height: 16,
               child: CircularProgressIndicator(
@@ -418,7 +440,10 @@ class __TargetedRoastFlowDialogState
   int _selectedDurationSeconds = 3; // 3 or 5
   bool _isSending = false;
 
-  int get _calculatedCost => _selectedDurationSeconds == 5 ? 200 : 120;
+  int _roastCost(int tier) =>
+      QuestBalance.price(widget.challenge.auraGain, 'Targeted Roast',
+          tier: tier);
+  int get _calculatedCost => _roastCost(_selectedDurationSeconds == 5 ? 2 : 1);
 
   @override
   void initState() {
@@ -432,14 +457,13 @@ class __TargetedRoastFlowDialogState
     setState(() => _isSending = true);
 
     try {
-      final newBalance = await ref
-          .read(challengeRepositoryProvider)
-          .sendTargetedRoast(
-            challengeId: widget.challenge.id,
-            targetId: _selectedTarget!.userId,
-            roastText: _selectedRoast!,
-            durationSeconds: _selectedDurationSeconds,
-          );
+      final newBalance =
+          await ref.read(challengeRepositoryProvider).sendTargetedRoast(
+                challengeId: widget.challenge.id,
+                targetId: _selectedTarget!.userId,
+                roastText: _selectedRoast!,
+                durationSeconds: _selectedDurationSeconds,
+              );
 
       ref.invalidate(myChallengesProvider);
       ref.invalidate(questMembersProvider(widget.challenge.id));
@@ -451,7 +475,7 @@ class __TargetedRoastFlowDialogState
       if (mounted) {
         setState(() => _isSending = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          AppSnackBar(
               content: Text('Roast error: $e'),
               backgroundColor: AppColors.danger),
         );
@@ -464,7 +488,7 @@ class __TargetedRoastFlowDialogState
     final textTheme = Theme.of(context).textTheme;
     final membersAsync = ref.watch(questMembersProvider(widget.challenge.id));
 
-    return AlertDialog(
+    return AppDialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
@@ -489,11 +513,13 @@ class __TargetedRoastFlowDialogState
           const SizedBox(height: 4),
           Text(
             'Roast a teammate & lock their screen',
-            style: textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+            style:
+                textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
           ),
         ],
       ),
       content: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -535,7 +561,7 @@ class __TargetedRoastFlowDialogState
                             ),
                           ),
                           Text(
-                            '⚡ 120 Aura',
+                            '⚡ ${_roastCost(1)} Aura',
                             style: textTheme.bodySmall?.copyWith(
                               color: AppColors.neonPurple,
                               fontWeight: FontWeight.w600,
@@ -573,7 +599,7 @@ class __TargetedRoastFlowDialogState
                             ),
                           ),
                           Text(
-                            '⚡ 200 Aura',
+                            '⚡ ${_roastCost(2)} Aura',
                             style: textTheme.bodySmall?.copyWith(
                               color: AppColors.neonPurple,
                               fontWeight: FontWeight.w600,
@@ -732,11 +758,10 @@ class __TargetedRoastFlowDialogState
           child: const Text('CANCEL'),
         ),
         ElevatedButton(
-          onPressed: (_selectedTarget != null &&
-                  _selectedRoast != null &&
-                  !_isSending)
-              ? _send
-              : null,
+          onPressed:
+              (_selectedTarget != null && _selectedRoast != null && !_isSending)
+                  ? _send
+                  : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.neonPurple,
             foregroundColor:
@@ -761,15 +786,15 @@ class __TargetedRoastFlowDialogState
 // Aura Heist: pick odds + target, roll, then reveal hit or miss.
 // ─────────────────────────────────────────────────────────────────
 class _HeistTier {
-  const _HeistTier(this.cost, this.chance);
-  final int cost;
+  const _HeistTier(this.tier, this.chance);
+  final int tier;
   final int chance; // percent
 }
 
 const _heistTiers = [
-  _HeistTier(150, 25),
-  _HeistTier(300, 50),
-  _HeistTier(500, 75),
+  _HeistTier(1, 25),
+  _HeistTier(2, 50),
+  _HeistTier(3, 75),
 ];
 
 class _AuraHeistFlowDialog extends ConsumerStatefulWidget {
@@ -782,9 +807,11 @@ class _AuraHeistFlowDialog extends ConsumerStatefulWidget {
       _AuraHeistFlowDialogState();
 }
 
-class _AuraHeistFlowDialogState
-    extends ConsumerState<_AuraHeistFlowDialog> {
+class _AuraHeistFlowDialogState extends ConsumerState<_AuraHeistFlowDialog> {
   _HeistTier _tier = _heistTiers.first;
+  int _cost(_HeistTier tier) =>
+      QuestBalance.price(widget.challenge.auraGain, 'Aura Heist',
+          tier: tier.tier);
   QuestMember? _target;
   bool _sending = false;
   String? _error;
@@ -797,11 +824,12 @@ class _AuraHeistFlowDialogState
       _error = null;
     });
     try {
-      final result = await ref.read(challengeRepositoryProvider).attemptAuraHeist(
-            challengeId: widget.challenge.id,
-            targetId: _target!.userId,
-            cost: _tier.cost,
-          );
+      final result =
+          await ref.read(challengeRepositoryProvider).attemptAuraHeist(
+                challengeId: widget.challenge.id,
+                targetId: _target!.userId,
+                tier: _tier.tier,
+              );
       ref.invalidate(myChallengesProvider);
       ref.invalidate(questMembersProvider(widget.challenge.id));
       if (mounted) setState(() => _result = result);
@@ -829,7 +857,7 @@ class _AuraHeistFlowDialogState
 
     final membersAsync = ref.watch(questMembersProvider(widget.challenge.id));
 
-    return AlertDialog(
+    return AppDialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
@@ -850,13 +878,14 @@ class _AuraHeistFlowDialogState
             ],
           ),
           const SizedBox(height: 4),
-          Text('Gamble to rob their next check-in aura',
+          Text('At most one base reward. Expires in 24h; wards can block it.',
               textAlign: TextAlign.center,
-              style:
-                  textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
+              style: textTheme.bodySmall
+                  ?.copyWith(color: AppColors.textSecondary)),
         ],
       ),
       content: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -893,7 +922,7 @@ class _AuraHeistFlowDialogState
                                     color: _tier == tier
                                         ? AppColors.neonPurple
                                         : AppColors.textPrimary)),
-                            Text('⚡${tier.cost}',
+                            Text('⚡${_cost(tier)}',
                                 style: textTheme.bodySmall?.copyWith(
                                     color: AppColors.textSecondary,
                                     fontWeight: FontWeight.w600)),
@@ -980,7 +1009,8 @@ class _AuraHeistFlowDialogState
             if (_error != null) ...[
               const SizedBox(height: 8),
               Text(_error!,
-                  style: textTheme.bodySmall?.copyWith(color: AppColors.danger)),
+                  style:
+                      textTheme.bodySmall?.copyWith(color: AppColors.danger)),
             ],
           ],
         ),
@@ -1004,7 +1034,7 @@ class _AuraHeistFlowDialogState
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2))
-              : Text('💰 PULL IT (⚡${_tier.cost})'),
+              : Text('💰 PULL IT (⚡${_cost(_tier)})'),
         ),
       ],
     );
@@ -1064,7 +1094,7 @@ class _HeistResultDialogState extends State<_HeistResultDialog>
 
     final curved = CurvedAnimation(parent: _c, curve: AppCurves.emphasizedOut);
 
-    return AlertDialog(
+    return AppDialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
@@ -1088,7 +1118,7 @@ class _HeistResultDialogState extends State<_HeistResultDialog>
               Text(
                 hit
                     ? "You're set. @${widget.targetName}'s next check-in "
-                        'aura lands in your pocket.'
+                        'can pay you at most one base reward within 24h. A ward can block it.'
                     : '@${widget.targetName} slipped away. '
                         'Your ⚡${widget.result.cost} is gone.',
                 textAlign: TextAlign.center,
@@ -1107,7 +1137,7 @@ class _HeistResultDialogState extends State<_HeistResultDialog>
             style: ElevatedButton.styleFrom(
               backgroundColor: accent,
               foregroundColor: AppColors.background,
-              minimumSize: const Size(0, 46),
+              minimumSize: const Size(0, 48),
             ),
             child: Text(hit ? 'NICE' : 'DAMN'),
           ),
@@ -1168,7 +1198,7 @@ class _BlackoutFlowDialogState extends ConsumerState<_BlackoutFlowDialog> {
     final membersAsync = ref.watch(questMembersProvider(widget.challenge.id));
     final blocks = widget.challenge.isProgress ? 'log any reps' : 'check in';
 
-    return AlertDialog(
+    return AppDialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
@@ -1196,14 +1226,14 @@ class _BlackoutFlowDialogState extends ConsumerState<_BlackoutFlowDialog> {
         ],
       ),
       content: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('1. Pick their blind spot:',
                 style: textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.neonPurple)),
+                    fontWeight: FontWeight.w700, color: AppColors.neonPurple)),
             const SizedBox(height: 6),
             Row(
               children: [
@@ -1233,22 +1263,21 @@ class _BlackoutFlowDialogState extends ConsumerState<_BlackoutFlowDialog> {
                             Text(Blackout.labelFor(part),
                                 style: textTheme.bodySmall?.copyWith(
                                   fontWeight: FontWeight.w900,
-                                  fontSize: 10,
+                                  fontSize: 12,
                                   color: _daypart == part
                                       ? AppColors.neonPurple
                                       : AppColors.textSecondary,
                                 )),
                             Text(Blackout.hoursFor(part),
                                 style: textTheme.bodySmall?.copyWith(
-                                    fontSize: 9,
+                                    fontSize: 12,
                                     color: AppColors.textSecondary)),
                           ],
                         ),
                       ),
                     ),
                   ),
-                  if (part != Blackout.dayparts.last)
-                    const SizedBox(width: 6),
+                  if (part != Blackout.dayparts.last) const SizedBox(width: 6),
                 ],
               ],
             ),
@@ -1257,12 +1286,11 @@ class _BlackoutFlowDialogState extends ConsumerState<_BlackoutFlowDialog> {
                 'Their local time. Pick one that is running right now and '
                 'it bites immediately.',
                 style: textTheme.bodySmall
-                    ?.copyWith(color: AppColors.textSecondary, fontSize: 11)),
+                    ?.copyWith(color: AppColors.textSecondary, fontSize: 12)),
             const SizedBox(height: 16),
             Text('2. Pick your mark:',
                 style: textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.neonPurple)),
+                    fontWeight: FontWeight.w700, color: AppColors.neonPurple)),
             const SizedBox(height: 6),
             membersAsync.when(
               data: (members) {
@@ -1323,7 +1351,7 @@ class _BlackoutFlowDialogState extends ConsumerState<_BlackoutFlowDialog> {
                                         '${formatLastActivity(member.lastActivityAt)}',
                                         style: textTheme.bodySmall?.copyWith(
                                             color: AppColors.textSecondary,
-                                            fontSize: 10)),
+                                            fontSize: 12)),
                                   ],
                                 ),
                               ),
@@ -1369,7 +1397,8 @@ class _BlackoutFlowDialogState extends ConsumerState<_BlackoutFlowDialog> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('BLACK THEM OUT · 250'),
+              : Text(
+                  'BLACK THEM OUT · ${QuestBalance.price(widget.challenge.auraGain, 'Blackout')}'),
         ),
       ],
     );

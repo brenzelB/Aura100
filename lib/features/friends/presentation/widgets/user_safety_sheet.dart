@@ -1,3 +1,5 @@
+import 'package:aura_quest/core/theme/design_tokens.dart';
+import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
@@ -27,11 +29,11 @@ Future<void> showUserSafetySheet(
 }) {
   return showModalBottomSheet<void>(
     context: context,
+    useSafeArea: true,
+    useRootNavigator: true,
     isScrollControlled: true,
     backgroundColor: AppColors.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
+    shape: AppShapes.sheet,
     builder: (_) => _UserSafetySheet(
       userId: userId,
       username: username,
@@ -73,7 +75,7 @@ class _UserSafetySheetState extends ConsumerState<_UserSafetySheet> {
       ref.invalidate(myFriendsProvider);
       if (!mounted) return;
       Navigator.of(context).pop();
-      messenger.showSnackBar(SnackBar(
+      messenger.showSnackBar(AppSnackBar(
         content: Text(done),
         backgroundColor: AppColors.neonGreen,
       ));
@@ -101,17 +103,6 @@ class _UserSafetySheetState extends ConsumerState<_UserSafetySheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 18),
-                decoration: BoxDecoration(
-                  color: AppColors.textSecondary.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
             Text(
               '@${widget.username}',
               textAlign: TextAlign.center,
@@ -121,12 +112,11 @@ class _UserSafetySheetState extends ConsumerState<_UserSafetySheet> {
                   ?.copyWith(color: AppColors.textPrimary),
             ),
             const SizedBox(height: 18),
-
             if (_reporting) ...[
               Text(
                 'What happened?',
-                style: textTheme.bodyMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
+                style:
+                    textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 4),
               Text(
@@ -175,13 +165,15 @@ class _UserSafetySheetState extends ConsumerState<_UserSafetySheet> {
                 ),
               const SizedBox(height: 6),
               TextButton(
-                onPressed: _busy ? null : () => setState(() => _reporting = false),
+                onPressed:
+                    _busy ? null : () => setState(() => _reporting = false),
                 child: const Text('BACK'),
               ),
             ] else ...[
               // ── Report ────────────────────────────────────
               OutlinedButton.icon(
-                onPressed: _busy ? null : () => setState(() => _reporting = true),
+                onPressed:
+                    _busy ? null : () => setState(() => _reporting = true),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.warningText,
                   side: BorderSide(color: AppColors.neonYellow),
@@ -223,7 +215,6 @@ class _UserSafetySheetState extends ConsumerState<_UserSafetySheet> {
                     ?.copyWith(color: AppColors.textSecondary, height: 1.35),
               ),
             ],
-
             if (_error != null) ...[
               const SizedBox(height: 12),
               Text(

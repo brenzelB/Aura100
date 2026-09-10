@@ -36,6 +36,7 @@ class PlayerStats {
     required this.totalAura,
     required this.gearOwned,
     required this.friends,
+    this.lifetimeXp = 0,
   });
 
   final int questsJoined;
@@ -47,6 +48,12 @@ class PlayerStats {
 
   final int gearOwned;
   final int friends;
+  final int lifetimeXp;
+
+  /// A reset has a real level zero; any earned XP uses the established
+  /// progression where the first 500 XP are level 1.
+  int get level => lifetimeXp == 0 ? 0 : 1 + lifetimeXp ~/ 500;
+  int get xpInLevel => lifetimeXp % 500;
 
   factory PlayerStats.fromJson(Map<String, dynamic> json) => PlayerStats(
         questsJoined: json['quests_joined'] as int,
@@ -55,5 +62,6 @@ class PlayerStats {
         totalAura: json['total_aura'] as int,
         gearOwned: json['gear_owned'] as int,
         friends: json['friends'] as int,
+        lifetimeXp: (json['lifetime_xp'] as num?)?.toInt() ?? 0,
       );
 }

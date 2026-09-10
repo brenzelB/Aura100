@@ -6,6 +6,7 @@ class SettlementEvent {
     required this.challengeId,
     required this.questTitle,
     required this.createdAt,
+    this.canOpenQuest = true,
   });
 
   /// 'penalty' | 'strike' | 'shield_saved' | 'failed' | 'completed' |
@@ -19,6 +20,21 @@ class SettlementEvent {
   final String challengeId;
   final String questTitle;
   final DateTime createdAt;
+
+  /// Own events can outlive membership; RLS then hides the joined quest.
+  final bool canOpenQuest;
+
+  factory SettlementEvent.fromJson(Map<String, dynamic> row) {
+    final quest = row['challenges'] as Map<String, dynamic>?;
+    return SettlementEvent(
+      kind: row['kind'] as String,
+      amount: (row['amount'] as num?)?.toInt(),
+      challengeId: row['challenge_id'] as String,
+      questTitle: quest?['title'] as String? ?? 'Unavailable quest',
+      createdAt: DateTime.parse(row['created_at'] as String).toUtc(),
+      canOpenQuest: quest != null,
+    );
+  }
 }
 
 /// A finished quest in the trophy room: the frozen end state.

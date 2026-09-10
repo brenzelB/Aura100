@@ -1,3 +1,4 @@
+import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -32,8 +33,7 @@ Future<RobbedNotice?> revealRobbedIfAny(
   } catch (_) {
     return null;
   }
-  final notice =
-      notices.where((n) => n.challengeId == challengeId).firstOrNull;
+  final notice = notices.where((n) => n.challengeId == challengeId).firstOrNull;
   if (notice == null || !context.mounted) return null;
   await showRobbedNoticeDialog(context, ref, notice);
   return notice;
@@ -140,7 +140,7 @@ class _RobbedNoticeDialogState extends State<_RobbedNoticeDialog>
 
     return PopScope(
       canPop: false,
-      child: AlertDialog(
+      child: AppDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -160,8 +160,8 @@ class _RobbedNoticeDialogState extends State<_RobbedNoticeDialog>
                         color: AppColors.danger, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
                     color: AppColors.danger.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
@@ -193,7 +193,7 @@ class _RobbedNoticeDialogState extends State<_RobbedNoticeDialog>
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.danger,
                 foregroundColor: AppColors.background,
-                minimumSize: const Size(0, 46),
+                minimumSize: const Size(0, 48),
               ),
               child: const Text('RATS.'),
             ),

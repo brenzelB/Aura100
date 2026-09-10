@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 IconData benefitIcon(String title) => switch (title) {
       'Title Badge' => Icons.workspace_premium,
       'Streak Shield' => Icons.security,
+      'Aura Ward' => Icons.shield_outlined,
       'Double Down' => Icons.bolt,
       'Strike Repair' => Icons.build,
       'Targeted Roast' => Icons.local_fire_department,
@@ -25,8 +26,7 @@ class _EmblemStyle {
 _EmblemStyle _emblemStyle(String title) => switch (title) {
       'Aura Lord' => _EmblemStyle(
           Icons.workspace_premium, AppColors.neonPurple, 'AURA LORD'),
-      _ => _EmblemStyle(
-          Icons.military_tech, AppColors.neonYellow, 'TITLE'),
+      _ => _EmblemStyle(Icons.military_tech, AppColors.neonYellow, 'TITLE'),
     };
 
 /// A real, compact emblem worn inline next to a player's name — a filled
@@ -66,8 +66,8 @@ class TitleEmblem extends StatelessWidget {
             Text(
               style.label,
               style: TextStyle(
-                color: style.color,
-                fontSize: 9,
+                color: AppColors.textPrimary,
+                fontSize: 12,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 0.6,
               ),
@@ -93,8 +93,7 @@ class BenefitChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.neonPurple.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
-        border:
-            Border.all(color: AppColors.neonPurple.withValues(alpha: 0.35)),
+        border: Border.all(color: AppColors.neonPurple.withValues(alpha: 0.35)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -103,7 +102,7 @@ class BenefitChip extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             title,
-            style:  TextStyle(
+            style: TextStyle(
               color: AppColors.neonPurple,
               fontSize: 12,
               fontWeight: FontWeight.w600,

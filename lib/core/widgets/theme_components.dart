@@ -61,7 +61,9 @@ class ThemeProgressRing extends StatelessWidget {
           children: [
             TweenAnimationBuilder<double>(
               tween: Tween(begin: 0, end: completion ?? 0),
-              duration: AppDurations.slow,
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : AppDurations.slow,
               curve: AppCurves.emphasizedOut,
               builder: (context, value, _) => SizedBox(
                 width: 64,
@@ -70,7 +72,8 @@ class ThemeProgressRing extends StatelessWidget {
                   value: completion == null ? 0 : value,
                   strokeWidth: 6, // Thick stroke
                   color: accent, // Terracotta
-                  backgroundColor: AppColors.surfaceLight, // Very light neutral/cream
+                  backgroundColor:
+                      AppColors.surfaceLight, // Very light neutral/cream
                 ),
               ),
             ),
@@ -101,7 +104,9 @@ class ThemeProgressRing extends StatelessWidget {
           children: [
             TweenAnimationBuilder<double>(
               tween: Tween(begin: 0, end: completion ?? 0),
-              duration: AppDurations.slow,
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : AppDurations.slow,
               curve: AppCurves.emphasizedOut,
               builder: (context, value, _) => SizedBox(
                 width: 64,
@@ -110,7 +115,8 @@ class ThemeProgressRing extends StatelessWidget {
                   value: completion == null ? 0 : value,
                   strokeWidth: 4, // Thinner, precise stroke
                   color: accent,
-                  backgroundColor: AppColors.outline, // outline scaffolding color
+                  backgroundColor:
+                      AppColors.outline, // outline scaffolding color
                 ),
               ),
             ),
@@ -140,7 +146,9 @@ class ThemeProgressRing extends StatelessWidget {
         children: [
           TweenAnimationBuilder<double>(
             tween: Tween(begin: 0, end: completion ?? 0),
-            duration: AppDurations.slow,
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : AppDurations.slow,
             curve: AppCurves.emphasizedOut,
             builder: (context, value, _) => SizedBox(
               width: 64,
@@ -158,8 +166,8 @@ class ThemeProgressRing extends StatelessWidget {
           else
             Text(
               '$doneCount/$totalCount',
-              style: textTheme.bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
+              style:
+                  textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
         ],
       ),

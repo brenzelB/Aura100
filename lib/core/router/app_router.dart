@@ -78,13 +78,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // ── Standalone (full-screen) routes ─────────────────────
       GoRoute(
         path: AppRoutes.splash,
-        builder: (context, state) =>
-            const ThemeScope(child: SplashScreen()),
+        builder: (context, state) => ThemeScope(builder: (_) => SplashScreen()),
       ),
       GoRoute(
         path: AppRoutes.login,
-        builder: (context, state) =>
-            const ThemeScope(child: LoginScreen()),
+        builder: (context, state) => ThemeScope(builder: (_) => LoginScreen()),
       ),
 
       // ── Main dashboard: 4 tabs behind a shared bottom nav ───
@@ -92,21 +90,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // scroll position alive when switching tabs (IndexedStack).
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => ThemeScope(
-          child: DashboardShell(navigationShell: navigationShell),
+          builder: (_) => DashboardShell(navigationShell: navigationShell),
         ),
         branches: [
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.home,
               builder: (context, state) =>
-                  const ThemeScope(child: HomeScreen()),
+                  ThemeScope(builder: (_) => HomeScreen()),
             ),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.challenges,
               builder: (context, state) =>
-                  const ThemeScope(child: ChallengesScreen()),
+                  ThemeScope(builder: (_) => ChallengesScreen()),
               routes: [
                 // Detail view: /challenges/<challenge-id>
                 // Nested inside the branch, so the bottom nav stays and
@@ -114,7 +112,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 GoRoute(
                   path: ':id',
                   builder: (context, state) => ThemeScope(
-                    child: ChallengeDetailScreen(
+                    builder: (_) => ChallengeDetailScreen(
                       challengeId: state.pathParameters['id']!,
                     ),
                   ),
@@ -126,14 +124,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: AppRoutes.friends,
               builder: (context, state) =>
-                  const ThemeScope(child: FriendsScreen()),
+                  ThemeScope(builder: (_) => FriendsScreen()),
             ),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.profile,
               builder: (context, state) =>
-                  const ThemeScope(child: ProfileScreen()),
+                  ThemeScope(builder: (_) => ProfileScreen()),
             ),
           ]),
         ],
@@ -142,7 +140,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
     // Simple fallback for unknown routes.
     errorBuilder: (context, state) => Scaffold(
-      body: Center(child: Text('404 — ${state.uri} not found')),
+      appBar: AppBar(title: const Text('PAGE NOT FOUND')),
+      body: Center(
+          child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Text('This page is no longer available.'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                    onPressed: () => context.go(AppRoutes.home),
+                    child: const Text('BACK TO HOME')),
+              ]))),
     ),
   );
 });

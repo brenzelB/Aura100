@@ -1,3 +1,4 @@
+import 'package:aura_quest/core/widgets/app_states.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -95,7 +96,8 @@ class TargetedRoastLockDialog extends StatefulWidget {
   final TargetedRoast roast;
 
   @override
-  State<TargetedRoastLockDialog> createState() => _TargetedRoastLockDialogState();
+  State<TargetedRoastLockDialog> createState() =>
+      _TargetedRoastLockDialogState();
 }
 
 class _TargetedRoastLockDialogState extends State<TargetedRoastLockDialog> {
@@ -130,7 +132,7 @@ class _TargetedRoastLockDialogState extends State<TargetedRoastLockDialog> {
 
     return PopScope(
       canPop: false,
-      child: AlertDialog(
+      child: AppDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -224,7 +226,8 @@ class _TargetedRoastLockDialogState extends State<TargetedRoastLockDialog> {
               onPressed: isLocked ? null : () => Navigator.of(context).pop(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.neonPurple,
-                foregroundColor: AppColors.isDark ? AppColors.background : Colors.white,
+                foregroundColor:
+                    AppColors.isDark ? AppColors.background : Colors.white,
                 disabledBackgroundColor:
                     AppColors.textSecondary.withValues(alpha: 0.2),
                 disabledForegroundColor:

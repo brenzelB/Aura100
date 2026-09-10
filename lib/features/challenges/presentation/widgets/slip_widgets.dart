@@ -1,3 +1,4 @@
+import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,7 +39,9 @@ class SlipMeter extends StatelessWidget {
     final broken = challenge.slipLimitBroken;
 
     final label = broken
-        ? (allowance == 0 ? 'Slipped — period lost' : '$used / $allowance — over')
+        ? (allowance == 0
+            ? 'Slipped — period lost'
+            : '$used / $allowance — over')
         : (allowance == 0
             ? (used == 0 ? 'Clean so far' : '$used logged')
             : '$used / $allowance slips');
@@ -69,9 +72,7 @@ class SlipMeter extends StatelessWidget {
               margin: const EdgeInsets.only(right: 3),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: i < used
-                    ? color
-                    : color.withValues(alpha: 0.22),
+                color: i < used ? color : color.withValues(alpha: 0.22),
               ),
             ),
           ],
@@ -141,7 +142,7 @@ Future<void> logSlipAndReveal(
 
   if (result == null) {
     final error = ref.read(slipControllerProvider(challenge.id)).error;
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(AppSnackBar(
       content: Text(error is PostgrestException
           ? error.message
           : 'Could not log that — try again.'),
@@ -164,7 +165,7 @@ Future<void> logSlipAndReveal(
 
   HapticFeedback.selectionClick();
   if (result.over) {
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(AppSnackBar(
       content: Text('Logged — ${result.count} today. '
           'This period is already lost; tomorrow is a fresh start.'),
       backgroundColor: AppColors.textSecondary,
@@ -173,7 +174,7 @@ Future<void> logSlipAndReveal(
   }
 
   final left = result.left;
-  messenger.showSnackBar(SnackBar(
+  messenger.showSnackBar(AppSnackBar(
     content: Text(result.allowance == 0
         ? 'Logged. That is one slip on the board.'
         : left == 0
@@ -181,16 +182,16 @@ Future<void> logSlipAndReveal(
                 'One more loses the period.'
             : '${result.count}/${result.allowance} logged — '
                 '$left left in the budget.'),
-    backgroundColor:
-        left == 0 ? AppColors.neonYellow : AppColors.textSecondary,
+    backgroundColor: left == 0 ? AppColors.neonYellow : AppColors.textSecondary,
     action: SnackBarAction(
       label: 'UNDO',
       textColor: AppColors.background,
       onPressed: () async {
-        final undone =
-            await ref.read(slipControllerProvider(challenge.id).notifier).undo();
+        final undone = await ref
+            .read(slipControllerProvider(challenge.id).notifier)
+            .undo();
         if (undone == null || !context.mounted) return;
-        messenger.showSnackBar(SnackBar(
+        messenger.showSnackBar(AppSnackBar(
           content: Text('Taken back — ${undone.count} on the board.'),
           backgroundColor: AppColors.neonGreen,
         ));
@@ -244,7 +245,7 @@ class _SlipFailedDialogState extends State<_SlipFailedDialog>
 
     return PopScope(
       canPop: false,
-      child: AlertDialog(
+      child: AppDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -322,7 +323,7 @@ class _SlipFailedDialogState extends State<_SlipFailedDialog>
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.danger,
                 foregroundColor: AppColors.background,
-                minimumSize: const Size(0, 46),
+                minimumSize: const Size(0, 48),
               ),
               child: const Text('OWN IT'),
             ),

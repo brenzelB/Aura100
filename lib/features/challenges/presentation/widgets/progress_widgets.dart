@@ -1,3 +1,5 @@
+import 'package:aura_quest/core/theme/design_tokens.dart';
+import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,8 +9,11 @@ import '../../../../core/text/quantity.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/motion.dart';
 import '../../application/challenge_providers.dart';
+import '../../../auth/application/auth_providers.dart';
 import '../../domain/challenge.dart';
 import '../../domain/progress_entry.dart';
+import '../../domain/progress_presets.dart';
+import 'progress_feedback.dart';
 
 /// The progress read-out: "72 / 100 Reps", a percentage and
 /// an animated bar. Used on the card, on Home and in the detail view.
@@ -30,6 +35,7 @@ class QuestProgressBar extends StatelessWidget {
     final target = challenge.targetValue ?? 0;
     final done = challenge.progressInPeriod >= target && target > 0;
     final accent = done ? AppColors.neonGreen : AppColors.neonPurple;
+    final reduce = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,8 +65,7 @@ class QuestProgressBar extends StatelessWidget {
             // Beyond the goal: show the bonus reps, not a stuck 100%.
             if (challenge.overshoot > 0)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
                   color: AppColors.neonGreen.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
@@ -84,8 +89,10 @@ class QuestProgressBar extends StatelessWidget {
         SizedBox(height: compact ? 5 : 8),
         // Animates from wherever it was to the new value after a log.
         TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: challenge.progressRatio),
-          duration: AppDurations.slow,
+          tween: Tween(
+              begin: reduce ? challenge.progressRatio : 0,
+              end: challenge.progressRatio),
+          duration: reduce ? Duration.zero : AppDurations.slow,
           curve: AppCurves.emphasizedOut,
           builder: (context, value, _) => ClipRRect(
             borderRadius: BorderRadius.circular(6),
@@ -110,42 +117,33 @@ Future<void> showAddProgressSheet(
   Challenge challenge,
 ) async {
   final messenger = ScaffoldMessenger.of(context);
+  final owner = ref.read(currentUserProvider)?.id;
+  final container = ProviderScope.containerOf(context, listen: false);
 
   final result = await showModalBottomSheet<_AddOutcome>(
     context: context,
+    useSafeArea: true,
+    useRootNavigator: true,
     isScrollControlled: true,
     backgroundColor: AppColors.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
+    shape: AppShapes.sheet,
     builder: (_) => _AddProgressSheet(challenge: challenge),
   );
-  if (result == null) return;
-
-  final unit = challenge.unit ?? '';
-  if (result.overshoot) {
-    // Bonus reps beyond an already-met goal.
-    final beyond = result.total - result.target;
-    messenger.showSnackBar(SnackBar(
-      content: Text('💪 +${formatQuantity(result.added)} bonus — '
-          '${formatQuantity(result.total)} $unit '
-          '(+${formatQuantity(beyond)} past goal)'),
-      backgroundColor: AppColors.neonGreen,
-    ));
-  } else if (result.completed) {
-    messenger.showSnackBar(SnackBar(
-      content: Text('🎯 Goal reached — '
-          '${formatQuantity(result.total)} $unit'
-          '${result.gained == null ? '' : '! ⚡ +${result.gained}'}'),
-      backgroundColor: AppColors.neonGreen,
-    ));
-  } else {
-    messenger.showSnackBar(SnackBar(
-      content: Text('+${formatQuantity(result.added)} logged — '
-          '${formatProgress(result.total, result.target, unit)}'),
-      backgroundColor: AppColors.neonPurple,
-    ));
+  if (result == null || container.read(currentUserProvider)?.id != owner) {
+    return;
   }
+
+  showProgressFeedback(
+    messenger,
+    result: ProgressResult(
+        total: result.total,
+        target: result.target,
+        completed: result.completed,
+        overshoot: result.overshoot,
+        gained: result.gained),
+    added: result.added,
+    unit: challenge.unit ?? '',
+  );
 }
 
 class _AddOutcome {
@@ -189,27 +187,7 @@ class _AddProgressSheetState extends ConsumerState<_AddProgressSheet> {
 
   /// Quick amounts scaled to the target, so they fit "100 push-ups"
   /// and "2.5 litres" alike. Plus whatever is still missing.
-  List<double> get _presets {
-    final target = challenge.targetValue ?? 0;
-    if (target <= 0) return const [];
-    final raw = <double>[target * 0.1, target * 0.25, target * 0.5];
-    final seen = <String>{};
-    final presets = <double>[];
-    for (final value in raw) {
-      final rounded = _tidy(value);
-      if (rounded <= 0) continue;
-      if (seen.add(formatQuantity(rounded))) presets.add(rounded);
-    }
-    return presets;
-  }
-
-  /// Rounds a suggestion to something a human would type.
-  double _tidy(double value) {
-    if (value >= 100) return (value / 10).round() * 10;
-    if (value >= 10) return value.roundToDouble();
-    if (value >= 1) return (value * 2).round() / 2;
-    return (value * 100).round() / 100;
-  }
+  List<double> get _presets => progressPresets(challenge.targetValue ?? 0);
 
   Future<void> _submit() async {
     final amount = parseQuantity(_controller.text);
@@ -219,9 +197,9 @@ class _AddProgressSheetState extends ConsumerState<_AddProgressSheet> {
     }
     setState(() => _error = null);
 
-    final result =
-        await ref.read(progressControllerProvider(challenge.id).notifier)
-            .add(amount);
+    final result = await ref
+        .read(progressControllerProvider(challenge.id).notifier)
+        .add(amount);
 
     if (!mounted) return;
     if (result == null) {
@@ -232,7 +210,6 @@ class _AddProgressSheetState extends ConsumerState<_AddProgressSheet> {
       return;
     }
 
-    HapticFeedback.mediumImpact();
     Navigator.of(context).pop(_AddOutcome(
       added: amount,
       total: result.total,
@@ -255,6 +232,7 @@ class _AddProgressSheetState extends ConsumerState<_AddProgressSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -391,17 +369,17 @@ Future<void> showCorrectEntrySheet(
 
   final outcome = await showModalBottomSheet<_CorrectOutcome>(
     context: context,
+    useSafeArea: true,
+    useRootNavigator: true,
     isScrollControlled: true,
     backgroundColor: AppColors.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
+    shape: AppShapes.sheet,
     builder: (_) => _CorrectEntrySheet(challenge: challenge, entry: entry),
   );
   if (outcome == null) return;
 
   final unit = challenge.unit ?? '';
-  messenger.showSnackBar(SnackBar(
+  messenger.showSnackBar(AppSnackBar(
     content: Text(outcome.deleted
         ? '🗑️ Entry removed'
         : '✏️ Updated to ${formatQuantity(outcome.amount)} $unit'),
@@ -498,8 +476,10 @@ class _CorrectEntrySheetState extends ConsumerState<_CorrectEntrySheet> {
     final unit = challenge.unit ?? '';
 
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -508,18 +488,17 @@ class _CorrectEntrySheetState extends ConsumerState<_CorrectEntrySheet> {
             Text(
               'CORRECT ENTRY',
               textAlign: TextAlign.center,
-              style:
-                  textTheme.headlineMedium?.copyWith(color: AppColors.neonPurple),
+              style: textTheme.headlineMedium
+                  ?.copyWith(color: AppColors.neonPurple),
             ),
             const SizedBox(height: 6),
             Text(
               'Fix a value you typed by mistake',
               textAlign: TextAlign.center,
-              style:
-                  textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+              style: textTheme.bodyMedium
+                  ?.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 20),
-
             TextField(
               controller: _controller,
               autofocus: true,
@@ -536,7 +515,6 @@ class _CorrectEntrySheetState extends ConsumerState<_CorrectEntrySheet> {
               onSubmitted: (_) => busy ? null : _save(),
             ),
             const SizedBox(height: 20),
-
             ElevatedButton.icon(
               onPressed: busy ? null : _save,
               style: ElevatedButton.styleFrom(
@@ -559,10 +537,12 @@ class _CorrectEntrySheetState extends ConsumerState<_CorrectEntrySheet> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.danger,
                 side: BorderSide(color: AppColors.danger),
-                minimumSize: const Size(0, 46),
+                minimumSize: const Size(0, 48),
               ),
               icon: Icon(
-                  _confirmingDelete ? Icons.delete_forever : Icons.delete_outline,
+                  _confirmingDelete
+                      ? Icons.delete_forever
+                      : Icons.delete_outline,
                   size: 18),
               label: Text(
                   _confirmingDelete ? 'TAP AGAIN TO DELETE' : 'DELETE ENTRY'),

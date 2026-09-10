@@ -36,12 +36,12 @@ class ChallengeRepository {
       final rows = await _readAll(() => _client
           .from('challenge_participants')
           .select('challenge_aura, strikes_used, periods_missed, created_at, '
-              'team, status, '
+              'team, status, comeback_needed, '
               'challenges('
               'id, creator_id, title, description, duration_days, aura_gain, '
               'aura_penalty, max_strikes, starts_on, checkin_period, '
               'checkins_per_period, mode, goal_type, target_value, unit, '
-              'daily_allowance, active_weekdays, '
+              'daily_allowance, active_weekdays, balance_preset, attacks_enabled, '
               'lifecycle, is_endless, started_at, created_at)')
           .eq('user_id', userId)
           .inFilter('status', const ['active', 'failed', 'eliminated'])
@@ -109,6 +109,7 @@ class ChallengeRepository {
           myAura: row['challenge_aura'] as int,
           strikesUsed: row['strikes_used'] as int,
           periodsMissed: row['periods_missed'] as int,
+          comebackNeeded: row['comeback_needed'] as bool? ?? false,
           memberCount: membersByQuest[challenge.id] ?? 1,
           checkedInToday: checkedIds.contains(challenge.id),
           joinedOn: DateTime.parse(row['created_at'] as String).toUtc(),
@@ -224,11 +225,15 @@ class ChallengeRepository {
     double? targetValue,
     String? unit,
     bool isEndless = false,
+    String balancePreset = 'custom',
+    bool attacksEnabled = true,
     int dailyAllowance = 0,
     List<int> activeWeekdays = const [1, 2, 3, 4, 5, 6, 7],
   }) async {
     try {
       final id = await _client.rpc<String>('create_challenge', params: {
+        'p_balance_preset': balancePreset,
+        'p_attacks_enabled': attacksEnabled,
         'p_title': title,
         'p_description': description,
         'p_duration_days': durationDays,
@@ -910,16 +915,7 @@ class ChallengeRepository {
           .order('created_at', ascending: false)
           .limit(15);
 
-      final events = rows
-          .map((row) => SettlementEvent(
-                kind: row['kind'] as String,
-                amount: row['amount'] as int?,
-                challengeId: row['challenge_id'] as String,
-                questTitle: (row['challenges'] as Map<String, dynamic>)['title']
-                    as String,
-                createdAt: DateTime.parse(row['created_at'] as String),
-              ))
-          .toList();
+      final events = rows.map(SettlementEvent.fromJson).toList();
       debugPrint(
           '✅ [ChallengeRepository.fetchRecentEvents] ${events.length} events');
       return events;
@@ -1089,18 +1085,18 @@ class ChallengeRepository {
   Future<AuraHeistResult> attemptAuraHeist({
     required String challengeId,
     required String targetId,
-    required int cost,
+    required int tier,
   }) async {
     try {
       final json = await _client
           .rpc<Map<String, dynamic>>('attempt_aura_heist', params: {
         'p_challenge_id': challengeId,
         'p_target_id': targetId,
-        'p_cost': cost,
+        'p_tier': tier,
       });
       final result = AuraHeistResult.fromJson(json);
       debugPrint('✅ [ChallengeRepository.attemptAuraHeist] '
-          '→ $targetId ($cost) hit=${result.succeeded}');
+          '→ $targetId (tier $tier) hit=${result.succeeded}');
       return result;
     } on PostgrestException catch (e) {
       _log('attemptAuraHeist', e);
@@ -1151,7 +1147,8 @@ class ChallengeRepository {
       final rows = await _readAll(() => _client
           .from('quest_reminders')
           .select('challenge_id, remind_at, enabled')
-          .order('id'));
+          // RLS restricts this to one user; challenge_id is unique per user.
+          .order('challenge_id'));
       final out = <String, ({int hour, int minute})>{};
       for (final row in rows) {
         if (row['enabled'] != true) continue;
@@ -1606,6 +1603,7 @@ class ChallengeRepository {
           .select('*, attacker:profiles!attacker_id(username)')
           .eq('target_id', userId)
           .eq('succeeded', true)
+          .gt('stolen_amount', 0)
           .not('resolved_at', 'is', null)
           .isFilter('acknowledged_at', null)
           .order('resolved_at', ascending: true)

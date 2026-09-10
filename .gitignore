@@ -41,6 +41,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/.kotlin/
 
 # Secrets — OAuth provider credentials for the local Supabase stack
 supabase/.env

@@ -48,8 +48,7 @@ enum QuestMode {
         _ => solo,
       };
 
-  String get dbValue =>
-      this == lastManStanding ? 'last_man_standing' : name;
+  String get dbValue => this == lastManStanding ? 'last_man_standing' : name;
 }
 
 /// A quest's lifecycle: waiting in a lobby, running, or over.
@@ -122,6 +121,9 @@ class Challenge {
     this.joinedOn,
     this.ownedBenefits = const [],
     this.myStatus = 'active',
+    this.balancePreset = 'custom',
+    this.attacksEnabled = true,
+    this.comebackNeeded = false,
     this.activeWeekdays = const [1, 2, 3, 4, 5, 6, 7],
   });
 
@@ -135,6 +137,9 @@ class Challenge {
 
   /// Allowed missed check-ins/periods before the participant is excluded.
   final int maxStrikes;
+  final String balancePreset;
+  final bool attacksEnabled;
+  final bool comebackNeeded;
 
   /// How often check-ins are expected (daily / weekly / monthly).
   final CheckinPeriod checkinPeriod;
@@ -203,8 +208,7 @@ class Challenge {
   bool get slipLimitBroken => isAvoid && slipsInPeriod > dailyAllowance;
 
   /// One slip away from losing the period (or already at a zero budget).
-  bool get slipNearLimit =>
-      isAvoid && !slipLimitBroken && slipsLeft <= 1;
+  bool get slipNearLimit => isAvoid && !slipLimitBroken && slipsLeft <= 1;
 
   /// 0.0 – 1.0, clamped. Meaningless for check-off quests.
   double get progressRatio {
@@ -226,7 +230,9 @@ class Challenge {
   /// This period's goal is met (or beaten).
   bool get goalReached {
     final target = targetValue;
-    return isProgress && target != null && target > 0 &&
+    return isProgress &&
+        target != null &&
+        target > 0 &&
         progressInPeriod >= target;
   }
 
@@ -296,6 +302,25 @@ class Challenge {
   /// Does this quest run on [day]?
   bool runsOn(DateTime day) => activeWeekdays.contains(day.weekday);
 
+  /// Next possible comeback date, including rest days and a lost avoid period.
+  DateTime? nextComebackDate(DateTime now) {
+    if (amIOut || isFinished || isLobby) return null;
+    final utc = now.toUtc();
+    var day = DateTime.utc(utc.year, utc.month, utc.day);
+    if (day.isBefore(startsOn)) day = startsOn;
+    if (slipLimitBroken) {
+      day = periodStartFor(day).add(Duration(days: checkinPeriod.lengthDays));
+    } else if (checkedInToday) {
+      day = day.add(const Duration(days: 1));
+    }
+    for (var i = 0; i < 7; i++) {
+      if (!isEndless && !day.isBefore(endsAt)) return null;
+      if (runsOn(day)) return day;
+      day = day.add(const Duration(days: 1));
+    }
+    return null;
+  }
+
   /// Does it run today (UTC, the same day the server settles on)?
   bool get runsToday => runsOn(DateTime.now().toUtc());
 
@@ -306,13 +331,16 @@ class Challenge {
     const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     final sorted = [...activeWeekdays]..sort();
     // A single unbroken run reads better as a range.
-    final isRun = sorted.length > 2 &&
-        sorted.last - sorted.first == sorted.length - 1;
+    final isRun =
+        sorted.length > 2 && sorted.last - sorted.first == sorted.length - 1;
     if (isRun) return '${names[sorted.first - 1]}–${names[sorted.last - 1]}';
     return sorted.map((d) => names[d - 1]).join(', ');
   }
 
   factory Challenge.fromJson(Map<String, dynamic> json) => Challenge(
+        balancePreset: json['balance_preset'] as String? ?? 'custom',
+        attacksEnabled: json['attacks_enabled'] as bool? ?? true,
+        comebackNeeded: json['comeback_needed'] as bool? ?? false,
         id: json['id'] as String,
         creatorId: json['creator_id'] as String,
         title: json['title'] as String,
@@ -346,6 +374,7 @@ class Challenge {
   Challenge copyWith({
     bool? checkedInToday,
     int? myAura,
+    bool? comebackNeeded,
     int? strikesUsed,
     int? periodsMissed,
     int? memberCount,
@@ -358,6 +387,9 @@ class Challenge {
     List<int>? activeWeekdays,
   }) =>
       Challenge(
+        balancePreset: balancePreset,
+        attacksEnabled: attacksEnabled,
+        comebackNeeded: comebackNeeded ?? this.comebackNeeded,
         id: id,
         creatorId: creatorId,
         title: title,

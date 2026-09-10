@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/widgets/app_states.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/motion.dart';
@@ -17,16 +18,17 @@ class ChallengesScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('MY QUESTS')),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.neonYellow,
-        foregroundColor: AppColors.background,
-        onPressed: () => CreateChallengeSheet.show(context),
-        icon: const Icon(Icons.add),
-        label: const Text(
-          'NEW QUEST',
-          style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.5),
-        ),
-      ),
+      floatingActionButton: (challengesAsync.valueOrNull?.isEmpty ?? true)
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => CreateChallengeSheet.show(context),
+              icon: const Icon(Icons.add),
+              label: const Text(
+                'NEW QUEST',
+                style:
+                    TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.5),
+              ),
+            ),
       body: RefreshIndicator(
         color: AppColors.neonYellow,
         backgroundColor: AppColors.surface,
@@ -50,9 +52,7 @@ class ChallengesScreen extends ConsumerWidget {
                 ),
 
           // ── Loading ───────────────────────────────────────────
-          loading: () =>  Center(
-            child: CircularProgressIndicator(color: AppColors.warningText),
-          ),
+          loading: () => const AppLoadingState(label: 'Loading your quests…'),
 
           // ── Error with retry ──────────────────────────────────
           error: (error, _) => _ErrorState(
@@ -72,34 +72,17 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(20),
       children: [
-        SizedBox(height: MediaQuery.of(context).size.height * 0.18),
-        Center(
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: AppColors.panelDecoration(accent: AppColors.neonYellow, glow: true),
-            child:  Icon(Icons.emoji_events,
-                size: 48, color: AppColors.neonYellow),
-          ),
-        ),
-        const SizedBox(height: 24),
-        Text(
-          'NO ACTIVE QUESTS',
-          textAlign: TextAlign.center,
-          style: textTheme.headlineSmall
-              ?.copyWith(color: AppColors.warningText),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Forge your first quest and start\nfarming aura — tap NEW QUEST.',
-          textAlign: TextAlign.center,
-          style: textTheme.bodyMedium
-              ?.copyWith(color: AppColors.textSecondary),
-        ),
+        AppStatePanel(
+            title: 'Your next chapter starts here.',
+            message:
+                'Train, learn or break a habit. Start solo, or bring your friends along.',
+            icon: Icons.flag_outlined,
+            actionLabel: 'NEW QUEST',
+            onAction: () => CreateChallengeSheet.show(context)),
       ],
     );
   }
@@ -121,10 +104,10 @@ class _ErrorState extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       children: [
         SizedBox(height: MediaQuery.of(context).size.height * 0.2),
-         Icon(Icons.cloud_off, size: 48, color: AppColors.danger),
+        Icon(Icons.cloud_off, size: 48, color: AppColors.danger),
         const SizedBox(height: 16),
         Text(
-          'Could not load your quests.\n$error',
+          'Could not load your quests. Check your connection and try again.',
           textAlign: TextAlign.center,
           style: textTheme.bodyMedium?.copyWith(color: AppColors.danger),
         ),

@@ -1,22 +1,28 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/app_states.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/design_tokens.dart';
 import '../../../../core/theme/motion.dart';
+import '../../../../core/widgets/action_feedback.dart';
+import '../../../challenges/presentation/widgets/create_challenge_sheet.dart';
+import '../../../../core/text/roasts.dart';
 import '../../../challenges/application/challenge_providers.dart';
 import '../../../challenges/domain/challenge.dart';
 import '../../../challenges/domain/settlement.dart';
 import '../../../challenges/presentation/widgets/dice_duel.dart';
 import '../../../challenges/presentation/widgets/progress_widgets.dart';
+import '../../../challenges/presentation/widgets/quick_progress_actions.dart';
 import '../../../challenges/presentation/widgets/slip_widgets.dart';
 import '../../../friends/application/friends_providers.dart';
 import '../../../friends/domain/social_models.dart';
 import '../../../profile/application/profile_providers.dart';
+import '../../../auth/application/auth_providers.dart';
 import '../../application/home_providers.dart';
 import '../../domain/home_agenda.dart';
-import '../widgets/loss_roast_gate.dart';
 import '../widgets/celebration_gate.dart';
 import '../widgets/blackout_notice_gate.dart';
 import '../widgets/push_permission_card.dart';
@@ -35,20 +41,45 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final agendaAsync = ref.watch(homeAgendaProvider);
     final profile = ref.watch(currentProfileProvider).valueOrNull;
+    final comebacks =
+        (ref.watch(myChallengesProvider).valueOrNull ?? <Challenge>[])
+            .where((c) => c.comebackNeeded && !c.isFinished)
+            .toList();
     final syncNotice = ref.watch(offlineSyncNoticeProvider);
+    final pendingIds = ref
+        .watch(pendingCheckInsProvider)
+        .where((p) => DateUtils.isSameDay(p.date, DateTime.now().toUtc()))
+        .map((p) => p.challengeId)
+        .toSet();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('HOME')),
+      appBar: AppBar(title: const Text('HOME'), actions: [
+        IconButton(
+            tooltip: 'Create a quest',
+            icon: const Icon(Icons.add),
+            onPressed: () => CreateChallengeSheet.show(context)),
+      ]),
       body: RefreshIndicator(
         color: AppColors.neonCyan,
         backgroundColor: AppColors.surface,
         onRefresh: () async {
+          final owner = ref.read(currentUserProvider)?.id;
           // Trigger offline sync if any pending check-ins exist
-          await ref
+          final result = await ref
               .read(offlineSyncServiceProvider)
               .syncPendingCheckIns(ref.read(challengeRepositoryProvider));
+          if (!context.mounted || ref.read(currentUserProvider)?.id != owner) {
+            return;
+          }
+          if (result.discardedCount > 0) {
+            ref.read(offlineSyncNoticeProvider.notifier).state =
+                '${result.discardedCount} saved check-in(s) could not be applied. Open the quest to review its status.';
+          }
           await ref.read(pendingCheckInsProvider.notifier).load();
           ref.invalidate(myInvitesProvider);
+          ref.invalidate(friendRequestsProvider);
+          ref.invalidate(robbedNoticesProvider);
+          ref.invalidate(unseenBlackoutsProvider);
           ref.invalidate(myNudgesProvider);
           ref.invalidate(myCheckInsProvider);
           ref.invalidate(settlementEventsProvider);
@@ -62,123 +93,280 @@ class HomeScreen extends ConsumerWidget {
           // Pull-to-refresh reloads the agenda; keep it on screen so it
           // updates in place instead of blanking to a spinner.
           skipLoadingOnReload: true,
-          loading: () => Center(
-            child: CircularProgressIndicator(color: AppColors.accentText),
-          ),
+          skipError: true,
+          loading: () => const AppLoadingState(label: 'Loading your day…'),
           error: (error, _) => ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              Text(
-                'Could not load your day.\n$error',
-                textAlign: TextAlign.center,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: AppColors.danger),
-              ),
+              AppStatePanel(
+                  title: 'Your day is taking a moment',
+                  message: 'Check your connection, then try again.',
+                  icon: Icons.cloud_off_outlined,
+                  actionLabel: 'TRY AGAIN',
+                  onAction: () => ref.invalidate(myChallengesProvider)),
             ],
           ),
-          data: (agenda) => ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-            children: [
-              const TargetedRoastRefresher(),
-              if (syncNotice != null)
-                ListTile(
-                  leading: const Icon(Icons.info_outline),
-                  title: Text(syncNotice),
-                  trailing: IconButton(
-                    tooltip: 'Dismiss',
-                    icon: const Icon(Icons.close),
-                    onPressed: () => ref
-                        .read(offlineSyncNoticeProvider.notifier)
-                        .state = null,
-                  ),
-                ),
-              const LossRoastGate(),
-              const CelebrationGate(),
-              _TodayHeader(agenda: agenda, username: profile?.username),
-              const SizedBox(height: 24),
-              const PushPermissionCard(),
-              const WeeklyRecapCard(),
-              const RobbedAlertSection(),
-              const BlackoutAlertSection(),
-              const _RoastAlertSection(),
-              const _PokeBackBanner(),
-              const _InboxSection(),
-              const _EventsSection(),
-
-              // ── At risk ───────────────────────────────────
-              if (agenda.atRisk.isNotEmpty) ...[
-                _SectionTitle('AT RISK', color: AppColors.danger),
-                const SizedBox(height: 12),
-                for (final item in agenda.atRisk) _RiskCard(item: item),
-                const SizedBox(height: 24),
-              ],
-
-              // ── Already lost ──────────────────────────────
-              if (agenda.doomed.isNotEmpty) ...[
-                _SectionTitle('LOST', color: AppColors.textSecondary),
-                const SizedBox(height: 12),
-                for (final item in agenda.doomed) _DoomedCard(item: item),
-                const SizedBox(height: 24),
-              ],
-
-              // ── Open today ────────────────────────────────
-              _SectionTitle(
-                agenda.open.isEmpty ? 'TODAY' : 'OPEN TODAY',
-                color: AppColors.neonCyan,
-              ),
-              const SizedBox(height: 12),
-              if (agenda.open.isEmpty)
-                _AllDoneCard(hasQuests: agenda.totalRunning > 0)
-              else
-                for (final item in agenda.open)
-                  // Critical and lost ones have their own cards above.
-                  if (!item.isCritical && !item.isDoomed)
-                    _AgendaCard(item: item),
-
-              // ── Done ──────────────────────────────────────
-              if (agenda.done.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                _SectionTitle('DONE', color: AppColors.neonGreen),
-                const SizedBox(height: 12),
-                for (final item in agenda.done) _DoneRow(item: item),
-              ],
-
-              // ── Upcoming ──────────────────────────────────
-              if (agenda.upcoming.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                _SectionTitle('UPCOMING', color: AppColors.textSecondary),
-                const SizedBox(height: 12),
-                for (final challenge in agenda.upcoming)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Row(
-                      children: [
-                        Icon(Icons.schedule,
-                            size: 14, color: AppColors.textSecondary),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            challenge.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ),
-                        Text(
-                          challenge.timeLeftLabel,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: AppColors.textSecondary),
-                        ),
-                      ],
+          data: (loadedAgenda) {
+            final agenda = loadedAgenda.withPendingCheckIns(pendingIds);
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+              children: [
+                const TargetedRoastRefresher(),
+                _TodayHeader(
+                    agenda: agenda,
+                    username: profile?.username,
+                    pendingCount: agenda.done
+                        .where((i) => pendingIds.contains(i.challenge.id))
+                        .length),
+                const SizedBox(height: 16),
+                if (syncNotice != null)
+                  ListTile(
+                    leading: const Icon(Icons.info_outline),
+                    title: Text(syncNotice),
+                    trailing: IconButton(
+                      tooltip: 'Dismiss',
+                      icon: const Icon(Icons.close),
+                      onPressed: () => ref
+                          .read(offlineSyncNoticeProvider.notifier)
+                          .state = null,
                     ),
                   ),
+                // ── Open today ────────────────────────────────
+                if (comebacks.isNotEmpty) ...[
+                  _SectionTitle('COMEBACK', color: AppColors.neonGreen),
+                  for (final quest in comebacks)
+                    Card(
+                        child: ListTile(
+                      leading: const Icon(Icons.replay),
+                      title: Text(quest.title),
+                      subtitle: Text(_comebackMessage(quest)),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () =>
+                          context.push('${AppRoutes.challenges}/${quest.id}'),
+                    )),
+                  const SizedBox(height: 12),
+                ],
+                _SectionTitle(
+                  'TODAY',
+                  color: AppColors.accentText,
+                ),
+                const SizedBox(height: 12),
+                if (agenda.open.every((i) => i.isDoomed))
+                  _AllDoneCard(
+                      hasQuests: agenda.totalRunning > 0,
+                      hasLostQuests: agenda.doomed.isNotEmpty,
+                      waitingForSync: agenda.done
+                          .any((i) => pendingIds.contains(i.challenge.id)))
+                else
+                  for (final item in agenda.open)
+                    if (!item.isDoomed)
+                      if (item.isCritical)
+                        _RiskCard(key: ValueKey(item.challenge.id), item: item)
+                      else
+                        _AgendaCard(
+                            key: ValueKey(item.challenge.id), item: item),
+
+                // ── Done ──────────────────────────────────────
+                if (agenda.done.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  _SectionTitle('DONE FOR TODAY', color: AppColors.successText),
+                  const SizedBox(height: 12),
+                  for (final item in agenda.done) _DoneRow(item: item),
+                ],
+
+                if (agenda.doomed.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  _SectionTitle('FINISHED', color: AppColors.textSecondary),
+                  const SizedBox(height: 8),
+                  for (final item in agenda.doomed) _DoomedCard(item: item),
+                ],
+
+                const SizedBox(height: 20),
+                _ActivitySection(key: ValueKey(profile?.id)),
+                const SizedBox(height: 12),
+                const WeeklyRecapCard(compact: true),
+                const PushPermissionCard(),
+
+                // ── Upcoming ──────────────────────────────────
+                if (agenda.upcoming.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  _SectionTitle('UPCOMING', color: AppColors.textSecondary),
+                  const SizedBox(height: 12),
+                  for (final challenge in agenda.upcoming)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        children: [
+                          Icon(Icons.schedule,
+                              size: 14, color: AppColors.textSecondary),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              challenge.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                          Text(
+                            challenge.timeLeftLabel,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ],
-            ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+String _comebackMessage(Challenge quest) {
+  if (quest.amIOut) {
+    return 'This run has ended. Start a new quest — your XP stays.';
+  }
+  final next = quest.nextComebackDate(DateTime.now().toUtc());
+  if (next == null) {
+    return 'Start a new quest for your comeback. Your XP stays.';
+  }
+  final today = DateTime.now().toUtc();
+  final when = DateUtils.isSameDay(next, today)
+      ? 'today'
+      : '${next.day}.${next.month}.${next.year}';
+  return quest.isAvoid
+      ? 'Comeback goal: finish the next planned period within your allowance · $when'
+      : 'Comeback goal: complete the next planned unit · $when';
+}
+
+/// Events stay discoverable without pushing today's tasks below the fold.
+class _ActivitySection extends ConsumerWidget {
+  const _ActivitySection({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final invites = ref.watch(myInvitesProvider);
+    final requests = ref.watch(friendRequestsProvider);
+    final duels = ref.watch(incomingDuelsProvider);
+    final nudges = ref.watch(unseenNudgesProvider);
+    final roasts = ref.watch(targetedRoastsProvider);
+    final robbed = ref.watch(robbedNoticesProvider);
+    final blackouts = ref.watch(unseenBlackoutsProvider);
+    final backs = ref.watch(pokeBacksProvider);
+    final events = ref.watch(settlementEventsProvider);
+    final count = (invites.valueOrNull?.length ?? 0) +
+        (requests.valueOrNull?.length ?? 0) +
+        (duels.valueOrNull?.length ?? 0) +
+        PokeGroup.group(nudges.valueOrNull ?? []).length +
+        (roasts.valueOrNull?.length ?? 0) +
+        (robbed.valueOrNull?.length ?? 0) +
+        (blackouts.valueOrNull?.length ?? 0) +
+        (backs.valueOrNull?.length ?? 0);
+    final states = [
+      invites,
+      requests,
+      duels,
+      nudges,
+      roasts,
+      robbed,
+      blackouts,
+      backs,
+      events
+    ];
+    final summary = states.any((s) => s.hasError)
+        ? 'Some updates could not load · pull to retry'
+        : states.any((s) => s.isLoading && !s.hasValue)
+            ? 'Checking for updates…'
+            : count > 0
+                ? '$count to review · invites, friends and quest events'
+                : 'All caught up · ${events.valueOrNull?.length ?? 0} recent events';
+    final hasUnread = count > 0;
+    final activityAccent = hasUnread ? AppColors.danger : AppColors.neonPurple;
+    return Container(
+      decoration: AppColors.panelDecoration(
+        accent: activityAccent,
+        fill: hasUnread ? AppColors.danger.withValues(alpha: 0.06) : null,
+        isDanger: hasUnread,
+        glow: hasUnread,
+      ),
+      child: ExpansionTile(
+        shape: const Border(),
+        collapsedShape: const Border(),
+        leading: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(
+              hasUnread ? Icons.notifications_active : Icons.notifications_none,
+              color: hasUnread ? AppColors.danger : AppColors.accentText,
+            ),
+            if (hasUnread)
+              Positioned(
+                right: -18,
+                top: -13,
+                child: _ActivityBadge(count: count),
+              ),
+          ],
+        ),
+        title: const Text('ACTIVITY'),
+        subtitle: Text(summary),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        children: [
+          const _InboxSection(),
+          const RobbedAlertSection(),
+          const BlackoutAlertSection(),
+          const _RoastAlertSection(),
+          const _PokeBackBanner(),
+          const _EventsSection(),
+          if (count == 0 && (events.valueOrNull?.isEmpty ?? true))
+            const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text('Nothing waiting. Your next move is on Today.')),
+        ],
+      ),
+    );
+  }
+}
+
+/// A compact, high-contrast count that stays visible while the inbox is
+/// collapsed. The label is announced as one useful piece of information by
+/// screen readers instead of exposing the decorative number separately.
+class _ActivityBadge extends StatelessWidget {
+  const _ActivityBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayCount = count > 99 ? '99+' : '$count';
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: '$count new activities',
+      child: ExcludeSemantics(
+        child: Container(
+          key: const ValueKey('activity-unread-badge'),
+          constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.danger,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: AppColors.outline, width: 1.5),
+          ),
+          child: Text(
+            displayCount,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: readableOn(AppColors.danger),
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
           ),
         ),
       ),
@@ -270,30 +458,61 @@ class _SectionTitle extends StatelessWidget {
 
 /// Progress ring + greeting.
 class _TodayHeader extends StatelessWidget {
-  const _TodayHeader({required this.agenda, required this.username});
+  const _TodayHeader(
+      {required this.agenda,
+      required this.username,
+      required this.pendingCount});
 
   final HomeAgenda agenda;
   final String? username;
+  final int pendingCount;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final completion = agenda.completion;
+    final confirmed =
+        (agenda.done.length - pendingCount).clamp(0, agenda.totalRunning);
+    final completion =
+        agenda.totalRunning == 0 ? null : confirmed / agenda.totalRunning;
     final allDone = completion == 1.0;
     final accent = allDone ? AppColors.neonGreen : AppColors.neonCyan;
 
     return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: AppColors.panelDecoration(accent: accent, glow: true),
+      padding: const EdgeInsets.all(20),
+      decoration: AppColors.panelDecoration(
+          accent: accent, glow: true, fill: accent.withValues(alpha: .1)),
       child: Row(
         children: [
-          ThemeProgressRing(
-            completion: completion,
-            doneCount: agenda.done.length,
-            totalCount: agenda.totalRunning,
-            accent: accent,
+          SizedBox(
+            width: 48,
+            height: 48,
+            child: Semantics(
+              label:
+                  '$confirmed of ${agenda.totalRunning} quests confirmed today',
+              child: Stack(alignment: Alignment.center, children: [
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: completion ?? 0),
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : AppDurations.base,
+                  curve: AppCurves.emphasizedOut,
+                  builder: (context, value, _) => SizedBox.expand(
+                      child: CircularProgressIndicator(
+                    value: value,
+                    strokeWidth: 4,
+                    color:
+                        allDone ? AppColors.successText : AppColors.accentText,
+                    backgroundColor: AppColors.surfaceLight,
+                  )),
+                ),
+                ExcludeSemantics(
+                    child: Text('$confirmed/${agenda.totalRunning}',
+                        style: textTheme.labelSmall
+                            ?.copyWith(fontWeight: FontWeight.w700))),
+              ]),
+            ),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -303,7 +522,7 @@ class _TodayHeader extends StatelessWidget {
                   username == null ? 'Hey' : 'Hey @$username',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: textTheme.displaySmall?.copyWith(
+                  style: textTheme.titleLarge?.copyWith(
                     color:
                         allDone ? AppColors.successText : AppColors.textPrimary,
                     height: 1.05,
@@ -311,14 +530,18 @@ class _TodayHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  switch (agenda) {
-                    _ when agenda.totalRunning == 0 =>
-                      'No running quests. Time to forge one.',
-                    _ when agenda.open.isEmpty =>
-                      'Everything done today. Legend.',
-                    _ => '${agenda.open.length} quest'
-                        '${agenda.open.length == 1 ? '' : 's'} waiting for you.',
-                  },
+                  pendingCount > 0
+                      ? '$pendingCount saved on this device · waiting to sync'
+                      : switch (agenda) {
+                          _ when agenda.totalRunning == 0 =>
+                            'No running quests. Time to forge one.',
+                          _ when agenda.open.isEmpty =>
+                            'Everything done today. Legend.',
+                          _ when agenda.open.every((i) => i.isDoomed) =>
+                            'No actions left today. Review your finished quests.',
+                          _ => '${agenda.open.length} quest'
+                              '${agenda.open.length == 1 ? '' : 's'} waiting for you.',
+                        },
                   style: textTheme.bodyMedium
                       ?.copyWith(color: AppColors.textSecondary),
                 ),
@@ -433,9 +656,15 @@ class _PokeInboxCardState extends ConsumerState<_PokeInboxCard> {
     try {
       await action(ref.read(friendsRepositoryProvider));
     } catch (_) {
-      // Swallow — the list simply won't clear; user can retry.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(AppSnackBar(
+            content:
+                const Text('Could not save your response. Please try again.'),
+            backgroundColor: AppColors.danger));
+      }
     }
     if (!mounted) return;
+    setState(() => _busy = false);
     ref.invalidate(unseenNudgesProvider);
     ref.invalidate(myNudgesProvider);
   }
@@ -469,7 +698,7 @@ class _PokeInboxCardState extends ConsumerState<_PokeInboxCard> {
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.textSecondary,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  minimumSize: const Size(0, 32),
+                  minimumSize: const Size(0, 48),
                 ),
                 child: const Text('Got it'),
               ),
@@ -646,6 +875,47 @@ class _InboxRow extends StatelessWidget {
 class _EventsSection extends ConsumerWidget {
   const _EventsSection();
 
+  void _openEvent(BuildContext context, SettlementEvent event) {
+    if (event.kind == 'completed' || event.kind == 'milestone') {
+      CelebrationGate.show(context, event);
+      return;
+    }
+    final (icon, color, text) = _describe(event);
+    showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+          child: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, color: color, size: 32),
+          const SizedBox(height: 12),
+          Text(text, textAlign: TextAlign.center),
+          if (event.kind == 'failed') ...[
+            const SizedBox(height: 12),
+            Text(Roasts.random(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontStyle: FontStyle.italic)),
+          ],
+          const SizedBox(height: 16),
+          if (event.canOpenQuest)
+            TextButton(
+                onPressed: () {
+                  Navigator.of(sheetContext).pop();
+                  context.push('${AppRoutes.challenges}/${event.challengeId}');
+                },
+                child: const Text('OPEN QUEST'))
+          else
+            const Text('This quest is no longer available to you.',
+                textAlign: TextAlign.center),
+        ]),
+      )),
+    );
+  }
+
   (IconData, Color, String) _describe(SettlementEvent event) {
     return switch (event.kind) {
       'penalty' => (
@@ -727,6 +997,16 @@ class _EventsSection extends ConsumerWidget {
           AppColors.danger,
           '💸 Robbed: ${event.amount} aura · ${event.questTitle}',
         ),
+      'heist_blocked' => (
+          Icons.shield,
+          AppColors.neonGreen,
+          'Aura Ward blocked a heist · ${event.questTitle}'
+        ),
+      'heist_expired' => (
+          Icons.timer_off,
+          AppColors.textSecondary,
+          'Heist ended without a payout · ${event.questTitle}'
+        ),
       'heist_hit' => (
           Icons.savings,
           AppColors.neonGreen,
@@ -768,24 +1048,32 @@ class _EventsSection extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(vertical: 5),
                   child: Builder(builder: (context) {
                     final (icon, color, text) = _describe(event);
-                    return Row(
-                      children: [
-                        ThemeIcon(
-                            icon: icon,
-                            matrixChar: '[A]',
-                            color: color,
-                            size: 15),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            text,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: textTheme.bodySmall
-                                ?.copyWith(color: AppColors.textPrimary),
-                          ),
-                        ),
-                      ],
+                    return InkWell(
+                      onTap: () => _openEvent(context, event),
+                      child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: Row(
+                            children: [
+                              ThemeIcon(
+                                  icon: icon,
+                                  matrixChar: '[A]',
+                                  color: color,
+                                  size: 15),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  text,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: textTheme.bodySmall
+                                      ?.copyWith(color: AppColors.textPrimary),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Icon(Icons.chevron_right,
+                                  size: 18, color: AppColors.textSecondary),
+                            ],
+                          )),
                     );
                   }),
                 ),
@@ -799,13 +1087,46 @@ class _EventsSection extends ConsumerWidget {
 }
 
 /// Shared check-in button used by the agenda + risk cards.
-class _CheckInButton extends ConsumerWidget {
+class _CheckInButton extends ConsumerStatefulWidget {
   const _CheckInButton({required this.item, required this.color});
 
   final AgendaItem item;
   final Color color;
 
+  @override
+  ConsumerState<_CheckInButton> createState() => _CheckInButtonState();
+}
+
+class _CheckInButtonState extends ConsumerState<_CheckInButton> {
+  bool _submitting = false;
+  AgendaItem get item => widget.item;
+  Color get color => widget.color;
+
   Future<void> _checkIn(BuildContext context, WidgetRef ref) async {
+    if (_submitting ||
+        ref.read(checkInControllerProvider(item.challenge.id)).isLoading) {
+      return;
+    }
+    final owner = ref.read(currentUserProvider)?.id;
+    setState(() => _submitting = true);
+    try {
+      await _performCheckIn(context, ref);
+    } catch (error, stack) {
+      debugPrint('Home check-in action failed: $error');
+      debugPrintStack(stackTrace: stack);
+      if (context.mounted && ref.read(currentUserProvider)?.id == owner) {
+        showActionFeedback(ScaffoldMessenger.of(context),
+            error: true,
+            message: 'Could not complete this check-in. Please try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _performCheckIn(BuildContext context, WidgetRef ref) async {
+    final owner = ref.read(currentUserProvider)?.id;
+    if (owner == null) return;
     final roasts = ref.read(targetedRoastsProvider).valueOrNull ?? [];
     final pendingRoast =
         roasts.where((r) => r.challengeId == item.challenge.id).firstOrNull;
@@ -814,26 +1135,24 @@ class _CheckInButton extends ConsumerWidget {
       await showTargetedRoastLockDialog(context, ref, pendingRoast);
       if (!context.mounted) return;
     }
+    if (ref.read(currentUserProvider)?.id != owner) return;
 
     final messenger = ScaffoldMessenger.of(context);
     final result = await ref
         .read(checkInControllerProvider(item.challenge.id).notifier)
         .checkIn(questTitle: item.challenge.title);
+    if (!context.mounted || ref.read(currentUserProvider)?.id != owner) return;
 
     if (result.isQueuedOffline) {
-      messenger.showSnackBar(SnackBar(
-        content: const Text(
-            '⚡ Offline erledigt! Wird synchronisiert, sobald wieder Netz da ist.'),
-        backgroundColor: AppColors.neonYellow,
-      ));
+      showActionFeedback(messenger,
+          pending: true, message: 'Saved on this device · waiting to sync');
       return;
     }
 
     if (!result.isSuccess) {
-      messenger.showSnackBar(SnackBar(
-        content: Text(result.errorMessage ?? 'Check-in failed - try again.'),
-        backgroundColor: AppColors.danger,
-      ));
+      showActionFeedback(messenger,
+          error: true,
+          message: result.errorMessage ?? 'Check-in failed. Try again.');
       return;
     }
 
@@ -843,21 +1162,15 @@ class _CheckInButton extends ConsumerWidget {
     // refresh the inbox so they drop off Home immediately.
     ref.invalidate(unseenNudgesProvider);
 
-    // A heist may have swiped this payout — reveal it and skip the
-    // "+aura" toast (gained is 0 when robbed).
-    if (context.mounted) {
-      final robbed = await revealRobbedIfAny(context, ref, item.challenge.id);
-      if (robbed != null) return;
-    }
-
-    messenger.showSnackBar(SnackBar(
-      content: Text('⚡ +$gained Aura! ${item.challenge.title} checked in.'),
-      backgroundColor: AppColors.neonGreen,
-    ));
+    // No extra round trip or blocking reveal before confirming the user's action.
+    // Heist details remain available in Activity; zero payout displays no reward.
+    showActionFeedback(messenger,
+        message: '${item.challenge.title} · check-in confirmed',
+        confirmedAura: gained);
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     // A running lockout reaches the agenda too. Without this the button
     // here still invites a tap the server is going to refuse.
     final running =
@@ -868,7 +1181,7 @@ class _CheckInButton extends ConsumerWidget {
         style: OutlinedButton.styleFrom(
           disabledForegroundColor: AppColors.neonPurple,
           side: BorderSide(color: AppColors.neonPurple.withValues(alpha: 0.6)),
-          minimumSize: const Size(0, 40),
+          minimumSize: const Size(0, 48),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         ),
@@ -879,23 +1192,28 @@ class _CheckInButton extends ConsumerWidget {
 
     // Progress quests are never ticked off — they collect amounts.
     if (item.challenge.isProgress) {
+      final progressBusy =
+          ref.watch(progressControllerProvider(item.challenge.id)).isLoading;
       return ElevatedButton.icon(
-        onPressed: () async {
-          final roasts = ref.read(targetedRoastsProvider).valueOrNull ?? [];
-          final pendingRoast = roasts
-              .where((r) => r.challengeId == item.challenge.id)
-              .firstOrNull;
-          if (pendingRoast != null) {
-            await showTargetedRoastLockDialog(context, ref, pendingRoast);
-          }
-          if (context.mounted) {
-            showAddProgressSheet(context, ref, item.challenge);
-          }
-        },
+        onPressed: progressBusy
+            ? null
+            : () async {
+                final roasts =
+                    ref.read(targetedRoastsProvider).valueOrNull ?? [];
+                final pendingRoast = roasts
+                    .where((r) => r.challengeId == item.challenge.id)
+                    .firstOrNull;
+                if (pendingRoast != null) {
+                  await showTargetedRoastLockDialog(context, ref, pendingRoast);
+                }
+                if (context.mounted) {
+                  showAddProgressSheet(context, ref, item.challenge);
+                }
+              },
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.neonPurple,
           foregroundColor: AppColors.background,
-          minimumSize: const Size(0, 40),
+          minimumSize: const Size(0, 48),
           padding: const EdgeInsets.symmetric(horizontal: 14),
           textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         ),
@@ -915,7 +1233,7 @@ class _CheckInButton extends ConsumerWidget {
       );
     }
 
-    final isLoading =
+    final isLoading = _submitting ||
         ref.watch(checkInControllerProvider(item.challenge.id)).isLoading;
 
     return ElevatedButton(
@@ -923,7 +1241,7 @@ class _CheckInButton extends ConsumerWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         foregroundColor: AppColors.background,
-        minimumSize: const Size(0, 40),
+        minimumSize: const Size(0, 48),
         padding: const EdgeInsets.symmetric(horizontal: 14),
         textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
       ),
@@ -941,7 +1259,7 @@ class _CheckInButton extends ConsumerWidget {
 
 /// A quest that still needs a check-in in the current period.
 class _AgendaCard extends ConsumerWidget {
-  const _AgendaCard({required this.item});
+  const _AgendaCard({super.key, required this.item});
 
   final AgendaItem item;
 
@@ -1022,54 +1340,12 @@ class _AgendaCard extends ConsumerWidget {
                           .push('${AppRoutes.challenges}/${item.challenge.id}');
                     }
                   },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.challenge.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.bodyLarge
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          ThemeIcon(
-                            icon: item.deadlineToday
-                                ? Icons.hourglass_bottom
-                                : Icons.repeat,
-                            matrixChar: item.deadlineToday ? '[!]' : '[~]',
-                            size: 13,
-                            color: AppColors.neonCyan,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            item.demandLabel,
-                            style: textTheme.bodySmall
-                                ?.copyWith(color: AppColors.accentText),
-                          ),
-                          const SizedBox(width: 10),
-                          ThemeIcon(
-                            icon: Icons.bolt,
-                            matrixChar: '[A]',
-                            size: 13,
-                            color: AppColors.neonGreen,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '+${item.challenge.auraGain}',
-                            style: textTheme.bodySmall
-                                ?.copyWith(color: AppColors.successText),
-                          ),
-                        ],
-                      ),
-                      if (item.challenge.isProgress) ...[
-                        const SizedBox(height: 8),
-                        QuestProgressBar(
-                            challenge: item.challenge, compact: true),
-                      ],
-                    ],
+                  child: Text(
+                    item.challenge.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodyLarge
+                        ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -1077,6 +1353,25 @@ class _AgendaCard extends ConsumerWidget {
               _CheckInButton(item: item, color: AppColors.neonGreen),
             ],
           ),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 12,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(item.demandLabel,
+                  style: textTheme.bodySmall
+                      ?.copyWith(color: AppColors.accentText)),
+              Text('+${item.challenge.auraGain} ⚡',
+                  style: textTheme.bodySmall
+                      ?.copyWith(color: AppColors.successText)),
+            ],
+          ),
+          if (item.challenge.isProgress) ...[
+            const SizedBox(height: 8),
+            QuestProgressBar(challenge: item.challenge, compact: true),
+            QuickProgressActions(challenge: item.challenge),
+          ],
         ],
       ),
     );
@@ -1085,7 +1380,7 @@ class _AgendaCard extends ConsumerWidget {
 
 /// A quest that dies on the next miss — loud on purpose.
 class _RiskCard extends ConsumerWidget {
-  const _RiskCard({required this.item});
+  const _RiskCard({super.key, required this.item});
 
   final AgendaItem item;
 
@@ -1186,6 +1481,11 @@ class _RiskCard extends ConsumerWidget {
               _CheckInButton(item: item, color: AppColors.danger),
             ],
           ),
+          if (item.challenge.isProgress) ...[
+            const SizedBox(height: 8),
+            QuestProgressBar(challenge: item.challenge, compact: true),
+            QuickProgressActions(challenge: item.challenge),
+          ],
           const SizedBox(height: 10),
           Text(
             item.deadlineToday
@@ -1273,9 +1573,9 @@ class _DoneRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isPending = ref
-        .watch(pendingCheckInsProvider)
-        .any((p) => p.challengeId == item.challenge.id);
+    final isPending = ref.watch(pendingCheckInsProvider).any((p) =>
+        p.challengeId == item.challenge.id &&
+        DateUtils.isSameDay(p.date, DateTime.now().toUtc()));
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
@@ -1310,9 +1610,9 @@ class _DoneRow extends ConsumerWidget {
                     width: 1),
               ),
               child: Text(
-                '⏳ Wartet auf Sync',
+                'Waiting to sync',
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: AppColors.warningText,
                 ),
@@ -1335,14 +1635,29 @@ class _DoneRow extends ConsumerWidget {
 /// Nothing open: either everything is checked in, or there are no
 /// quests at all.
 class _AllDoneCard extends StatelessWidget {
-  const _AllDoneCard({required this.hasQuests});
+  const _AllDoneCard(
+      {required this.hasQuests,
+      this.waitingForSync = false,
+      this.hasLostQuests = false});
 
   final bool hasQuests;
+  final bool waitingForSync;
+  final bool hasLostQuests;
 
   @override
   Widget build(BuildContext context) {
+    if (!hasQuests && !waitingForSync && !hasLostQuests) {
+      return AppStatePanel(
+          title: 'Small habit. Big energy.',
+          message:
+              'Pick something you want to do more often. Make it your first quest.',
+          actionLabel: 'CREATE A QUEST',
+          onAction: () => CreateChallengeSheet.show(context));
+    }
     final textTheme = Theme.of(context).textTheme;
-    final color = hasQuests ? AppColors.neonGreen : AppColors.neonYellow;
+    final color = waitingForSync || hasLostQuests || !hasQuests
+        ? AppColors.warningText
+        : AppColors.successText;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1350,7 +1665,13 @@ class _AllDoneCard extends StatelessWidget {
       child: Row(
         children: [
           ThemeIcon(
-            icon: hasQuests ? Icons.emoji_events : Icons.add_circle_outline,
+            icon: waitingForSync
+                ? Icons.cloud_upload_outlined
+                : hasLostQuests
+                    ? Icons.info_outline
+                    : hasQuests
+                        ? Icons.emoji_events
+                        : Icons.add_circle_outline,
             matrixChar: hasQuests ? '[★]' : '[+]',
             size: 28,
             color: color,
@@ -1358,10 +1679,14 @@ class _AllDoneCard extends StatelessWidget {
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              hasQuests
-                  ? 'All check-ins done. Come back tomorrow.'
-                  : 'No running quests — head to Quests and '
-                      'forge your first one.',
+              waitingForSync
+                  ? 'Saved on this device. We will sync when you are back online.'
+                  : hasLostQuests
+                      ? 'No check-ins available. Review your finished quests below.'
+                      : hasQuests
+                          ? 'All check-ins done. Come back tomorrow.'
+                          : 'No running quests — head to Quests and '
+                              'forge your first one.',
               style: textTheme.bodyMedium?.copyWith(color: color),
             ),
           ),

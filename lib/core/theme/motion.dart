@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'app_colors.dart';
 
 /// The app's motion language — one place for every curve and duration,
 /// so movement feels like one hand drew it.
@@ -31,7 +33,7 @@ abstract class AppDurations {
   static const Duration base = Duration(milliseconds: 260);
 
   /// Progress fills, larger reveals.
-  static const Duration slow = Duration(milliseconds: 420);
+  static const Duration slow = Duration(milliseconds: 280);
 }
 
 /// Wraps any tappable surface with a subtle scale-down on press
@@ -72,7 +74,7 @@ class StaggeredEntrance extends StatefulWidget {
   final Duration delay;
 
   /// index → capped delay, so a long list never crawls in.
-  static Duration forIndex(int index, {int step = 45, int maxItems = 8}) =>
+  static Duration forIndex(int index, {int step = 30, int maxItems = 4}) =>
       Duration(milliseconds: (index.clamp(0, maxItems)) * step);
 
   @override
@@ -103,11 +105,11 @@ class _StaggeredEntranceState extends State<StaggeredEntrance> {
     final shown = _shown || reduce;
     return AnimatedSlide(
       offset: shown ? Offset.zero : const Offset(0, 0.06),
-      duration: AppDurations.base,
+      duration: reduce ? Duration.zero : AppDurations.base,
       curve: AppCurves.emphasizedOut,
       child: AnimatedOpacity(
         opacity: shown ? 1 : 0,
-        duration: AppDurations.base,
+        duration: reduce ? Duration.zero : AppDurations.base,
         curve: AppCurves.emphasizedOut,
         child: widget.child,
       ),
@@ -117,9 +119,9 @@ class _StaggeredEntranceState extends State<StaggeredEntrance> {
 
 class _PressableState extends State<Pressable> {
   bool _down = false;
+  bool _focused = false;
 
-  bool get _interactive =>
-      widget.onTap != null || widget.onLongPress != null;
+  bool get _interactive => widget.onTap != null || widget.onLongPress != null;
 
   void _set(bool v) {
     if (_down != v) setState(() => _down = v);
@@ -128,20 +130,39 @@ class _PressableState extends State<Pressable> {
   @override
   Widget build(BuildContext context) {
     final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    final scale = (_down && _interactive && !reduce) ? widget.pressedScale : 1.0;
+    final scale =
+        (_down && _interactive && !reduce) ? widget.pressedScale : 1.0;
 
-    return GestureDetector(
-      onTap: widget.onTap,
-      onLongPress: widget.onLongPress,
-      onTapDown: _interactive ? (_) => _set(true) : null,
-      onTapUp: _interactive ? (_) => _set(false) : null,
-      onTapCancel: _interactive ? () => _set(false) : null,
-      child: AnimatedScale(
-        scale: scale,
-        duration: AppDurations.press,
-        curve: AppCurves.emphasizedOut,
-        child: widget.child,
-      ),
-    );
+    return FocusableActionDetector(
+        enabled: _interactive,
+        onShowFocusHighlight: (value) => setState(() => _focused = value),
+        shortcuts: const {
+          SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+        },
+        actions: {
+          ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) {
+            widget.onTap?.call();
+            return null;
+          })
+        },
+        child: DecoratedBox(
+            decoration: BoxDecoration(
+                border: _focused
+                    ? Border.all(color: AppColors.neonPurple, width: 3)
+                    : null),
+            child: GestureDetector(
+              onTap: widget.onTap,
+              onLongPress: widget.onLongPress,
+              onTapDown: _interactive ? (_) => _set(true) : null,
+              onTapUp: _interactive ? (_) => _set(false) : null,
+              onTapCancel: _interactive ? () => _set(false) : null,
+              child: AnimatedScale(
+                scale: scale,
+                duration: reduce ? Duration.zero : AppDurations.press,
+                curve: AppCurves.emphasizedOut,
+                child: widget.child,
+              ),
+            )));
   }
 }

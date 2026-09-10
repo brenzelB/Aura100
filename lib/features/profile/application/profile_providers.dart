@@ -28,6 +28,7 @@ final currentProfileProvider = FutureProvider.autoDispose<Profile?>((ref) {
 final myStatsProvider = FutureProvider.autoDispose<PlayerStats?>((ref) {
   if (!SupabaseConfig.isConfigured) return null;
   ref.watch(authStateChangesProvider);
+  ref.watch(myChallengesProvider);
   return ref.watch(profileRepositoryProvider).fetchStats();
 });
 

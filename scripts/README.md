@@ -1,5 +1,45 @@
 # Audit ausführen
 
+**Aktueller Projektweg: Docker ausschließlich auf NAS-BRA.** Flutter, Node und
+ADB laufen auf dem PC. Die früheren lokalen Docker-Beispiele weiter unten sind
+historisch und werden für dieses Projekt nicht mehr verwendet.
+
+## Aktuelle Balance-Tests auf dem NAS
+
+```powershell
+node scripts/balance-db-test.mjs --setup --replay --check
+node scripts/balance-db-test.mjs supabase/tests/balance_regressions.sql
+node scripts/balance-db-test.mjs supabase/tests/audit_regressions.sql
+node scripts/balance-db-test.mjs supabase/tests/push_delivery_regressions.sql
+node scripts/balance-db-test.mjs supabase/tests/lifecycle_regressions.sql
+node scripts/balance-db-test.mjs supabase/tests/duel_regressions.sql
+node scripts/balance-db-test.mjs supabase/tests/privilege_regressions.sql
+node scripts/balance-concurrency.mjs
+node scripts/balance-db-test.mjs --stop
+flutter analyze
+flutter test
+dart run scripts/simulate_balance.dart
+flutter build apk --debug
+```
+
+Diese DB-Tests laufen per SSH ausschließlich in `aura100-balance-test` auf dem
+NAS, ohne Netzwerk und aktive Cron-Jobs. Das Container-Label wird geprüft.
+`--replay` spielt alle Migrationen jeweils atomar ein und protokolliert sie.
+Bereits eingespielte Migrationen nicht bearbeiten; für einen anderen historischen
+Ausgangsstand einen frischen Testcontainer verwenden. `balance-concurrency.mjs`
+entfernt seine reservierten synthetischen Konten im `finally`-Block.
+
+`nas-apply-balance.mjs` prüft ohne `--apply` nur NAS-Ledger und Prüfsummen.
+`--apply` erstellt und validiert einen geschützten NAS-Dump und führt Paket 1
+atomar mit Prüfungen bestehender Guthaben, Questwerte und Historie aus. Bereits
+angewendete, unveränderte Migrationen werden erkannt. Andere Änderungen brauchen
+eine neue Migration und einen geprüften Bereitstellungspfad.
+
+Paket-1-Protokolle/Simulation: `build/balance/`. Regeln und Ergebnisse:
+`docs/2026-09-08-umsetzungspaket-1.md`.
+
+## Historischer Auditweg vom 07.09.2026
+
 Alle Befehle aus dem Projektordner. Flutter 3.44.6, Node 24 und Docker werden
 benötigt. Die SQL-Tests verwenden pgTAP und PostgreSQL mit echtem pg_net/pg_cron.
 

@@ -69,7 +69,7 @@ class _QuestActivitySectionState extends ConsumerState<QuestActivitySection> {
             ),
           ),
           error: (error, _) => Text(
-            'Could not load the activity.\n$error',
+            'Could not load the activity. Please try again.',
             style: textTheme.bodySmall?.copyWith(color: AppColors.danger),
           ),
           data: (items) {
@@ -85,10 +85,8 @@ class _QuestActivitySectionState extends ConsumerState<QuestActivitySection> {
                 _expanded ? items : items.take(_collapsedCount).toList();
 
             return Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 10),
-              decoration:
-                  AppColors.panelDecoration(accent: AppColors.neonCyan),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: AppColors.panelDecoration(accent: AppColors.neonCyan),
               child: Column(
                 children: [
                   for (final item in shown)
@@ -100,11 +98,10 @@ class _QuestActivitySectionState extends ConsumerState<QuestActivitySection> {
                     SizedBox(
                       width: double.infinity,
                       child: TextButton.icon(
-                        onPressed: () =>
-                            setState(() => _expanded = !_expanded),
+                        onPressed: () => setState(() => _expanded = !_expanded),
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.accentText,
-                          minimumSize: const Size(0, 44),
+                          minimumSize: const Size(0, 48),
                           textStyle: const TextStyle(
                               fontSize: 12, fontWeight: FontWeight.w700),
                         ),
@@ -244,9 +241,7 @@ class _ActivityRow extends StatelessWidget {
       'purchase' => (
           Icons.storefront,
           AppColors.neonPurple,
-          item.detail == null
-              ? 'bought something in the shop'
-              : 'bought ${item.detail}',
+          item.detail == null ? 'unlocked a perk' : 'unlocked ${item.detail}',
         ),
       'roast' => (
           Icons.local_fire_department,
@@ -317,7 +312,7 @@ class _ActivityRow extends StatelessWidget {
           Text(
             _timeAgo,
             style: textTheme.bodySmall
-                ?.copyWith(color: AppColors.textSecondary, fontSize: 10),
+                ?.copyWith(color: AppColors.textSecondary, fontSize: 12),
           ),
         ],
       ),

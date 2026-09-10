@@ -1,3 +1,4 @@
+import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -101,7 +102,7 @@ class _NotificationSettingsSectionState
       // server never accepted would quietly lie to the player.
       if (mounted) {
         setState(() => _local = previous);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(AppSnackBar(
           content: const Text('Could not save that. Try again.'),
           backgroundColor: AppColors.danger,
         ));
@@ -147,8 +148,7 @@ class _NotificationSettingsSectionState
             hint: 'Blackout, aura heist, roast, duels',
             value: settings.attacks,
             enabled: !_saving,
-            onChanged: (v) =>
-                _save(settings.copyWith(attacks: v, duels: v)),
+            onChanged: (v) => _save(settings.copyWith(attacks: v, duels: v)),
           ),
           _Toggle(
             icon: Icons.group_outlined,
@@ -243,14 +243,14 @@ class _ReminderList extends ConsumerWidget {
               color: AppColors.textSecondary,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.5,
-              fontSize: 11,
+              fontSize: 12,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             'A daily nudge per quest. Silent on days you already logged.',
             style: textTheme.bodySmall
-                ?.copyWith(color: AppColors.textSecondary, fontSize: 11),
+                ?.copyWith(color: AppColors.textSecondary, fontSize: 12),
           ),
           const SizedBox(height: 4),
           for (final quest in open)

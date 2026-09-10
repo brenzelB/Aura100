@@ -1,3 +1,4 @@
+import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
@@ -25,8 +26,7 @@ class QuestPartySection extends ConsumerStatefulWidget {
   final Challenge challenge;
 
   @override
-  ConsumerState<QuestPartySection> createState() =>
-      _QuestPartySectionState();
+  ConsumerState<QuestPartySection> createState() => _QuestPartySectionState();
 }
 
 class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
@@ -44,7 +44,7 @@ class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
     if (mounted) setState(() => _nudgingUserId = null);
     if (!success) return; // error → surfaced by ref.listen below
 
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(AppSnackBar(
       content: Text('👉 @${member.username} got poked!'),
       backgroundColor: AppColors.neonPink,
     ));
@@ -53,8 +53,7 @@ class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
   Future<void> _showInviteDialog(List<QuestMember> members) async {
     // Friends already in the quest can't be invited again — the picker
     // greys them out instead of letting the server reject the tap.
-    final memberNames =
-        members.map((m) => m.username.toLowerCase()).toSet();
+    final memberNames = members.map((m) => m.username.toLowerCase()).toSet();
 
     final username = await showDialog<String>(
       context: context,
@@ -68,7 +67,7 @@ class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
         .invite(username);
     if (!success) return; // error → ref.listen
 
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(AppSnackBar(
       content: Text('📨 Invite sent to @$username!'),
       backgroundColor: AppColors.neonGreen,
     ));
@@ -88,7 +87,8 @@ class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
             ? error.message
             : 'Something went wrong - try again.';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), backgroundColor: AppColors.danger),
+          AppSnackBar(
+              content: Text(message), backgroundColor: AppColors.danger),
         );
       });
     }
@@ -99,14 +99,16 @@ class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Wrap(
+          spacing: 16,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Text(
               'PARTY',
-              style: textTheme.headlineSmall
-                  ?.copyWith(color: AppColors.neonPink),
+              style:
+                  textTheme.headlineSmall?.copyWith(color: AppColors.neonPink),
             ),
-            const Spacer(),
             OutlinedButton.icon(
               // Out of the running: no bringing in reinforcements either.
               onPressed: widget.challenge.amIOut
@@ -120,10 +122,10 @@ class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
                     color: widget.challenge.amIOut
                         ? AppColors.textSecondary.withValues(alpha: 0.4)
                         : AppColors.neonYellow.withValues(alpha: 0.6)),
-                minimumSize: const Size(0, 36),
+                minimumSize: const Size(0, 48),
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                textStyle: const TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.w700),
+                textStyle:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
               ),
               icon: const Icon(Icons.person_add, size: 16),
               label: const Text('INVITE'),
@@ -135,8 +137,7 @@ class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
           // Keep the party on screen through the 8s auto-refresh.
           skipLoadingOnReload: true,
           data: (members) {
-            Widget tile(QuestMember member, {Color? teamColor}) =>
-                _MemberTile(
+            Widget tile(QuestMember member, {Color? teamColor}) => _MemberTile(
                   member: member,
                   challenge: widget.challenge,
                   teamColor: teamColor,
@@ -151,10 +152,8 @@ class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
                 );
 
             if (widget.challenge.mode == QuestMode.versus) {
-              final red =
-                  members.where((m) => m.team == 'red').toList();
-              final blue =
-                  members.where((m) => m.team == 'blue').toList();
+              final red = members.where((m) => m.team == 'red').toList();
+              final blue = members.where((m) => m.team == 'blue').toList();
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -181,14 +180,14 @@ class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
               ],
             );
           },
-          loading: () =>  Padding(
+          loading: () => Padding(
             padding: EdgeInsets.all(24),
             child: Center(
               child: CircularProgressIndicator(color: AppColors.neonPink),
             ),
           ),
           error: (error, _) => Text(
-            'Could not load the party.\n$error',
+            'Could not load the party. Please try again.',
             style: textTheme.bodyMedium?.copyWith(color: AppColors.danger),
           ),
         ),
@@ -218,7 +217,7 @@ class _CoopBanner extends StatelessWidget {
               'A Streak Shield saves everyone. If one falls, all fall.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.textSecondary,
-                    fontSize: 11,
+                    fontSize: 12,
                   ),
             ),
           ),
@@ -239,10 +238,8 @@ class _VersusScoreboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final redTotal =
-        red.fold<int>(0, (sum, m) => sum + m.totalCheckins);
-    final blueTotal =
-        blue.fold<int>(0, (sum, m) => sum + m.totalCheckins);
+    final redTotal = red.fold<int>(0, (sum, m) => sum + m.totalCheckins);
+    final blueTotal = blue.fold<int>(0, (sum, m) => sum + m.totalCheckins);
     final redAvg = red.isEmpty ? 0.0 : redTotal / red.length;
     final blueAvg = blue.isEmpty ? 0.0 : blueTotal / blue.length;
 
@@ -270,8 +267,8 @@ class _VersusScoreboard extends StatelessWidget {
             memberCount == 0
                 ? 'no players'
                 : '${avg.toStringAsFixed(1)} / member',
-            style: textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary, fontSize: 10),
+            style: textTheme.bodySmall
+                ?.copyWith(color: AppColors.textSecondary, fontSize: 12),
           ),
         ],
       );
@@ -293,8 +290,8 @@ class _VersusScoreboard extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
-          side('BLUE', AppColors.neonCyan, blueTotal, blueAvg,
-              blue.length, blueAvg >= redAvg, CrossAxisAlignment.end),
+          side('BLUE', AppColors.neonCyan, blueTotal, blueAvg, blue.length,
+              blueAvg >= redAvg, CrossAxisAlignment.end),
         ],
       ),
     );
@@ -322,7 +319,7 @@ class _TeamLabel extends StatelessWidget {
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: color,
                 fontWeight: FontWeight.w800,
-                fontSize: 11,
+                fontSize: 12,
                 letterSpacing: 1.1,
               ),
         ),
@@ -384,7 +381,7 @@ class _InviteDialogState extends ConsumerState<_InviteDialog> {
     final textTheme = Theme.of(context).textTheme;
     final friendsAsync = ref.watch(myFriendsProvider);
 
-    return AlertDialog(
+    return AppDialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
@@ -392,8 +389,7 @@ class _InviteDialogState extends ConsumerState<_InviteDialog> {
       ),
       title: Text(
         'INVITE A FRIEND',
-        style: textTheme.headlineSmall
-            ?.copyWith(color: AppColors.warningText),
+        style: textTheme.headlineSmall?.copyWith(color: AppColors.warningText),
       ),
       content: SizedBox(
         width: double.maxFinite,
@@ -409,11 +405,14 @@ class _InviteDialogState extends ConsumerState<_InviteDialog> {
                       style: textTheme.bodySmall
                           ?.copyWith(color: AppColors.textSecondary),
                     )
-                  : ConstrainedBox(
-                      // Keeps long friend lists inside the dialog.
-                      constraints: const BoxConstraints(maxHeight: 240),
+                  : SizedBox(
+                      // AlertDialog measures its content intrinsically before
+                      // laying it out. A shrink-wrapped ListView cannot answer
+                      // that query, so give the list a bounded viewport. This
+                      // also keeps large friend lists inside the dialog.
+                      height:
+                          (friends.length * 64.0).clamp(64.0, 240.0).toDouble(),
                       child: ListView(
-                        shrinkWrap: true,
                         children: [
                           for (final friend in friends)
                             _FriendPickTile(
@@ -427,11 +426,11 @@ class _InviteDialogState extends ConsumerState<_InviteDialog> {
                         ],
                       ),
                     ),
-              loading: () =>  Padding(
+              loading: () => Padding(
                 padding: EdgeInsets.all(16),
                 child: Center(
-                  child: CircularProgressIndicator(
-                      color: AppColors.warningText),
+                  child:
+                      CircularProgressIndicator(color: AppColors.warningText),
                 ),
               ),
               error: (_, __) => Text(
@@ -441,19 +440,18 @@ class _InviteDialogState extends ConsumerState<_InviteDialog> {
               ),
             ),
             const SizedBox(height: 16),
-             Divider(color: AppColors.surfaceLight),
+            Divider(color: AppColors.surfaceLight),
             const SizedBox(height: 8),
             Text(
               'OR BY USERNAME',
               style: textTheme.bodySmall
-                  ?.copyWith(color: AppColors.textSecondary, fontSize: 10),
+                  ?.copyWith(color: AppColors.textSecondary, fontSize: 12),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _controller,
               decoration: const InputDecoration(hintText: 'Username'),
-              onSubmitted: (value) =>
-                  Navigator.of(context).pop(value.trim()),
+              onSubmitted: (value) => Navigator.of(context).pop(value.trim()),
             ),
           ],
         ),
@@ -461,8 +459,8 @@ class _InviteDialogState extends ConsumerState<_InviteDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child:  Text('CANCEL',
-              style: TextStyle(color: AppColors.textSecondary)),
+          child:
+              Text('CANCEL', style: TextStyle(color: AppColors.textSecondary)),
         ),
         ElevatedButton(
           onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
@@ -489,8 +487,7 @@ class _FriendPickTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final color =
-        alreadyIn ? AppColors.textSecondary : AppColors.textPrimary;
+    final color = alreadyIn ? AppColors.textSecondary : AppColors.textPrimary;
 
     return InkWell(
       onTap: alreadyIn ? null : onTap,
@@ -518,11 +515,11 @@ class _FriendPickTile extends StatelessWidget {
             if (alreadyIn)
               Text(
                 'in quest',
-                style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary, fontSize: 10),
+                style: textTheme.bodySmall
+                    ?.copyWith(color: AppColors.textSecondary, fontSize: 12),
               )
             else
-               Icon(Icons.add_circle_outline,
+              Icon(Icons.add_circle_outline,
                   size: 18, color: AppColors.warningText),
           ],
         ),
@@ -611,8 +608,7 @@ class _MemberTile extends ConsumerWidget {
                     ],
                     // Owned emblems (Title Badge, Aura Lord) — the real
                     // visual badge, right by the name.
-                    for (final title
-                        in Benefit.ownedTitles(member.gear)) ...[
+                    for (final title in Benefit.ownedTitles(member.gear)) ...[
                       const SizedBox(width: 5),
                       TitleEmblem(title: title, dense: true),
                     ],
@@ -623,7 +619,7 @@ class _MemberTile extends ConsumerWidget {
                         style: textTheme.bodySmall?.copyWith(
                           color: AppColors.accentText,
                           fontWeight: FontWeight.w700,
-                          fontSize: 10,
+                          fontSize: 12,
                         ),
                       ),
                     ],
@@ -637,7 +633,7 @@ class _MemberTile extends ConsumerWidget {
                           style: textTheme.bodySmall?.copyWith(
                             color: AppColors.danger,
                             fontWeight: FontWeight.w800,
-                            fontSize: 10,
+                            fontSize: 12,
                           )),
                     ],
                     if (member.isWinner) ...[
@@ -752,7 +748,7 @@ class _MemberTile extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: textTheme.bodySmall
-                              ?.copyWith(color: statusColor, fontSize: 11),
+                              ?.copyWith(color: statusColor, fontSize: 12),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -796,8 +792,7 @@ class _MemberTile extends ConsumerWidget {
             padding: const EdgeInsets.only(left: 52, top: 2),
             child: Row(
               children: [
-                Icon(Icons.schedule,
-                    size: 11, color: AppColors.textSecondary),
+                Icon(Icons.schedule, size: 11, color: AppColors.textSecondary),
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(
@@ -806,7 +801,7 @@ class _MemberTile extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary, fontSize: 10),
+                        color: AppColors.textSecondary, fontSize: 12),
                   ),
                 ),
               ],
@@ -820,11 +815,11 @@ class _MemberTile extends ConsumerWidget {
           if (challenge.isProgress) ...[
             const SizedBox(height: 8),
             _MemberProgressBar(
-              value: challenge.targetValue == null ||
-                      challenge.targetValue! <= 0
-                  ? 0
-                  : (member.progressInPeriod / challenge.targetValue!)
-                      .clamp(0.0, 1.0),
+              value:
+                  challenge.targetValue == null || challenge.targetValue! <= 0
+                      ? 0
+                      : (member.progressInPeriod / challenge.targetValue!)
+                          .clamp(0.0, 1.0),
               done: member.doneThisPeriod,
             ),
           ],

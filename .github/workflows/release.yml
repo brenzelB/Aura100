@@ -22,6 +22,8 @@ jobs:
   validate:
     name: Run Tests & Static Analysis
     runs-on: ubuntu-latest
+    outputs:
+      build_number: ${{ steps.version.outputs.build_number }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -41,6 +43,16 @@ jobs:
 
       - name: Install Dependencies
         run: flutter pub get
+
+      - name: Resolve shared build number
+        id: version
+        env:
+          OVERRIDE: ${{ inputs.build_number }}
+        run: |
+          NUMBER="${OVERRIDE:-$GITHUB_RUN_NUMBER}"
+          [[ "$NUMBER" =~ ^[1-9][0-9]*$ ]] || exit 1
+          echo "build_number=$NUMBER" >> "$GITHUB_OUTPUT"
+          echo "Commit: $GITHUB_SHA / build: $NUMBER" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Analyze Code
         run: flutter analyze
@@ -85,7 +97,7 @@ jobs:
 
       - name: Build App Bundle (.aab)
         env:
-          BUILD_NUMBER: ${{ github.event.inputs.build_number }}
+          BUILD_NUMBER: ${{ needs.validate.outputs.build_number }}
         run: |
           BUILD_ARGS=(--release)
           if [ -n "$BUILD_NUMBER" ]; then
@@ -94,17 +106,25 @@ jobs:
           fi
           flutter build appbundle "${BUILD_ARGS[@]}"
 
+      - name: Verify release certificate and record provenance
+        run: |
+          keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab > certificate.txt
+          ! grep -q 'Android Debug' certificate.txt
+          printf 'commit=%s\nbuild=%s\n' "$GITHUB_SHA" '${{ needs.validate.outputs.build_number }}' > build/app/outputs/bundle/release/build-info.txt
+
       - name: Upload Android Bundle Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-release-bundle
-          path: build/app/outputs/bundle/release/*.aab
+          name: android-release-bundle-${{ needs.validate.outputs.build_number }}
+          path: |
+            build/app/outputs/bundle/release/*.aab
+            build/app/outputs/bundle/release/build-info.txt
           if-no-files-found: error
 
   build-ios:
-    name: Build iOS Archive (.ipa)
+    name: Build iOS archive (unsigned, not for submission)
     needs: validate
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -119,9 +139,15 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Verify Apple SDK requirement
+        run: |
+          xcodebuild -version
+          SDK=$(xcrun --sdk iphoneos --show-sdk-version)
+          test "${SDK%%.*}" -ge 26
+
       - name: Build iOS Archive
         env:
-          BUILD_NUMBER: ${{ github.event.inputs.build_number }}
+          BUILD_NUMBER: ${{ needs.validate.outputs.build_number }}
         run: |
           BUILD_ARGS=(--release --no-codesign)
           if [ -n "$BUILD_NUMBER" ]; then
@@ -130,9 +156,13 @@ jobs:
           fi
           flutter build ipa "${BUILD_ARGS[@]}"
 
+      - name: Record archive provenance
+        run: |
+          printf 'commit=%s\nbuild=%s\nsigning=unsigned\n' "$GITHUB_SHA" '${{ needs.validate.outputs.build_number }}' > build/ios/archive/build-info.txt
+
       - name: Upload iOS Archive Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ios-release-archive
-          path: build/ios/archive/Runner.xcarchive
-          if-no-files-found: warn
+          name: ios-unsigned-archive-${{ needs.validate.outputs.build_number }}
+          path: build/ios/archive/
+          if-no-files-found: error

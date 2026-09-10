@@ -19,6 +19,14 @@ import '../../../challenges/domain/settlement.dart';
 class CelebrationGate extends ConsumerStatefulWidget {
   const CelebrationGate({super.key});
 
+  /// Home opens celebrations from Activity instead of interrupting a check-in.
+  static Future<void> show(BuildContext context, SettlementEvent event) =>
+      showDialog<void>(
+        context: context,
+        barrierColor: Colors.black.withValues(alpha: 0.85),
+        builder: (_) => _CelebrationDialog(event: event),
+      );
+
   static const _prefsKey = 'celebration_acked_at';
   static const _kinds = {'milestone', 'completed'};
 
@@ -132,8 +140,18 @@ class _CelebrationDialogState extends State<_CelebrationDialog>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
-    )..forward();
+    );
     HapticFeedback.mediumImpact();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _controller.value = 1;
+    } else if (_controller.value == 0 && !_controller.isAnimating) {
+      _controller.forward();
+    }
   }
 
   @override
@@ -147,115 +165,119 @@ class _CelebrationDialogState extends State<_CelebrationDialog>
     final textTheme = Theme.of(context).textTheme;
     final accent = _isStreak ? AppColors.neonYellow : AppColors.neonGreen;
     final glyph = _isStreak ? '🔥' : '🏆';
-    final headline = _isStreak
-        ? '${widget.event.amount}-DAY STREAK'
-        : 'QUEST COMPLETE';
+    final headline =
+        _isStreak ? '${widget.event.amount}-DAY STREAK' : 'QUEST COMPLETE';
 
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(24),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: accent, width: 2),
-          boxShadow: AppColors.neonGlow(accent),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Confetti burst behind the glyph.
-            SizedBox(
-              height: 180,
-              width: double.infinity,
-              child: AnimatedBuilder(
-                animation: _controller,
-                builder: (context, _) {
-                  return Stack(
-                    alignment: Alignment.center,
+      child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: accent, width: 2),
+              boxShadow: AppColors.neonGlow(accent),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Confetti burst behind the glyph.
+                SizedBox(
+                  height: 180,
+                  width: double.infinity,
+                  child: AnimatedBuilder(
+                    animation: _controller,
+                    builder: (context, _) {
+                      return Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          CustomPaint(
+                            size: const Size(double.infinity, 180),
+                            painter: _ConfettiPainter(
+                              particles: _particles,
+                              progress: _controller.value,
+                              accent: accent,
+                            ),
+                          ),
+                          // Glyph pops in with an elastic bounce — starting
+                          // from a visible size, never from nothing.
+                          Transform.scale(
+                            scale: 0.4 +
+                                0.6 *
+                                    Curves.elasticOut.transform(
+                                        (_controller.value * 1.4)
+                                            .clamp(0.0, 1.0)),
+                            child: Text(glyph,
+                                style: const TextStyle(fontSize: 76)),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  headline,
+                  textAlign: TextAlign.center,
+                  style: textTheme.headlineMedium?.copyWith(
+                    color: accent,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  widget.event.questTitle,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyMedium
+                      ?.copyWith(color: AppColors.textSecondary),
+                ),
+                if (!_isStreak && widget.event.amount != null) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      CustomPaint(
-                        size: const Size(double.infinity, 180),
-                        painter: _ConfettiPainter(
-                          particles: _particles,
-                          progress: _controller.value,
-                          accent: accent,
-                        ),
-                      ),
-                      // Glyph pops in with an elastic bounce — starting
-                      // from a visible size, never from nothing.
-                      Transform.scale(
-                        scale: 0.4 +
-                            0.6 *
-                                Curves.elasticOut.transform(
-                                    (_controller.value * 1.4).clamp(0.0, 1.0)),
-                        child: Text(glyph,
-                            style: const TextStyle(fontSize: 76)),
-                      ),
+                      Icon(Icons.bolt, color: accent, size: 20),
+                      const SizedBox(width: 4),
+                      Flexible(
+                          child: Text(
+                        '${widget.event.amount} aura banked',
+                        textAlign: TextAlign.center,
+                        style: textTheme.bodyLarge?.copyWith(
+                            color: accent, fontWeight: FontWeight.w700),
+                      )),
                     ],
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              headline,
-              textAlign: TextAlign.center,
-              style: textTheme.headlineMedium?.copyWith(
-                color: accent,
-                letterSpacing: 1.5,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              widget.event.questTitle,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: textTheme.bodyMedium
-                  ?.copyWith(color: AppColors.textSecondary),
-            ),
-            if (!_isStreak && widget.event.amount != null) ...[
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.bolt, color: accent, size: 20),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${widget.event.amount} aura banked',
-                    style: textTheme.bodyLarge?.copyWith(
-                        color: accent, fontWeight: FontWeight.w700),
                   ),
                 ],
-              ),
-            ],
-            const SizedBox(height: 14),
-            Text(
-              '"$_hype"',
-              textAlign: TextAlign.center,
-              style: textTheme.bodyLarge?.copyWith(
-                fontStyle: FontStyle.italic,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 22),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: accent,
-                  foregroundColor: AppColors.background,
-                  minimumSize: const Size(0, 48),
+                const SizedBox(height: 14),
+                Text(
+                  '"$_hype"',
+                  textAlign: TextAlign.center,
+                  style: textTheme.bodyLarge?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-                child: Text(_isStreak ? "LET'S GO" : 'HELL YEAH'),
-              ),
+                const SizedBox(height: 22),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: accent,
+                      foregroundColor: AppColors.background,
+                      minimumSize: const Size(0, 48),
+                    ),
+                    child: Text(_isStreak ? "LET'S GO" : 'HELL YEAH'),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          )),
     );
   }
 }
@@ -328,6 +350,5 @@ class _ConfettiPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_ConfettiPainter old) =>
-      old.progress != progress;
+  bool shouldRepaint(_ConfettiPainter old) => old.progress != progress;
 }

@@ -44,11 +44,9 @@ class QuestDuelsSection extends ConsumerWidget {
             ),
             const SizedBox(width: 10),
             Text(
-              todayCount == 0
-                  ? 'none today'
-                  : '$todayCount played today',
-              style: textTheme.bodySmall
-                  ?.copyWith(color: AppColors.textSecondary),
+              todayCount == 0 ? 'none today' : '$todayCount played today',
+              style:
+                  textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
           ],
         ),
@@ -73,8 +71,7 @@ class _DuelTile extends ConsumerWidget {
 
   void _open(BuildContext context) {
     if (duel.status == 'resolved') {
-      DuelReplaySheet.show(context,
-          duel: duel, questTitle: challenge.title);
+      DuelReplaySheet.show(context, duel: duel, questTitle: challenge.title);
     } else if (duel.status == 'pending' && !duel.isChallenger(myId)) {
       // My move: the regular accept flow.
       DuelSheet.show(
@@ -225,7 +222,7 @@ class _Badge extends StatelessWidget {
             text,
             style: TextStyle(
               color: color,
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
           ),

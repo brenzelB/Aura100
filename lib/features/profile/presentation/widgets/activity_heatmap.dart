@@ -90,6 +90,8 @@ class _ActivityHeatmapState extends ConsumerState<ActivityHeatmap> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 controller: _scroll,
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -100,8 +102,7 @@ class _ActivityHeatmapState extends ConsumerState<ActivityHeatmap> {
                         children: [
                           for (var day = 0; day < 7; day++)
                             _cellFor(
-                              firstMonday
-                                  .add(Duration(days: week * 7 + day)),
+                              firstMonday.add(Duration(days: week * 7 + day)),
                               today,
                               byDay,
                               busiest,
@@ -119,7 +120,7 @@ class _ActivityHeatmapState extends ConsumerState<ActivityHeatmap> {
                 children: [
                   Text('less',
                       style: textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary, fontSize: 10)),
+                          color: AppColors.textSecondary, fontSize: 12)),
                   const SizedBox(width: 6),
                   for (final step in [0.0, 0.34, 0.67, 1.0]) ...[
                     Container(
@@ -135,7 +136,7 @@ class _ActivityHeatmapState extends ConsumerState<ActivityHeatmap> {
                   const SizedBox(width: 3),
                   Text('more',
                       style: textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary, fontSize: 10)),
+                          color: AppColors.textSecondary, fontSize: 12)),
                 ],
               ),
             ],

@@ -21,6 +21,8 @@ const verify=`select c.title,p.challenge_aura,(select count(*) from public.check
 const remove=`begin;
  delete from public.notification_outbox where ref_id in (${ids});
  delete from public.challenges where id in (${ids}) and title in ('AUDIT Check-in 2026-09-07','AUDIT Progress 2026-09-07');
+ delete from public.player_xp_events e where challenge_id in (${ids})
+   and not exists(select 1 from public.challenges c where c.id=e.challenge_id);
  commit;`;
 const r=spawnSync('ssh',['-o','BatchMode=yes','-o','StrictHostKeyChecking=yes','-i',homedir()+'/.ssh/auraquest_nas',
  'denzel@192.168.178.123','docker exec -i auraquest-db psql -X -U postgres -d postgres -v ON_ERROR_STOP=1 -P pager=off'],

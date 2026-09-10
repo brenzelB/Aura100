@@ -1,4 +1,7 @@
+import 'package:aura_quest/core/widgets/app_states.dart';
+import '../../domain/quest_balance.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/theme/design_tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
@@ -21,11 +24,11 @@ class CreateChallengeSheet extends ConsumerStatefulWidget {
   static Future<void> show(BuildContext context) {
     return showModalBottomSheet(
       context: context,
+      useSafeArea: true,
+      useRootNavigator: true,
       isScrollControlled: true, // let the sheet rise above the keyboard
       backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      shape: AppShapes.sheet,
       builder: (_) => const CreateChallengeSheet(),
     );
   }
@@ -40,13 +43,25 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _auraGainController = TextEditingController(text: '100');
-  final _auraPenaltyController = TextEditingController(text: '50');
+  final _auraPenaltyController = TextEditingController(text: '25');
   static DateTime _initialStartDate() {
     final now = DateTime.now();
     return DateTime.utc(now.year, now.month, now.day);
   }
 
-  int _maxStrikes = 1;
+  int _maxStrikes = 3;
+  QuestPreset _preset = QuestPreset.classic;
+  bool _customBalance = false;
+  bool _attacksEnabled = true;
+
+  void _selectPreset(QuestPreset preset) => setState(() {
+        _preset = preset;
+        _customBalance = false;
+        _auraGainController.text = '${preset.reward}';
+        _auraPenaltyController.text = '${preset.penalty}';
+        _maxStrikes = preset.misses;
+        _attacksEnabled = preset.attacks;
+      });
   late DateTime _startsOn = _initialStartDate();
   late DateTime _endsOn = _initialStartDate().add(const Duration(days: 6));
   CheckinPeriod _period = CheckinPeriod.daily;
@@ -169,8 +184,8 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
       lastDate: _startsOn.add(const Duration(days: 364)),
     );
     if (picked != null) {
-      setState(() =>
-          _endsOn = DateTime.utc(picked.year, picked.month, picked.day));
+      setState(
+          () => _endsOn = DateTime.utc(picked.year, picked.month, picked.day));
     }
   }
 
@@ -188,7 +203,7 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
     final messenger = ScaffoldMessenger.of(context);
 
     if (!SupabaseConfig.isConfigured) {
-      messenger.showSnackBar( SnackBar(
+      messenger.showSnackBar(AppSnackBar(
         content: Text('Supabase not configured — skeleton mode.'),
         backgroundColor: AppColors.surfaceLight,
       ));
@@ -200,6 +215,8 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
               title: _titleController.text.trim(),
               description: _descriptionController.text.trim(),
               durationDays: _durationDays,
+              balancePreset: _customBalance ? 'custom' : _preset.name,
+              attacksEnabled: _attacksEnabled,
               auraGain: int.parse(_auraGainController.text),
               auraPenalty: int.parse(_auraPenaltyController.text),
               maxStrikes: _maxStrikes,
@@ -225,7 +242,7 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
 
     Navigator.of(context).pop();
     final invited = _invitees.length;
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(AppSnackBar(
       content: Text(_isLms
           ? '🏆 Lobby "${_titleController.text.trim()}" created'
               '${invited == 0 ? '' : ' · $invited invited'} — open it and '
@@ -249,7 +266,7 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
           ? error.message
           : 'Could not create the challenge.';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: AppColors.danger),
+        AppSnackBar(content: Text(message), backgroundColor: AppColors.danger),
       );
     });
 
@@ -262,18 +279,9 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Grab handle: drag it down to leave without creating.
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(top: 12, bottom: 4),
-            decoration: BoxDecoration(
-              color: AppColors.textSecondary.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
           Flexible(
             child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: EdgeInsets.only(
                 left: 24,
                 right: 24,
@@ -286,544 +294,606 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-              Text(
-                'NEW QUEST',
-                textAlign: TextAlign.center,
-                style: textTheme.headlineMedium
-                    ?.copyWith(color: AppColors.warningText),
-              ),
-              const SizedBox(height: 24),
-
-              // ── Title ────────────────────────────────────────
-              TextFormField(
-                controller: _titleController,
-                maxLength: 80,
-                decoration: const InputDecoration(
-                  hintText: 'Quest title (e.g. "Gym every day")',
-                  counterText: '',
-                ),
-                validator: (value) => (value?.trim().isEmpty ?? true)
-                    ? 'Give your quest a name'
-                    : null,
-              ),
-              const SizedBox(height: 16),
-
-              // ── Description (optional) ───────────────────────
-              TextFormField(
-                controller: _descriptionController,
-                maxLength: 500,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  hintText: 'Description (optional) - what are the rules?',
-                  counterText: '',
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // ── Goal type: tick it off, collect a target, or avoid ──
-              Row(
-                children: [
-                  Expanded(
-                    child: _GoalTypeCard(
-                      label: 'CHECK OFF',
-                      detail: 'Done once per period',
-                      icon: Icons.check_circle_outline,
-                      selected: _goalType == GoalType.check,
-                      onTap: isLoading
-                          ? null
-                          : () => setState(() => _goalType = GoalType.check),
+                    Text(
+                      'NEW QUEST',
+                      textAlign: TextAlign.center,
+                      style: textTheme.headlineMedium
+                          ?.copyWith(color: AppColors.warningText),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _GoalTypeCard(
-                      label: 'PROGRESS',
-                      detail: 'Collect up to a target',
-                      icon: Icons.trending_up,
-                      selected: _isProgress,
-                      onTap: isLoading
-                          ? null
-                          : () => setState(() => _goalType = GoalType.progress),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _GoalTypeCard(
-                      label: 'AVOID',
-                      detail: 'Win by not doing it',
-                      icon: Icons.block,
-                      selected: _isAvoid,
-                      onTap: isLoading
-                          ? null
-                          : () => setState(() => _goalType = GoalType.avoid),
-                    ),
-                  ),
-                ],
-              ),
+                    const SizedBox(height: 24),
 
-              // ── Daily allowance (avoid quests only) ──────────
-              if (_isAvoid) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration:
-                      AppColors.panelDecoration(accent: AppColors.neonPurple),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                    // ── Title ────────────────────────────────────────
+                    TextFormField(
+                      controller: _titleController,
+                      maxLength: 80,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: 'Quest name',
+                        hintText: 'e.g. Gym every day',
+                        counterText: '',
+                      ),
+                      validator: (value) => (value?.trim().isEmpty ?? true)
+                          ? 'Give your quest a name'
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // ── Description (optional) ───────────────────────
+                    TextFormField(
+                      controller: _descriptionController,
+                      maxLength: 500,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        labelText: 'Description (optional)',
+                        hintText: 'What are the rules?',
+                        counterText: '',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // ── Goal type: tick it off, collect a target, or avoid ──
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _GoalTypeCard(
+                            label: 'CHECK OFF',
+                            detail: 'Done once per period',
+                            icon: Icons.check_circle_outline,
+                            selected: _goalType == GoalType.check,
+                            onTap: isLoading
+                                ? null
+                                : () =>
+                                    setState(() => _goalType = GoalType.check),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _GoalTypeCard(
+                            label: 'PROGRESS',
+                            detail: 'Collect up to a target',
+                            icon: Icons.trending_up,
+                            selected: _isProgress,
+                            onTap: isLoading
+                                ? null
+                                : () => setState(
+                                    () => _goalType = GoalType.progress),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _GoalTypeCard(
+                            label: 'AVOID',
+                            detail: 'Win by not doing it',
+                            icon: Icons.block,
+                            selected: _isAvoid,
+                            onTap: isLoading
+                                ? null
+                                : () =>
+                                    setState(() => _goalType = GoalType.avoid),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // ── Daily allowance (avoid quests only) ──────────
+                    if (_isAvoid) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: AppColors.panelDecoration(
+                            accent: AppColors.neonPurple),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.block,
+                                    size: 16, color: AppColors.neonPurple),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Doing nothing wins the day.',
+                                    style: textTheme.bodyMedium
+                                        ?.copyWith(fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Every slip gets logged with a tap. Stay inside your '
+                              'budget and the period still counts — go over it and '
+                              'the period is lost on the spot.',
+                              style: textTheme.bodySmall
+                                  ?.copyWith(color: AppColors.textSecondary),
+                            ),
+                            const SizedBox(height: 14),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'Allowed per ${_period.name == 'daily' ? 'day' : _period.name == 'weekly' ? 'week' : 'month'}',
+                                    style: textTheme.bodyMedium,
+                                  ),
+                                ),
+                                _StepperButton(
+                                  icon: Icons.remove,
+                                  onTap: isLoading || _allowance == 0
+                                      ? null
+                                      : () => setState(() => _allowance--),
+                                ),
+                                SizedBox(
+                                  width: 54,
+                                  child: Text(
+                                    '$_allowance',
+                                    textAlign: TextAlign.center,
+                                    style: textTheme.displaySmall?.copyWith(
+                                      color: _allowance == 0
+                                          ? AppColors.successText
+                                          : AppColors.neonYellow,
+                                    ),
+                                  ),
+                                ),
+                                _StepperButton(
+                                  icon: Icons.add,
+                                  onTap: isLoading || _allowance >= 100
+                                      ? null
+                                      : () => setState(() => _allowance++),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _allowance == 0
+                                  ? 'Cold turkey — a single slip loses the period.'
+                                  : 'Taper mode — up to $_allowance slip'
+                                      '${_allowance == 1 ? '' : 's'} allowed. '
+                                      'The fewer you use, the more aura you keep.',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: _allowance == 0
+                                    ? AppColors.successText
+                                    : AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    // ── Target + unit (progress quests only) ─────────
+                    if (_isProgress) ...[
+                      const SizedBox(height: 16),
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.block,
-                              size: 16, color: AppColors.neonPurple),
-                          const SizedBox(width: 8),
                           Expanded(
-                            child: Text(
-                              'Doing nothing wins the day.',
-                              style: textTheme.bodyMedium
-                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            flex: 2,
+                            child: TextFormField(
+                              controller: _targetController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
+                              decoration: InputDecoration(
+                                labelText: 'Target',
+                                hintText: 'e.g. 100',
+                                labelStyle:
+                                    TextStyle(color: AppColors.neonPurple),
+                              ),
+                              validator: (value) {
+                                if (!_isProgress) return null;
+                                final parsed = parseQuantity(value ?? '');
+                                if (parsed == null || parsed <= 0) {
+                                  return 'Enter a target > 0';
+                                }
+                                if (parsed > 1000000) {
+                                  return 'Keep it under 1 000 000';
+                                }
+                                return null;
+                              },
                             ),
                           ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 3,
+                            child: TextFormField(
+                              controller: _unitController,
+                              maxLength: 24,
+                              decoration: InputDecoration(
+                                labelText: 'Unit',
+                                hintText: 'e.g. Reps',
+                                counterText: '',
+                                labelStyle:
+                                    TextStyle(color: AppColors.neonPurple),
+                              ),
+                              validator: (value) {
+                                if (!_isProgress) return null;
+                                return (value?.trim().isEmpty ?? true)
+                                    ? 'Name the unit'
+                                    : null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final unit in _unitSuggestions)
+                            _UnitChip(
+                              label: unit,
+                              selected: _unitController.text.trim() == unit,
+                              onTap: isLoading
+                                  ? null
+                                  : () => setState(() {
+                                        _unitController.text = unit;
+                                      }),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Every slip gets logged with a tap. Stay inside your '
-                        'budget and the period still counts — go over it and '
-                        'the period is lost on the spot.',
+                        'Anything works — type your own unit if none fits.',
                         style: textTheme.bodySmall
                             ?.copyWith(color: AppColors.textSecondary),
                       ),
-                      const SizedBox(height: 14),
+                    ],
+                    const SizedBox(height: 16),
+
+                    // ── Quest mode: solo / co-op / versus / last standing ─
+                    // Four options wrap into a 2×2 grid so each stays legible.
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        const gap = 8.0;
+                        final w = (constraints.maxWidth - gap) / 2;
+                        return Wrap(
+                          spacing: gap,
+                          runSpacing: gap,
+                          children: [
+                            for (final mode in QuestMode.values)
+                              SizedBox(
+                                width: w,
+                                child: _ModeChip(
+                                  label: _modeInfo[mode]!.$1,
+                                  icon: _modeInfo[mode]!.$2,
+                                  selected: _mode == mode,
+                                  onTap: isLoading
+                                      ? null
+                                      : () => setState(() => _mode = mode),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _modeInfo[_mode]!.$3,
+                      style: textTheme.bodySmall
+                          ?.copyWith(color: AppColors.textSecondary),
+                    ),
+
+                    // ── Invite friends (optional, fires on create) ──
+                    const SizedBox(height: 16),
+                    _InviteRow(
+                      invitees: _invitees,
+                      enabled: !isLoading,
+                      onChanged: () => setState(() {}),
+                    ),
+
+                    // ── Endless toggle (forced on for Last Standing) ─
+                    const SizedBox(height: 8),
+                    _EndlessTile(
+                      value: _endless,
+                      locked: _isLms,
+                      enabled: !isLoading,
+                      onChanged: (v) => setState(() => _isEndless = v),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // ── Schedule: start always; end only for fixed quests ─
+                    // Last Man Standing has no start date either — it starts
+                    // when the creator hits START in the lobby.
+                    if (!_isLms) ...[
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              'Allowed per ${_period.name == 'daily' ? 'day' : _period.name == 'weekly' ? 'week' : 'month'}',
-                              style: textTheme.bodyMedium,
-                            ),
-                          ),
-                          _StepperButton(
-                            icon: Icons.remove,
-                            onTap: isLoading || _allowance == 0
-                                ? null
-                                : () => setState(() => _allowance--),
-                          ),
-                          SizedBox(
-                            width: 54,
-                            child: Text(
-                              '$_allowance',
-                              textAlign: TextAlign.center,
-                              style: textTheme.displaySmall?.copyWith(
-                                color: _allowance == 0
-                                    ? AppColors.successText
-                                    : AppColors.neonYellow,
+                            child: InkWell(
+                              onTap: isLoading ? null : _pickStartDate,
+                              borderRadius: BorderRadius.circular(12),
+                              child: InputDecorator(
+                                decoration: InputDecoration(
+                                  labelText: 'Starts',
+                                  labelStyle:
+                                      TextStyle(color: AppColors.textSecondary),
+                                  suffixIcon: Icon(Icons.calendar_month,
+                                      size: 20, color: AppColors.accentText),
+                                ),
+                                child: Text(
+                                  _dateLabel(_startsOn, todayAllowed: true),
+                                  style: textTheme.bodyLarge,
+                                ),
                               ),
                             ),
                           ),
-                          _StepperButton(
-                            icon: Icons.add,
-                            onTap: isLoading || _allowance >= 100
-                                ? null
-                                : () => setState(() => _allowance++),
-                          ),
+                          if (!_endless) ...[
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: InkWell(
+                                onTap: isLoading ? null : _pickEndDate,
+                                borderRadius: BorderRadius.circular(12),
+                                child: InputDecorator(
+                                  decoration: InputDecoration(
+                                    labelText: 'Ends',
+                                    labelStyle: TextStyle(
+                                        color: AppColors.textSecondary),
+                                    suffixIcon: Icon(Icons.event,
+                                        size: 20, color: AppColors.neonPink),
+                                  ),
+                                  child: Text(
+                                    _dateLabel(_endsOn, todayAllowed: false),
+                                    style: textTheme.bodyLarge,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Text(
-                        _allowance == 0
-                            ? 'Cold turkey — a single slip loses the period.'
-                            : 'Taper mode — up to $_allowance slip'
-                                '${_allowance == 1 ? '' : 's'} allowed. '
-                                'The fewer you use, the more aura you keep.',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: _allowance == 0
-                              ? AppColors.successText
-                              : AppColors.textSecondary,
-                        ),
+                        _endless
+                            ? 'Runs forever — no end date.'
+                            : '$_durationDays day${_durationDays == 1 ? '' : 's'} total',
+                        style: textTheme.bodySmall
+                            ?.copyWith(color: AppColors.textSecondary),
                       ),
+                      const SizedBox(height: 12),
                     ],
-                  ),
-                ),
-              ],
 
-              // ── Target + unit (progress quests only) ─────────
-              if (_isProgress) ...[
-                const SizedBox(height: 16),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: TextFormField(
-                        controller: _targetController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
-                        decoration: InputDecoration(
-                          labelText: 'Target',
-                          hintText: 'e.g. 100',
-                          labelStyle:
-                              TextStyle(color: AppColors.neonPurple),
-                        ),
-                        validator: (value) {
-                          if (!_isProgress) return null;
-                          final parsed = parseQuantity(value ?? '');
-                          if (parsed == null || parsed <= 0) {
-                            return 'Enter a target > 0';
-                          }
-                          if (parsed > 1000000) return 'Keep it under 1 000 000';
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 3,
-                      child: TextFormField(
-                        controller: _unitController,
-                        maxLength: 24,
-                        decoration: InputDecoration(
-                          labelText: 'Unit',
-                          hintText: 'e.g. Reps',
-                          counterText: '',
-                          labelStyle:
-                              TextStyle(color: AppColors.neonPurple),
-                        ),
-                        validator: (value) {
-                          if (!_isProgress) return null;
-                          return (value?.trim().isEmpty ?? true)
-                              ? 'Name the unit'
-                              : null;
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final unit in _unitSuggestions)
-                      _UnitChip(
-                        label: unit,
-                        selected:
-                            _unitController.text.trim() == unit,
-                        onTap: isLoading
-                            ? null
-                            : () => setState(() {
-                                  _unitController.text = unit;
-                                }),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Anything works — type your own unit if none fits.',
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: AppColors.textSecondary),
-                ),
-              ],
-              const SizedBox(height: 16),
-
-              // ── Quest mode: solo / co-op / versus / last standing ─
-              // Four options wrap into a 2×2 grid so each stays legible.
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  const gap = 8.0;
-                  final w = (constraints.maxWidth - gap) / 2;
-                  return Wrap(
-                    spacing: gap,
-                    runSpacing: gap,
-                    children: [
-                      for (final mode in QuestMode.values)
-                        SizedBox(
-                          width: w,
-                          child: _ModeChip(
-                            label: _modeInfo[mode]!.$1,
-                            icon: _modeInfo[mode]!.$2,
-                            selected: _mode == mode,
-                            onTap: isLoading
-                                ? null
-                                : () => setState(() => _mode = mode),
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _modeInfo[_mode]!.$3,
-                style: textTheme.bodySmall
-                    ?.copyWith(color: AppColors.textSecondary),
-              ),
-
-              // ── Invite friends (optional, fires on create) ──
-              const SizedBox(height: 16),
-              _InviteRow(
-                invitees: _invitees,
-                enabled: !isLoading,
-                onChanged: () => setState(() {}),
-              ),
-
-              // ── Endless toggle (forced on for Last Standing) ─
-              const SizedBox(height: 8),
-              _EndlessTile(
-                value: _endless,
-                locked: _isLms,
-                enabled: !isLoading,
-                onChanged: (v) => setState(() => _isEndless = v),
-              ),
-              const SizedBox(height: 16),
-
-              // ── Schedule: start always; end only for fixed quests ─
-              // Last Man Standing has no start date either — it starts
-              // when the creator hits START in the lobby.
-              if (!_isLms) ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: isLoading ? null : _pickStartDate,
-                        borderRadius: BorderRadius.circular(12),
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            labelText: 'Starts',
-                            labelStyle:
-                                TextStyle(color: AppColors.textSecondary),
-                            suffixIcon: Icon(Icons.calendar_month,
-                                size: 20, color: AppColors.accentText),
-                          ),
-                          child: Text(
-                            _dateLabel(_startsOn, todayAllowed: true),
-                            style: textTheme.bodyLarge,
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (!_endless) ...[
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: InkWell(
-                          onTap: isLoading ? null : _pickEndDate,
-                          borderRadius: BorderRadius.circular(12),
-                          child: InputDecorator(
+                    // ── Check-in frequency ───────────────────────────
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: DropdownButtonFormField<CheckinPeriod>(
+                            isExpanded: true,
+                            initialValue: _period,
+                            dropdownColor: AppColors.surfaceLight,
                             decoration: InputDecoration(
-                              labelText: 'Ends',
+                              labelText: 'Check-in frequency',
                               labelStyle:
                                   TextStyle(color: AppColors.textSecondary),
-                              suffixIcon: Icon(Icons.event,
-                                  size: 20, color: AppColors.neonPink),
                             ),
-                            child: Text(
-                              _dateLabel(_endsOn, todayAllowed: false),
-                              style: textTheme.bodyLarge,
-                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: CheckinPeriod.daily,
+                                child: Text('Every day'),
+                              ),
+                              DropdownMenuItem(
+                                value: CheckinPeriod.weekly,
+                                child: Text('Per week'),
+                              ),
+                              DropdownMenuItem(
+                                value: CheckinPeriod.monthly,
+                                child: Text('Per month'),
+                              ),
+                            ],
+                            onChanged: (value) => setState(() {
+                              _period = value ?? CheckinPeriod.daily;
+                              // Clamp the count to the new period's maximum.
+                              final max =
+                                  _period == CheckinPeriod.weekly ? 7 : 30;
+                              if (_perPeriod > max) _perPeriod = max;
+                            }),
                           ),
                         ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _endless
-                      ? 'Runs forever — no end date.'
-                      : '$_durationDays day${_durationDays == 1 ? '' : 's'} total',
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 12),
-              ],
+                        // Progress quests always have exactly one target per
+                        // period, so the "how often" picker is meaningless.
+                        if (_period != CheckinPeriod.daily && !_isProgress) ...[
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 2,
+                            child: DropdownButtonFormField<int>(
+                              isExpanded: true,
+                              initialValue: _perPeriod,
+                              dropdownColor: AppColors.surfaceLight,
+                              decoration: InputDecoration(
+                                labelText: 'How often?',
+                                labelStyle:
+                                    TextStyle(color: AppColors.textSecondary),
+                              ),
+                              items: [
+                                for (var n = 1;
+                                    n <=
+                                        (_period == CheckinPeriod.weekly
+                                            ? 7
+                                            : 30);
+                                    n++)
+                                  DropdownMenuItem(
+                                      value: n, child: Text('${n}x')),
+                              ],
+                              onChanged: (value) =>
+                                  setState(() => _perPeriod = value ?? 1),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 16),
 
-              // ── Check-in frequency ───────────────────────────
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: DropdownButtonFormField<CheckinPeriod>(
-                      initialValue: _period,
-                      dropdownColor: AppColors.surfaceLight,
-                      decoration:  InputDecoration(
-                        labelText: 'Check-in frequency',
-                        labelStyle:
-                            TextStyle(color: AppColors.textSecondary),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: CheckinPeriod.daily,
-                          child: Text('Every day'),
-                        ),
-                        DropdownMenuItem(
-                          value: CheckinPeriod.weekly,
-                          child: Text('Per week'),
-                        ),
-                        DropdownMenuItem(
-                          value: CheckinPeriod.monthly,
-                          child: Text('Per month'),
+                    // ── Which days does it run on? ───────────────────
+                    // All seven by default. Switching one off makes that day
+                    // a rest day: nothing due, no strike, not counted as
+                    // missed. The server enforces it.
+                    Row(
+                      children: [
+                        Icon(Icons.event_repeat,
+                            size: 16, color: AppColors.textSecondary),
+                        const SizedBox(width: 6),
+                        Expanded(
+                            child: Text('ACTIVE DAYS',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.8,
+                                ))),
+                        Text(
+                          _weekdays.length == 7
+                              ? 'every day'
+                              : '${_weekdays.length} of 7',
+                          style: textTheme.bodySmall?.copyWith(
+                              color: AppColors.textSecondary, fontSize: 12),
                         ),
                       ],
-                      onChanged: (value) => setState(() {
-                        _period = value ?? CheckinPeriod.daily;
-                        // Clamp the count to the new period's maximum.
-                        final max =
-                            _period == CheckinPeriod.weekly ? 7 : 30;
-                        if (_perPeriod > max) _perPeriod = max;
-                      }),
                     ),
-                  ),
-                  // Progress quests always have exactly one target per
-                  // period, so the "how often" picker is meaningless.
-                  if (_period != CheckinPeriod.daily && !_isProgress) ...[
-                    const SizedBox(width: 16),
-                    Expanded(
-                      flex: 2,
-                      child: DropdownButtonFormField<int>(
-                        initialValue: _perPeriod,
-                        dropdownColor: AppColors.surfaceLight,
-                        decoration:  InputDecoration(
-                          labelText: 'How often?',
-                          labelStyle:
-                              TextStyle(color: AppColors.textSecondary),
-                        ),
-                        items: [
-                          for (var n = 1;
-                              n <=
-                                  (_period == CheckinPeriod.weekly
-                                      ? 7
-                                      : 30);
-                              n++)
-                            DropdownMenuItem(value: n, child: Text('${n}x')),
-                        ],
-                        onChanged: (value) =>
-                            setState(() => _perPeriod = value ?? 1),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (var day = 1; day <= 7; day++)
+                          Semantics(
+                            button: true,
+                            selected: _weekdays.contains(day),
+                            label: const [
+                              'Monday',
+                              'Tuesday',
+                              'Wednesday',
+                              'Thursday',
+                              'Friday',
+                              'Saturday',
+                              'Sunday'
+                            ][day - 1],
+                            child: SizedBox(
+                                width: 48,
+                                height: 48,
+                                child: _WeekdayChip(
+                                  label: const [
+                                    'M',
+                                    'T',
+                                    'W',
+                                    'T',
+                                    'F',
+                                    'S',
+                                    'S'
+                                  ][day - 1],
+                                  selected: _weekdays.contains(day),
+                                  onTap: () => setState(() {
+                                    if (_weekdays.contains(day)) {
+                                      // Never let the last day go — a quest with no
+                                      // active day could never be won or lost.
+                                      if (_weekdays.length > 1) {
+                                        _weekdays.remove(day);
+                                      }
+                                    } else {
+                                      _weekdays.add(day);
+                                    }
+                                  }),
+                                )),
+                          ),
+                      ],
+                    ),
+                    if (_weekdays.length < 7) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Days you switch off are rest days: nothing is due, and '
+                        'they never cost you a strike.',
+                        style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary, fontSize: 12),
                       ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 16),
+                    ],
+                    const SizedBox(height: 16),
 
-              // ── Which days does it run on? ───────────────────
-              // All seven by default. Switching one off makes that day
-              // a rest day: nothing due, no strike, not counted as
-              // missed. The server enforces it.
-              Row(
-                children: [
-                  Icon(Icons.event_repeat,
-                      size: 16, color: AppColors.textSecondary),
-                  const SizedBox(width: 6),
-                  Text('ACTIVE DAYS',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.8,
-                      )),
-                  const Spacer(),
-                  Text(
-                    _weekdays.length == 7
-                        ? 'every day'
-                        : '${_weekdays.length} of 7',
-                    style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary, fontSize: 11),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  for (var day = 1; day <= 7; day++) ...[
-                    Expanded(
-                      child: _WeekdayChip(
-                        label: const ['M', 'T', 'W', 'T', 'F', 'S', 'S'][day - 1],
-                        selected: _weekdays.contains(day),
-                        onTap: () => setState(() {
-                          if (_weekdays.contains(day)) {
-                            // Never let the last day go — a quest with no
-                            // active day could never be won or lost.
-                            if (_weekdays.length > 1) _weekdays.remove(day);
-                          } else {
-                            _weekdays.add(day);
-                          }
-                        }),
-                      ),
-                    ),
-                    if (day < 7) const SizedBox(width: 6),
-                  ],
-                ],
-              ),
-              if (_weekdays.length < 7) ...[
-                const SizedBox(height: 6),
-                Text(
-                  'Days you switch off are rest days: nothing is due, and '
-                  'they never cost you a strike.',
-                  style: textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary, fontSize: 11),
-                ),
-              ],
-              const SizedBox(height: 16),
+                    Text('BALANCE', style: textTheme.titleSmall),
+                    const SizedBox(height: 8),
+                    Wrap(spacing: 8, children: [
+                      for (final preset in QuestPreset.values)
+                        ChoiceChip(
+                            label: Text(preset.label),
+                            selected: !_customBalance && _preset == preset,
+                            onSelected: (_) => _selectPreset(preset)),
+                    ]),
+                    const SizedBox(height: 8),
+                    Text(_customBalance
+                        ? 'Custom balance'
+                        : _preset.description),
+                    Text(
+                        '+${_auraGainController.text} Aura per unit · −${_auraPenaltyController.text} per missed period · $_maxStrikes misses allowed. The next miss ends your run.'),
+                    const SizedBox(height: 8),
+                    const Text(
+                        '100 permanent XP per confirmed unit, up to 500 per UTC day. Shopping and attacks never lower your level.'),
+                    if (_mode != QuestMode.lastManStanding)
+                      const Text(
+                          'If the run fails, you keep 25% of its remaining Aura. Permanent XP stays.'),
+                    ExpansionTile(
+                        title: const Text('Advanced'),
+                        tilePadding: EdgeInsets.zero,
+                        children: [
+                          SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Use custom balance'),
+                              value: _customBalance,
+                              onChanged: (value) {
+                                if (value) {
+                                  setState(() => _customBalance = true);
+                                } else {
+                                  _selectPreset(_preset);
+                                }
+                              }),
+                          if (_customBalance) ...[
+                            DropdownButtonFormField<int>(
+                                key: ValueKey(_maxStrikes),
+                                initialValue: _maxStrikes,
+                                decoration: const InputDecoration(
+                                    labelText: 'Allowed missed periods'),
+                                items: [
+                                  for (var n = 0; n <= 10; n++)
+                                    DropdownMenuItem(
+                                        value: n, child: Text('$n allowed'))
+                                ],
+                                onChanged: (value) =>
+                                    setState(() => _maxStrikes = value ?? 3)),
+                            TextFormField(
+                                controller: _auraGainController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                    labelText: 'Aura per successful unit'),
+                                validator: _validateAura,
+                                onChanged: (_) => setState(() {})),
+                            TextFormField(
+                                controller: _auraPenaltyController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                    labelText:
+                                        'Aura penalty per missed period'),
+                                validator: _validateAura,
+                                onChanged: (_) => setState(() {})),
+                            SwitchListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: const Text('Allow attacks'),
+                                subtitle: const Text(
+                                    '3 outgoing attacks per account and UTC day. One successful incoming heist per day.'),
+                                value: _attacksEnabled,
+                                onChanged: (value) =>
+                                    setState(() => _attacksEnabled = value)),
+                          ],
+                        ]),
+                    const SizedBox(height: 28),
 
-              // ── Strikes: allowed missed days ─────────────────
-              DropdownButtonFormField<int>(
-                initialValue: _maxStrikes,
-                dropdownColor: AppColors.surfaceLight,
-                decoration:  InputDecoration(
-                  labelText: 'Allowed misses (strikes before you fail)',
-                  labelStyle: TextStyle(color: AppColors.textSecondary),
-                ),
-                items: const [
-                  DropdownMenuItem(value: 0, child: Text('0 — hardcore')),
-                  DropdownMenuItem(value: 1, child: Text('1 strike')),
-                  DropdownMenuItem(value: 2, child: Text('2 strikes')),
-                  DropdownMenuItem(value: 3, child: Text('3 strikes')),
-                ],
-                onChanged: (value) =>
-                    setState(() => _maxStrikes = value ?? 1),
-              ),
-              const SizedBox(height: 16),
-
-              // ── Aura stakes ──────────────────────────────────
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _auraGainController,
-                      keyboardType: TextInputType.number,
-                      decoration:  InputDecoration(
-                        labelText: 'Aura gain / check-in',
-                        labelStyle: TextStyle(color: AppColors.neonGreen),
-                      ),
-                      validator: _validateAura,
+                    // ── Submit ───────────────────────────────────────
+                    ElevatedButton.icon(
+                      onPressed: isLoading ? null : _submit,
+                      icon: isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.bolt),
+                      label: const Text('CREATE'),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _auraPenaltyController,
-                      keyboardType: TextInputType.number,
-                      decoration:  InputDecoration(
-                        labelText: 'Penalty / missed day',
-                        labelStyle: TextStyle(color: AppColors.danger),
-                      ),
-                      validator: _validateAura,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 28),
-
-              // ── Submit ───────────────────────────────────────
-              ElevatedButton.icon(
-                onPressed: isLoading ? null : _submit,
-                icon: isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.bolt),
-                label: const Text('CREATE'),
-              ),
                   ],
                 ),
               ),
@@ -915,10 +985,10 @@ class _InviteRow extends ConsumerWidget {
     if (!context.mounted) return;
     await showModalBottomSheet<void>(
       context: context,
+      useSafeArea: true,
+      useRootNavigator: true,
       backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      shape: AppShapes.sheet,
       builder: (_) => StatefulBuilder(
         builder: (context, setSheet) => Padding(
           padding: const EdgeInsets.all(20),
@@ -934,8 +1004,10 @@ class _InviteRow extends ConsumerWidget {
               const SizedBox(height: 12),
               if (friends.isEmpty)
                 Text('No friends yet — add them on the Friends tab.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary))
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: AppColors.textSecondary))
               else
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 320),
@@ -992,8 +1064,7 @@ class _InviteRow extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           children: [
-            Icon(Icons.person_add,
-                size: 20, color: AppColors.warningText),
+            Icon(Icons.person_add, size: 20, color: AppColors.warningText),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -1018,8 +1089,7 @@ class _InviteRow extends ConsumerWidget {
             ),
             if (invitees.isNotEmpty)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: AppColors.neonYellow.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
@@ -1030,8 +1100,7 @@ class _InviteRow extends ConsumerWidget {
                         fontWeight: FontWeight.w700)),
               ),
             const SizedBox(width: 4),
-            Icon(Icons.chevron_right,
-                size: 18, color: AppColors.textSecondary),
+            Icon(Icons.chevron_right, size: 18, color: AppColors.textSecondary),
           ],
         ),
       ),
@@ -1083,7 +1152,7 @@ class _GoalTypeCard extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w800,
                 color: color,
               ),
@@ -1093,7 +1162,7 @@ class _GoalTypeCard extends StatelessWidget {
               detail,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 12,
                 color: AppColors.textSecondary,
               ),
             ),
@@ -1117,8 +1186,8 @@ class _StepperButton extends StatelessWidget {
     return Pressable(
       onTap: onTap,
       child: Container(
-        width: 40,
-        height: 40,
+        width: 48,
+        height: 48,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: AppColors.surfaceLight,
@@ -1171,7 +1240,7 @@ class _UnitChip extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: FontWeight.w600,
             color: color,
           ),
@@ -1199,8 +1268,7 @@ class _ModeChip extends StatelessWidget {
   Widget build(BuildContext context) {
     // Only the icon and the label use this — the chip's own fill and
     // border keep the bright yellow a few lines below.
-    final color =
-        selected ? AppColors.warningText : AppColors.textSecondary;
+    final color = selected ? AppColors.warningText : AppColors.textSecondary;
 
     return InkWell(
       onTap: onTap,
@@ -1214,9 +1282,7 @@ class _ModeChip extends StatelessWidget {
               : AppColors.surfaceLight.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected
-                ? AppColors.neonYellow
-                : AppColors.surfaceLight,
+            color: selected ? AppColors.neonYellow : AppColors.surfaceLight,
           ),
         ),
         child: Column(
@@ -1227,7 +1293,7 @@ class _ModeChip extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: color,
               ),
@@ -1277,8 +1343,7 @@ class _WeekdayChip extends StatelessWidget {
           style: TextStyle(
             fontWeight: FontWeight.w800,
             fontSize: 13,
-            color:
-                selected ? AppColors.neonPurple : AppColors.textSecondary,
+            color: selected ? AppColors.neonPurple : AppColors.textSecondary,
           ),
         ),
       ),

@@ -1,3 +1,4 @@
+import 'package:aura_quest/core/widgets/app_states.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -45,6 +46,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
+  bool _showPassword = false;
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -230,7 +232,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _showSnack(String message, {Color? color}) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: color ?? AppColors.danger),
+      AppSnackBar(
+          content: Text(message), backgroundColor: color ?? AppColors.danger),
     );
   }
 
@@ -263,8 +266,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     if (!mounted || !success) return; // errors surface via ref.listen below
 
-    final hasSession =
-        ref.read(authRepositoryProvider).currentSession != null;
+    final hasSession = ref.read(authRepositoryProvider).currentSession != null;
     if (hasSession) {
       // The router redirect would also catch this — explicit go() just
       // makes the transition immediate.
@@ -325,6 +327,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -343,20 +346,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   style: textTheme.bodyLarge
                       ?.copyWith(color: AppColors.textSecondary),
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 28),
 
                 // Form and "check your inbox" occupy the same spot. The
                 // switch is a soft fade rather than a cut: the account was
                 // just created, and a hard swap reads as an error.
                 AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : const Duration(milliseconds: 180),
                   switchInCurve: const Cubic(0.23, 1, 0.32, 1),
                   switchOutCurve: const Cubic(0.23, 1, 0.32, 1),
                   transitionBuilder: (child, animation) => FadeTransition(
                     opacity: animation,
                     child: ScaleTransition(
-                      scale: Tween<double>(begin: 0.97, end: 1)
-                          .animate(animation),
+                      scale:
+                          Tween<double>(begin: 0.97, end: 1).animate(animation),
                       child: child,
                     ),
                   ),
@@ -391,127 +396,134 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-                  // ── Username (sign-up only) ──────────────────
-                  // Stored in auth metadata; the handle_new_user DB
-                  // trigger uses it to create the profile row.
-                  if (_isSignUp) ...[
-                    TextFormField(
-                      controller: _usernameController,
-                      maxLength: 24,
-                      // Autocorrect turns handles into words ("denzel" →
-                      // "dense"), and the capital first letter breaks a
-                      // name the user has to type identically next time.
-                      autofillHints: const [AutofillHints.newUsername],
-                      autocorrect: false,
-                      enableSuggestions: false,
-                      textCapitalization: TextCapitalization.none,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        hintText: 'Username',
-                        counterText: '', // hide the maxLength counter
-                      ),
-                      validator: (value) {
-                        if ((value?.trim().length ?? 0) < 3) {
-                          return 'Username needs at least 3 characters';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+            // ── Username (sign-up only) ──────────────────
+            // Stored in auth metadata; the handle_new_user DB
+            // trigger uses it to create the profile row.
+            if (_isSignUp) ...[
+              TextFormField(
+                controller: _usernameController,
+                maxLength: 24,
+                // Autocorrect turns handles into words ("denzel" →
+                // "dense"), and the capital first letter breaks a
+                // name the user has to type identically next time.
+                autofillHints: const [AutofillHints.newUsername],
+                autocorrect: false,
+                enableSuggestions: false,
+                textCapitalization: TextCapitalization.none,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  hintText: 'Username',
+                  counterText: '', // hide the maxLength counter
+                ),
+                validator: (value) {
+                  if ((value?.trim().length ?? 0) < 3) {
+                    return 'Username needs at least 3 characters';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
 
-                  // ── Email + password ─────────────────────────
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    autofillHints: const [AutofillHints.email],
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    textCapitalization: TextCapitalization.none,
-                    textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(hintText: 'Email'),
-                    validator: (value) {
-                      final email = value?.trim() ?? '';
-                      if (email.isEmpty || !email.contains('@')) {
-                        return 'Enter a valid email address';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    // newPassword tells the password manager to OFFER one
-                    // on sign-up instead of trying to fill an old one.
-                    autofillHints: [
-                      _isSignUp
-                          ? AutofillHints.newPassword
-                          : AutofillHints.password,
-                    ],
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) {
-                      if (!isLoading) _submitEmailForm();
-                    },
-                    decoration: const InputDecoration(hintText: 'Password'),
-                    validator: (value) {
-                      if ((value ?? '').length < 8) {
-                        return 'Password needs at least 8 characters';
-                      }
-                      return null;
-                    },
-                  ),
+            // ── Email + password ─────────────────────────
+            TextFormField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.email],
+              autocorrect: false,
+              enableSuggestions: false,
+              textCapitalization: TextCapitalization.none,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(hintText: 'Email'),
+              validator: (value) {
+                final email = value?.trim() ?? '';
+                if (email.isEmpty || !email.contains('@')) {
+                  return 'Enter a valid email address';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _passwordController,
+              obscureText: !_showPassword,
+              // newPassword tells the password manager to OFFER one
+              // on sign-up instead of trying to fill an old one.
+              autofillHints: [
+                _isSignUp ? AutofillHints.newPassword : AutofillHints.password,
+              ],
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) {
+                if (!isLoading) _submitEmailForm();
+              },
+              decoration: InputDecoration(
+                  labelText: 'Password',
+                  suffixIcon: IconButton(
+                      tooltip:
+                          _showPassword ? 'Hide password' : 'Show password',
+                      onPressed: () =>
+                          setState(() => _showPassword = !_showPassword),
+                      icon: Icon(_showPassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined))),
+              validator: (value) {
+                if ((value ?? '').length < 8) {
+                  return 'Password needs at least 8 characters';
+                }
+                return null;
+              },
+            ),
 
-                  // ── Forgotten password ───────────────────────
-                  // Sign-in only: during sign-up there is no password to
-                  // have forgotten yet.
-                  if (!_isSignUp)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: isLoading ? null : _startPasswordReset,
-                        child: Text(
-                          'Forgot password?',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
-                      ),
-                    ),
-                  SizedBox(height: _isSignUp ? 24 : 8),
+            // ── Forgotten password ───────────────────────
+            // Sign-in only: during sign-up there is no password to
+            // have forgotten yet.
+            if (!_isSignUp)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: isLoading ? null : _startPasswordReset,
+                  child: Text(
+                    'Forgot password?',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                ),
+              ),
+            SizedBox(height: _isSignUp ? 24 : 8),
 
-                  // ── Actions ──────────────────────────────────
-                  ElevatedButton.icon(
-                    onPressed: isLoading ? null : _submitEmailForm,
-                    icon: isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.mail_outline),
-                    label: Text(
-                      _isSignUp ? 'CREATE ACCOUNT' : 'SIGN IN WITH EMAIL',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: isLoading ? null : _signInWithGoogle,
-                    icon: const Icon(Icons.g_mobiledata, size: 28),
-                    label: const Text('CONTINUE WITH GOOGLE'),
-                  ),
-                  const SizedBox(height: 24),
+            // ── Actions ──────────────────────────────────
+            ElevatedButton.icon(
+              onPressed: isLoading ? null : _submitEmailForm,
+              icon: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.mail_outline),
+              label: Text(
+                _isSignUp ? 'CREATE ACCOUNT' : 'SIGN IN WITH EMAIL',
+              ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: isLoading ? null : _signInWithGoogle,
+              icon: const Icon(Icons.g_mobiledata, size: 28),
+              label: const Text('CONTINUE WITH GOOGLE'),
+            ),
+            const SizedBox(height: 24),
 
-                  // ── Mode toggle ──────────────────────────────
-                  TextButton(
-                    onPressed: isLoading
-                        ? null
-                        : () => setState(() => _isSignUp = !_isSignUp),
-                    child: Text(
-                      _isSignUp
-                          ? 'Already have an account? Sign in'
-                          : 'New here? Create an account',
-                      style:  TextStyle(color: AppColors.neonPink),
-                    ),
-                  ),
+            // ── Mode toggle ──────────────────────────────
+            TextButton(
+              onPressed: isLoading
+                  ? null
+                  : () => setState(() => _isSignUp = !_isSignUp),
+              child: Text(
+                _isSignUp
+                    ? 'Already have an account? Sign in'
+                    : 'New here? Create an account',
+                style: TextStyle(color: AppColors.neonPink),
+              ),
+            ),
           ],
         ),
       ),
@@ -552,8 +564,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           Text(
             recovery ? 'RESET YOUR PASSWORD' : 'CHECK YOUR INBOX',
             textAlign: TextAlign.center,
-            style: textTheme.headlineSmall
-                ?.copyWith(color: AppColors.accentText),
+            style:
+                textTheme.headlineSmall?.copyWith(color: AppColors.accentText),
           ),
           const SizedBox(height: 10),
           Text(
@@ -688,7 +700,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           Text(
             'At least 8 characters.',
             style: textTheme.bodySmall
-                ?.copyWith(color: AppColors.textSecondary, fontSize: 11),
+                ?.copyWith(color: AppColors.textSecondary, fontSize: 12),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(

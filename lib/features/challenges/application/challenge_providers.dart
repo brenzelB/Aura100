@@ -566,7 +566,19 @@ class CheckInController extends AutoDisposeFamilyAsyncNotifier<void, String> {
   /// Runs the daily check-in. If offline, stores the check-in locally and
   /// returns [CheckInResult.queuedOffline] with optimistic UI update.
   Future<CheckInResult> checkIn({String? questTitle}) async {
+    // Realtime may move the card to Done before the HTTP response arrives.
+    // Keep this notifier alive until its state and result have been delivered.
+    final pending = ref.keepAlive();
+    try {
+      return await _checkIn(questTitle: questTitle);
+    } finally {
+      pending.close();
+    }
+  }
+
+  Future<CheckInResult> _checkIn({String? questTitle}) async {
     final repo = ref.read(challengeRepositoryProvider);
+    final auth = ref.read(authRepositoryProvider);
     final owner = ref.read(currentUserProvider)?.id;
     final queue = ref.read(offlineCheckInQueueProvider);
     final tappedAt = DateTime.now().toUtc();
@@ -582,8 +594,7 @@ class CheckInController extends AutoDisposeFamilyAsyncNotifier<void, String> {
       state = AsyncError(e, st);
     }
 
-    if (owner == null ||
-        Supabase.instance.client.auth.currentUser?.id != owner) {
+    if (owner == null || auth.currentUser?.id != owner) {
       return const CheckInResult(
           status: CheckInStatus.failed,
           errorMessage: 'Account changed. Please try again.');
@@ -616,7 +627,7 @@ class CheckInController extends AutoDisposeFamilyAsyncNotifier<void, String> {
             status: CheckInStatus.failed,
             errorMessage: 'Could not save your check-in. Please try again.');
       }
-      if (Supabase.instance.client.auth.currentUser?.id != owner) {
+      if (auth.currentUser?.id != owner) {
         return const CheckInResult(
             status: CheckInStatus.failed,
             errorMessage:
@@ -862,6 +873,8 @@ class CreateChallengeController extends AutoDisposeAsyncNotifier<void> {
     double? targetValue,
     String? unit,
     bool isEndless = false,
+    String balancePreset = 'custom',
+    bool attacksEnabled = true,
     int dailyAllowance = 0,
     List<int> activeWeekdays = const [1, 2, 3, 4, 5, 6, 7],
     List<String> invitees = const [],
@@ -871,6 +884,8 @@ class CreateChallengeController extends AutoDisposeAsyncNotifier<void> {
     String? createdId;
     state = await AsyncValue.guard(() async {
       createdId = await repo.createChallenge(
+        balancePreset: balancePreset,
+        attacksEnabled: attacksEnabled,
         title: title,
         description: description,
         durationDays: durationDays,

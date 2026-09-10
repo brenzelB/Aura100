@@ -1,3 +1,5 @@
+import 'package:aura_quest/core/theme/design_tokens.dart';
+import 'package:aura_quest/core/widgets/app_states.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,7 +41,8 @@ class ChallengeDetailScreen extends ConsumerStatefulWidget {
   final String challengeId;
 
   @override
-  ConsumerState<ChallengeDetailScreen> createState() => _ChallengeDetailScreenState();
+  ConsumerState<ChallengeDetailScreen> createState() =>
+      _ChallengeDetailScreenState();
 }
 
 class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
@@ -126,7 +129,7 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => AppDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -135,7 +138,7 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
         // Someone who is already out isn't giving up — they lost a while
         // ago and are only closing the tab. No roast, no guilt trip.
         title: Text(
-          challenge.amIOut ? 'STOP WATCHING?' : 'GIVING UP?',
+          challenge.amIOut ? 'STOP WATCHING?' : 'LEAVE QUEST?',
           style: Theme.of(dialogContext)
               .textTheme
               .headlineSmall
@@ -148,10 +151,7 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
             if (!challenge.amIOut) ...[
               Text(
                 '"$roast"',
-                style: Theme.of(dialogContext)
-                    .textTheme
-                    .bodyLarge
-                    ?.copyWith(
+                style: Theme.of(dialogContext).textTheme.bodyLarge?.copyWith(
                       fontStyle: FontStyle.italic,
                       color: AppColors.textPrimary,
                     ),
@@ -188,11 +188,10 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
             onPressed: () => Navigator.of(dialogContext).pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.danger,
-              foregroundColor: AppColors.textPrimary,
-              minimumSize: const Size(0, 40),
+              foregroundColor: Theme.of(context).colorScheme.onError,
+              minimumSize: const Size(0, 48),
             ),
-            child: Text(
-                challenge.amIOut ? 'LEAVE QUEST' : "YES, I'M A LOSER"),
+            child: Text('LEAVE QUEST'),
           ),
         ],
       ),
@@ -207,7 +206,7 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
 
     if (result.ok) {
       context.pop(); // back to the (now shorter) quest list
-      messenger.showSnackBar(SnackBar(
+      messenger.showSnackBar(AppSnackBar(
         content: Text(result.newOwner == null
             ? 'Quest "${challenge.title}" abandoned. ${Roasts.random()}'
             : 'Quest abandoned — @${result.newOwner} owns '
@@ -216,7 +215,7 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
       ));
     } else {
       final error = ref.read(abandonControllerProvider(challenge.id)).error;
-      messenger.showSnackBar(SnackBar(
+      messenger.showSnackBar(AppSnackBar(
         content: Text(error is PostgrestException
             ? error.message
             : 'Could not abandon the quest - try again.'),
@@ -231,9 +230,8 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
     final checkInsAsync = ref.watch(checkInsProvider(widget.challengeId));
 
     final roasts = ref.watch(targetedRoastsProvider).valueOrNull ?? [];
-    final pendingRoast = roasts
-        .where((r) => r.challengeId == widget.challengeId)
-        .firstOrNull;
+    final pendingRoast =
+        roasts.where((r) => r.challengeId == widget.challengeId).firstOrNull;
 
     // Entering the roasted quest's page triggers the lock — once per
     // roast. The id is marked handled BEFORE the (async) dismissal so a
@@ -260,8 +258,9 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
     final challenge = challengesAsync.valueOrNull
         ?.where((c) => c.id == widget.challengeId)
         .firstOrNull;
-    final members = ref.watch(questMembersProvider(widget.challengeId)).valueOrNull ??
-        const <QuestMember>[];
+    final members =
+        ref.watch(questMembersProvider(widget.challengeId)).valueOrNull ??
+            const <QuestMember>[];
 
     return Scaffold(
       appBar: AppBar(
@@ -269,7 +268,7 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
         actions: [
           if (challenge != null)
             abandoning
-                ?  Padding(
+                ? Padding(
                     padding: EdgeInsets.all(16),
                     child: SizedBox(
                       width: 20,
@@ -280,8 +279,7 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
                   )
                 : IconButton(
                     tooltip: 'Abandon quest',
-                    icon:
-                         Icon(Icons.flag_outlined, color: AppColors.danger),
+                    icon: Icon(Icons.flag_outlined, color: AppColors.danger),
                     onPressed: () =>
                         _confirmAbandon(context, challenge, members),
                   ),
@@ -292,10 +290,18 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
         // current content on screen during a reload so it never flashes
         // back to a spinner. Only the very first load shows one.
         skipLoadingOnReload: true,
-        loading: () =>  Center(
+        loading: () => Center(
           child: CircularProgressIndicator(color: AppColors.warningText),
         ),
-        error: (error, _) => _CenteredMessage('Could not load quest.\n$error'),
+        error: (error, _) =>
+            ListView(padding: const EdgeInsets.all(20), children: [
+          AppStatePanel(
+              title: 'Quest unavailable',
+              message: 'Check your connection and try again.',
+              icon: Icons.cloud_off,
+              actionLabel: 'RETRY',
+              onAction: _refreshData)
+        ]),
         data: (challenges) {
           final challenge =
               challenges.where((c) => c.id == widget.challengeId).firstOrNull;
@@ -305,11 +311,18 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
           }
           return checkInsAsync.when(
             skipLoadingOnReload: true,
-            loading: () =>  Center(
+            loading: () => Center(
               child: CircularProgressIndicator(color: AppColors.warningText),
             ),
             error: (error, _) =>
-                _CenteredMessage('Could not load check-ins.\n$error'),
+                ListView(padding: const EdgeInsets.all(20), children: [
+              AppStatePanel(
+                  title: 'Check-ins unavailable',
+                  message: 'Check your connection and try again.',
+                  icon: Icons.cloud_off,
+                  actionLabel: 'RETRY',
+                  onAction: _refreshData)
+            ]),
             data: (checkIns) => RefreshIndicator(
               color: AppColors.neonCyan,
               backgroundColor: AppColors.surface,
@@ -318,7 +331,8 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
                 try {
                   await ref.read(myChallengesProvider.future);
                   await ref.read(checkInsProvider(widget.challengeId).future);
-                  await ref.read(questMembersProvider(widget.challengeId).future);
+                  await ref
+                      .read(questMembersProvider(widget.challengeId).future);
                   await ref.read(questDuelsProvider(widget.challengeId).future);
                 } catch (_) {}
               },
@@ -353,7 +367,8 @@ class _DetailBody extends StatelessWidget {
       curve: AppCurves.emphasizedOut,
       builder: (context, t, child) => Opacity(
         opacity: t,
-        child: Transform.translate(offset: Offset(0, 24 * (1 - t)), child: child),
+        child:
+            Transform.translate(offset: Offset(0, 24 * (1 - t)), child: child),
       ),
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -533,13 +548,10 @@ class _BlackoutCardState extends ConsumerState<_BlackoutCard> {
     // every time the screen is opened.
     if (!_acked) {
       _acked = true;
-      ref
-          .read(challengeRepositoryProvider)
-          .ackBlackouts(widget.challenge.id);
+      ref.read(challengeRepositoryProvider).ackBlackouts(widget.challenge.id);
     }
 
-    final blocked =
-        widget.challenge.isProgress ? 'log any reps' : 'check in';
+    final blocked = widget.challenge.isProgress ? 'log any reps' : 'check in';
 
     return Container(
       width: double.infinity,
@@ -644,7 +656,7 @@ class _SpectatorCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'No more check-ins, shop or duels. Leave whenever you '
+                  'No more check-ins, perks or duels. Leave whenever you '
                   'like with the flag up top.',
                   style: textTheme.bodySmall?.copyWith(
                     color: AppColors.textSecondary,
@@ -726,12 +738,17 @@ class _HeaderCard extends StatelessWidget {
 
           // Schedule row: endless quests show a start + running-days
           // pill; fixed quests show the start → end range.
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-               Icon(challenge.isEndless
+              Icon(
+                  challenge.isEndless
                       ? Icons.all_inclusive
                       : Icons.calendar_month,
-                  size: 16, color: AppColors.neonCyan),
+                  size: 16,
+                  color: AppColors.neonCyan),
               const SizedBox(width: 6),
               Text(
                 challenge.isEndless
@@ -739,7 +756,6 @@ class _HeaderCard extends StatelessWidget {
                     : '${_date(challenge.startsOn)}  →  ${_date(lastDay)}',
                 style: textTheme.bodyMedium,
               ),
-              const Spacer(),
               Text(
                 ended ? 'over' : challenge.timeLeftLabel,
                 style: textTheme.bodyMedium?.copyWith(
@@ -753,13 +769,13 @@ class _HeaderCard extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                 Icon(Icons.repeat, size: 16, color: AppColors.neonPink),
+                Icon(Icons.repeat, size: 16, color: AppColors.neonPink),
                 const SizedBox(width: 6),
                 Text(
                   '${challenge.checkinsPerPeriod}x per '
                   '${challenge.checkinPeriod == CheckinPeriod.weekly ? 'week' : 'month'}',
-                  style: textTheme.bodyMedium
-                      ?.copyWith(color: AppColors.neonPink),
+                  style:
+                      textTheme.bodyMedium?.copyWith(color: AppColors.neonPink),
                 ),
               ],
             ),
@@ -785,8 +801,9 @@ class _HeaderCard extends StatelessWidget {
             )
           else ...[
             // Progress: Day X of Y with an animated bar.
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
               children: [
                 Text('PROGRESS',
                     style: textTheme.bodySmall
@@ -803,15 +820,16 @@ class _HeaderCard extends StatelessWidget {
             const SizedBox(height: 8),
             TweenAnimationBuilder<double>(
               tween: Tween(begin: 0, end: progress),
-              duration: AppDurations.slow,
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : AppDurations.slow,
               curve: AppCurves.emphasizedOut,
               builder: (context, value, _) => ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: LinearProgressIndicator(
                   value: value,
                   minHeight: 8,
-                  color:
-                      ended ? AppColors.textSecondary : AppColors.neonYellow,
+                  color: ended ? AppColors.textSecondary : AppColors.neonYellow,
                   backgroundColor: AppColors.surfaceLight,
                 ),
               ),
@@ -838,14 +856,13 @@ class _LobbyCard extends ConsumerWidget {
         .start();
     if (!context.mounted) return;
     if (ok) {
-      messenger.showSnackBar(SnackBar(
+      messenger.showSnackBar(AppSnackBar(
         content: Text('🏁 "${challenge.title}" is on — good luck.'),
         backgroundColor: AppColors.neonGreen,
       ));
     } else {
-      final error =
-          ref.read(startQuestControllerProvider(challenge.id)).error;
-      messenger.showSnackBar(SnackBar(
+      final error = ref.read(startQuestControllerProvider(challenge.id)).error;
+      messenger.showSnackBar(AppSnackBar(
         content: Text(error is PostgrestException
             ? error.message
             : 'Could not start the quest — try again.'),
@@ -887,8 +904,8 @@ class _LobbyCard extends ConsumerWidget {
                     : 'Invite players below, then start the quest when ready.')
                 : 'The creator starts this quest once everyone has joined. '
                     'Hang tight.',
-            style: textTheme.bodyMedium
-                ?.copyWith(color: AppColors.textSecondary),
+            style:
+                textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
           ),
           if (iAmCreator) ...[
             const SizedBox(height: 16),
@@ -945,7 +962,8 @@ class _ProgressSection extends ConsumerWidget {
     final target = challenge.targetValue ?? 0;
     final done = challenge.progressInPeriod >= target && target > 0;
     final ended = challenge.isFinished ||
-        (!challenge.isEndless && !DateTime.now().toUtc().isBefore(challenge.endsAt));
+        (!challenge.isEndless &&
+            !DateTime.now().toUtc().isBefore(challenge.endsAt));
     // A running lockout — null whenever nothing is blocking right now.
     final running = ref.watch(myBlackoutProvider(challenge.id)).valueOrNull;
     final blackout = (running != null && running.isRunning) ? running : null;
@@ -967,9 +985,8 @@ class _ProgressSection extends ConsumerWidget {
                   Text(
                     'THIS ${challenge.checkinPeriod.name.toUpperCase()}',
                     style: textTheme.headlineSmall?.copyWith(
-                      color: done
-                          ? AppColors.successText
-                          : AppColors.neonPurple,
+                      color:
+                          done ? AppColors.successText : AppColors.neonPurple,
                     ),
                   ),
                   const Spacer(),
@@ -1014,7 +1031,7 @@ class _ProgressSection extends ConsumerWidget {
                     ? OutlinedButton.icon(
                         onPressed: null,
                         style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(0, 46),
+                          minimumSize: const Size(0, 48),
                           disabledForegroundColor: blackout != null
                               ? AppColors.neonPurple
                               : (challenge.amIOut
@@ -1048,11 +1065,10 @@ class _ProgressSection extends ConsumerWidget {
                         onPressed: () =>
                             showAddProgressSheet(context, ref, challenge),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: done
-                              ? AppColors.neonGreen
-                              : AppColors.neonPurple,
+                          backgroundColor:
+                              done ? AppColors.neonGreen : AppColors.neonPurple,
                           foregroundColor: AppColors.background,
-                          minimumSize: const Size(0, 46),
+                          minimumSize: const Size(0, 48),
                         ),
                         icon: const Icon(Icons.add),
                         label: Text(done ? 'LOG MORE REPS' : 'ADD PROGRESS'),
@@ -1073,8 +1089,7 @@ class _ProgressSection extends ConsumerWidget {
         // ── History ──────────────────────────────────────
         Text(
           'HISTORY',
-          style: textTheme.headlineSmall
-              ?.copyWith(color: AppColors.neonPurple),
+          style: textTheme.headlineSmall?.copyWith(color: AppColors.neonPurple),
         ),
         const SizedBox(height: 12),
         entriesAsync.when(
@@ -1086,7 +1101,7 @@ class _ProgressSection extends ConsumerWidget {
             ),
           ),
           error: (error, _) => Text(
-            'Could not load the history.\n$error',
+            'Could not load the history. Please try again.',
             style: textTheme.bodySmall?.copyWith(color: AppColors.danger),
           ),
           data: (entries) {
@@ -1193,13 +1208,11 @@ class _PeriodHistoryTile extends ConsumerWidget {
           for (final entry in period.entries)
             InkWell(
               onTap: editable
-                  ? () =>
-                      showCorrectEntrySheet(context, ref, challenge, entry)
+                  ? () => showCorrectEntrySheet(context, ref, challenge, entry)
                   : null,
               borderRadius: BorderRadius.circular(8),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
                 child: Row(
                   children: [
                     Text(
@@ -1257,8 +1270,8 @@ class _AvoidSection extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration:
-          AppColors.panelDecoration(accent: color, glow: !broken && !challenge.slipNearLimit),
+      decoration: AppColors.panelDecoration(
+          accent: color, glow: !broken && !challenge.slipNearLimit),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1304,7 +1317,7 @@ class _AvoidSection extends ConsumerWidget {
                     ? OutlinedButton.icon(
                         onPressed: null,
                         style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(0, 46),
+                          minimumSize: const Size(0, 48),
                           disabledForegroundColor: AppColors.danger,
                           side: BorderSide(color: AppColors.danger),
                         ),
@@ -1329,10 +1342,11 @@ class _AvoidSection extends ConsumerWidget {
                       : () async {
                           final messenger = ScaffoldMessenger.of(context);
                           final undone = await ref
-                              .read(slipControllerProvider(challenge.id).notifier)
+                              .read(
+                                  slipControllerProvider(challenge.id).notifier)
                               .undo();
                           if (undone == null) return;
-                          messenger.showSnackBar(SnackBar(
+                          messenger.showSnackBar(AppSnackBar(
                             content: Text(
                                 'Taken back — ${undone.count} on the board.'),
                             backgroundColor: AppColors.neonGreen,
@@ -1341,7 +1355,7 @@ class _AvoidSection extends ConsumerWidget {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.textSecondary,
                     side: BorderSide(color: AppColors.outline),
-                    minimumSize: const Size(0, 46),
+                    minimumSize: const Size(0, 48),
                   ),
                   icon: const Icon(Icons.undo, size: 16),
                   label: const Text('UNDO'),
@@ -1485,8 +1499,8 @@ class _StakesSection extends StatelessWidget {
       children: [
         Text(
           'STAKES',
-          style: textTheme.headlineSmall
-              ?.copyWith(color: AppColors.warningText),
+          style:
+              textTheme.headlineSmall?.copyWith(color: AppColors.warningText),
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -1562,11 +1576,14 @@ class _InfoChip extends StatelessWidget {
         children: [
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 5),
-          Text(
+          Flexible(
+              child: Text(
             label,
             style: TextStyle(
-                color: color, fontSize: 12, fontWeight: FontWeight.w600),
-          ),
+                color: AppColors.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600),
+          )),
         ],
       ),
     );
@@ -1589,22 +1606,24 @@ class _GearShopRow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Icon(Icons.bolt, size: 20, color: AppColors.neonPurple),
             const SizedBox(width: 2),
             Text(
               '${challenge.myAura}',
-              style: textTheme.titleLarge
-                  ?.copyWith(color: AppColors.neonPurple),
+              style:
+                  textTheme.titleLarge?.copyWith(color: AppColors.neonPurple),
             ),
             const SizedBox(width: 6),
             Text(
               'to spend',
-              style: textTheme.bodySmall
-                  ?.copyWith(color: AppColors.textSecondary),
+              style:
+                  textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
-            const Spacer(),
             OutlinedButton.icon(
               // The balance stays readable; spending it does not.
               onPressed: challenge.amIOut
@@ -1617,13 +1636,13 @@ class _GearShopRow extends StatelessWidget {
                     color: challenge.amIOut
                         ? AppColors.textSecondary.withValues(alpha: 0.4)
                         : AppColors.neonPurple.withValues(alpha: 0.6)),
-                minimumSize: const Size(0, 38),
+                minimumSize: const Size(0, 48),
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                textStyle: const TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.w700),
+                textStyle:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
               ),
               icon: const Icon(Icons.storefront_outlined, size: 16),
-              label: const Text('SHOP'),
+              label: const Text('PERKS'),
             ),
           ],
         ),
@@ -1744,7 +1763,7 @@ class _StatTile extends StatelessWidget {
               detail,
               style: textTheme.bodySmall?.copyWith(
                 color: AppColors.textSecondary,
-                fontSize: 10,
+                fontSize: 12,
               ),
             ),
           ],
@@ -1765,7 +1784,7 @@ class _Legend extends StatelessWidget {
     return Wrap(
       spacing: 14,
       runSpacing: 6,
-      children:  [
+      children: [
         _LegendItem(color: AppColors.neonGreen, label: 'done'),
         _LegendItem(color: AppColors.danger, label: 'missed'),
         _LegendItem(color: AppColors.neonCyan, label: 'today'),
@@ -1894,10 +1913,10 @@ class _DayDetailsSheet extends ConsumerStatefulWidget {
   ) {
     return showModalBottomSheet(
       context: context,
+      useSafeArea: true,
+      useRootNavigator: true,
       backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      shape: AppShapes.sheet,
       builder: (_) => _DayDetailsSheet(day: day, challenge: challenge),
     );
   }
@@ -1923,7 +1942,7 @@ class _DayDetailsSheetState extends ConsumerState<_DayDetailsSheet> {
 
     if (result.isQueuedOffline) {
       navigator.pop();
-      messenger.showSnackBar(SnackBar(
+      messenger.showSnackBar(AppSnackBar(
         content: const Text(
             '⚡ Offline erledigt! Wird synchronisiert, sobald wieder Netz da ist.'),
         backgroundColor: AppColors.neonYellow,
@@ -1932,7 +1951,7 @@ class _DayDetailsSheetState extends ConsumerState<_DayDetailsSheet> {
     }
 
     if (!result.isSuccess) {
-      messenger.showSnackBar(SnackBar(
+      messenger.showSnackBar(AppSnackBar(
         content: Text(result.errorMessage ?? 'Check-in failed - try again.'),
         backgroundColor: AppColors.danger,
       ));
@@ -1946,7 +1965,7 @@ class _DayDetailsSheetState extends ConsumerState<_DayDetailsSheet> {
     final robbed = await revealRobbedIfAny(context, ref, widget.challenge.id);
     navigator.pop();
     if (robbed != null) return;
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(AppSnackBar(
       content: Text('⚡ +$gained Aura! Quest checked in.'),
       backgroundColor: AppColors.neonGreen,
     ));
@@ -2021,8 +2040,8 @@ class _DayDetailsSheetState extends ConsumerState<_DayDetailsSheet> {
               'Log your progress above — the day ticks itself off once '
               'you reach the target.',
               textAlign: TextAlign.center,
-              style: textTheme.bodySmall
-                  ?.copyWith(color: AppColors.textSecondary),
+              style:
+                  textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
           ]
           // Out of the running: the day sheet still opens and still shows
@@ -2065,7 +2084,7 @@ class _DayDetailsSheetState extends ConsumerState<_DayDetailsSheet> {
                   foregroundColor: AppColors.background,
                 ),
                 icon: isLoading
-                    ?  SizedBox(
+                    ? SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(

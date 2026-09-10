@@ -1,3 +1,4 @@
+import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +10,7 @@ import '../../../../core/widgets/theme_components.dart';
 import '../../../../core/config/supabase_config.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/design_tokens.dart';
 import '../../../../core/widgets/aura_avatar.dart';
 import '../../../auth/application/auth_providers.dart';
 import '../../../challenges/application/challenge_providers.dart';
@@ -49,7 +51,7 @@ class ProfileScreen extends ConsumerWidget {
         .setAvatarEmoji(clearing ? null : picked);
     if (!context.mounted) return;
 
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(AppSnackBar(
       content: Text(ok
           ? (clearing ? 'Avatar removed.' : 'Avatar set to $picked')
           : 'Could not save the avatar - try again.'),
@@ -67,7 +69,7 @@ class ProfileScreen extends ConsumerWidget {
 
     final newName = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => AppDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -108,7 +110,7 @@ class ProfileScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child:  Text('CANCEL',
+            child: Text('CANCEL',
                 style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
@@ -127,11 +129,12 @@ class ProfileScreen extends ConsumerWidget {
     }
 
     final messenger = ScaffoldMessenger.of(context);
-    final ok = await ref.read(profileControllerProvider.notifier).rename(newName);
+    final ok =
+        await ref.read(profileControllerProvider.notifier).rename(newName);
     if (!context.mounted) return;
 
     if (ok) {
-      messenger.showSnackBar(SnackBar(
+      messenger.showSnackBar(AppSnackBar(
         content: Text('You are now @$newName.'),
         backgroundColor: AppColors.neonGreen,
       ));
@@ -139,7 +142,7 @@ class ProfileScreen extends ConsumerWidget {
       final error = ref.read(profileControllerProvider).error;
       // 23505 = unique violation, i.e. the name is already taken.
       final taken = error is PostgrestException && error.code == '23505';
-      messenger.showSnackBar(SnackBar(
+      messenger.showSnackBar(AppSnackBar(
         content: Text(taken
             ? '"$newName" is already taken - pick another one.'
             : 'Could not rename - try again.'),
@@ -165,10 +168,11 @@ class ProfileScreen extends ConsumerWidget {
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => AppDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppColors.activeType == AppThemeType.editorial ? 24 : 20),
+          borderRadius: BorderRadius.circular(
+              AppColors.activeType == AppThemeType.editorial ? 24 : 20),
           side: BorderSide(
             color: AppColors.danger.withValues(alpha: 0.6),
             width: 1.0,
@@ -176,16 +180,13 @@ class ProfileScreen extends ConsumerWidget {
         ),
         title: Text(
           'RESET LIFE STATS?',
-          style: Theme.of(dialogContext)
-              .textTheme
-              .headlineSmall
-              ?.copyWith(
+          style: Theme.of(dialogContext).textTheme.headlineSmall?.copyWith(
                 color: AppColors.danger,
                 fontSize: 20,
               ),
         ),
         content: Text(
-          'This will permanently wipe your check-in history, benefit purchases, and reset your Aura balance to 0 in all quests.\n\nAre you sure you want to reset?',
+          'First finish or leave all active quests and settle any pending duels.\n\nThis will permanently wipe your check-in history, benefit purchases, and reset your Aura balance to 0 in all quests.\n\nAll your XP will be deleted and your level will return to 0. Are you sure you want to reset?',
           style: Theme.of(dialogContext)
               .textTheme
               .bodyMedium
@@ -203,10 +204,11 @@ class ProfileScreen extends ConsumerWidget {
             onPressed: () => Navigator.of(dialogContext).pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.danger,
-              foregroundColor: AppColors.textPrimary,
-              minimumSize: const Size(0, 40),
+              foregroundColor: Theme.of(context).colorScheme.onError,
+              minimumSize: const Size(0, 48),
               shape: AppColors.activeType == AppThemeType.editorial
-                  ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                  ? RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12))
                   : null,
             ),
             child: const Text('RESET STATS'),
@@ -222,10 +224,14 @@ class ProfileScreen extends ConsumerWidget {
     final ok = await ref.read(profileControllerProvider.notifier).resetStats();
     if (!context.mounted) return;
 
-    messenger.showSnackBar(SnackBar(
-      content: Text(ok
-          ? 'Stats reset successfully.'
-          : 'Could not reset stats - try again.'),
+    final error = ref.read(profileControllerProvider).error;
+    // P0001 is an intentional rejection by the RPC, with an actionable reason.
+    final reason = error is PostgrestException && error.code == 'P0001'
+        ? error.message
+        : 'Could not reset stats. Check your connection and try again.';
+    messenger.showSnackBar(AppSnackBar(
+      content: Text(ok ? 'Stats reset successfully.' : reason),
+      duration: Duration(seconds: ok ? 4 : 8),
       backgroundColor: ok ? AppColors.surfaceLight : AppColors.danger,
     ));
   }
@@ -240,7 +246,7 @@ class ProfileScreen extends ConsumerWidget {
     final controller = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => AppDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -278,7 +284,7 @@ class ProfileScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child:  Text('KEEP MY ACCOUNT',
+            child: Text('KEEP MY ACCOUNT',
                 style: TextStyle(color: AppColors.accentText)),
           ),
           ElevatedButton(
@@ -287,8 +293,8 @@ class ProfileScreen extends ConsumerWidget {
                     profile.username.toLowerCase()),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.danger,
-              foregroundColor: AppColors.textPrimary,
-              minimumSize: const Size(0, 40),
+              foregroundColor: Theme.of(context).colorScheme.onError,
+              minimumSize: const Size(0, 48),
             ),
             child: const Text('DELETE'),
           ),
@@ -305,7 +311,7 @@ class ProfileScreen extends ConsumerWidget {
         await ref.read(profileControllerProvider.notifier).deleteAccount();
     if (!context.mounted) return;
 
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(AppSnackBar(
       content: Text(ok
           ? 'Your account was deleted. Farewell, @${profile.username}.'
           : 'Could not delete the account - try again.'),
@@ -333,14 +339,14 @@ class ProfileScreen extends ConsumerWidget {
           return ref.refresh(currentProfileProvider.future);
         },
         child: profileAsync.when(
-          loading: () =>  Center(
+          loading: () => Center(
             child: CircularProgressIndicator(color: AppColors.accentText),
           ),
           error: (error, _) => ListView(
             padding: const EdgeInsets.all(24),
             children: [
               Text(
-                'Could not load your profile.\n$error',
+                'Could not load your profile. Please try again.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context)
                     .textTheme
@@ -390,8 +396,34 @@ class ProfileScreen extends ConsumerWidget {
                 statsAsync.when(
                   data: (stats) => stats == null
                       ? const SizedBox.shrink()
-                      : _StatsGrid(stats),
-                  loading: () =>  Padding(
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                              Card(
+                                  child: Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                                'LEVEL ${stats.level} · ${stats.lifetimeXp} XP',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .titleLarge),
+                                            const SizedBox(height: 8),
+                                            LinearProgressIndicator(
+                                                value: stats.xpInLevel / 500),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                                '${500 - stats.xpInLevel} XP to the next level'),
+                                            const Text(
+                                                '100 XP per confirmed unit · up to 500 per UTC day. Your XP stays when you spend Aura or leave a quest.'),
+                                          ]))),
+                              const SizedBox(height: 12),
+                              _StatsGrid(stats),
+                            ]),
+                  loading: () => Padding(
                     padding: EdgeInsets.all(24),
                     child: Center(
                       child: CircularProgressIndicator(
@@ -399,7 +431,7 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ),
                   error: (error, _) => Text(
-                    'Could not load stats.\n$error',
+                    'Could not load stats. Please try again.',
                     style: Theme.of(context)
                         .textTheme
                         .bodySmall
@@ -425,7 +457,7 @@ class ProfileScreen extends ConsumerWidget {
 
                 // ── Design Theme ─────────────────────────────
                 Text(
-                  'DESIGN SYSTEM',
+                  'LOOK & FEEL',
                   style: Theme.of(context)
                       .textTheme
                       .headlineSmall
@@ -434,18 +466,13 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: AppColors.neonCyan.withValues(alpha: 0.25),
-                    ),
-                  ),
+                  decoration:
+                      AppColors.panelDecoration(accent: AppColors.neonCyan),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Choose your visual universe. Alters all colors, panels, and typography.',
+                        'Pick a style that feels like you.',
                         style: Theme.of(context)
                             .textTheme
                             .bodySmall
@@ -474,8 +501,7 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Light or dark — applies to whichever design '
-                        'system you picked above.',
+                        'Choose a comfortable background for your style.',
                         style: Theme.of(context)
                             .textTheme
                             .bodySmall
@@ -552,7 +578,10 @@ class ProfileScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppColors.activeType == AppThemeType.editorial ? 24 : 14),
+                    borderRadius: BorderRadius.circular(
+                        AppColors.activeType == AppThemeType.editorial
+                            ? 24
+                            : 14),
                     border: Border.all(
                       color: AppColors.danger.withValues(alpha: 0.4),
                       width: 1.0,
@@ -562,7 +591,7 @@ class ProfileScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Resetting player stats clears your check-ins, purchases and sets your Aura back to 0 in all quests.',
+                        'Finish or leave all active quests and settle pending duels before resetting. The reset clears your check-ins, purchases and Aura balances. All XP is deleted and your level returns to 0.',
                         style: Theme.of(context)
                             .textTheme
                             .bodySmall
@@ -579,9 +608,10 @@ class ProfileScreen extends ConsumerWidget {
                             color: AppColors.danger,
                             width: 1.0,
                           ),
-                          minimumSize: const Size(0, 44),
+                          minimumSize: const Size(0, 48),
                           shape: AppColors.activeType == AppThemeType.editorial
-                              ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                              ? RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12))
                               : null,
                         ),
                         icon: busy
@@ -595,7 +625,9 @@ class ProfileScreen extends ConsumerWidget {
                         label: const Text('RESET LIFE STATS'),
                       ),
                       const SizedBox(height: 20),
-                      Divider(color: AppColors.danger.withValues(alpha: 0.2), height: 1),
+                      Divider(
+                          color: AppColors.danger.withValues(alpha: 0.2),
+                          height: 1),
                       const SizedBox(height: 20),
                       Text(
                         'Deleting your account removes every quest, '
@@ -616,9 +648,10 @@ class ProfileScreen extends ConsumerWidget {
                             color: AppColors.danger,
                             width: 1.0,
                           ),
-                          minimumSize: const Size(0, 44),
+                          minimumSize: const Size(0, 48),
                           shape: AppColors.activeType == AppThemeType.editorial
-                              ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                              ? RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12))
                               : null,
                         ),
                         icon: busy
@@ -663,8 +696,9 @@ class _IdentityCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-      decoration: AppColors.panelDecoration(accent: AppColors.neonCyan, glow: true),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      decoration:
+          AppColors.panelDecoration(accent: AppColors.neonCyan, glow: true),
       child: Column(
         children: [
           // Tap the avatar itself to change it — plus an explicit
@@ -672,27 +706,29 @@ class _IdentityCard extends StatelessWidget {
           InkWell(
             onTap: busy ? null : onPickAvatar,
             customBorder: const CircleBorder(),
-            child: Stack(
-              alignment: Alignment.bottomRight,
-              children: [
-                AuraAvatar(
-                  emoji: profile.avatarEmoji,
-                  username: profile.username,
-                  size: 84,
-                  glow: true,
-                  borderWidth: 2,
-                ),
-                Container(
-                  padding: const EdgeInsets.all(5),
-                  decoration:  BoxDecoration(
-                    color: AppColors.neonCyan,
-                    shape: BoxShape.circle,
-                  ),
-                  child:  Icon(Icons.edit,
-                      size: 12, color: AppColors.background),
-                ),
-              ],
-            ),
+            child: Tooltip(
+                message: 'Change avatar',
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    AuraAvatar(
+                      emoji: profile.avatarEmoji,
+                      username: profile.username,
+                      size: 60,
+                      glow: true,
+                      borderWidth: 2,
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: AppColors.neonCyan,
+                        shape: BoxShape.circle,
+                      ),
+                      child:
+                          Icon(Icons.edit, size: 16, color: AppColors.onAccent),
+                    ),
+                  ],
+                )),
           ),
           const SizedBox(height: 16),
           Text(
@@ -706,8 +742,8 @@ class _IdentityCard extends StatelessWidget {
             onPressed: busy ? null : onRename,
             style: TextButton.styleFrom(
               foregroundColor: AppColors.accentText,
-              textStyle: const TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w700),
+              textStyle:
+                  const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
             ),
             icon: const Icon(Icons.edit, size: 14),
             label: const Text('CHANGE USERNAME'),
@@ -727,68 +763,96 @@ class _StatsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final tiles = [
       (Icons.bolt, '${stats.totalAura}', 'total aura', AppColors.neonPurple),
-      (Icons.emoji_events, '${stats.activeQuests}', 'active quests',
-          AppColors.neonYellow),
-      (Icons.flag, '${stats.questsJoined}', 'quests joined',
-          AppColors.neonCyan),
-      (Icons.check_circle, '${stats.totalCheckins}', 'check-ins',
-          AppColors.neonGreen),
-      (Icons.workspace_premium, '${stats.gearOwned}', 'gear owned',
-          AppColors.neonPurple),
+      (
+        Icons.emoji_events,
+        '${stats.activeQuests}',
+        'active quests',
+        AppColors.neonYellow
+      ),
+      (
+        Icons.flag,
+        '${stats.questsJoined}',
+        'quests joined',
+        AppColors.neonCyan
+      ),
+      (
+        Icons.check_circle,
+        '${stats.totalCheckins}',
+        'check-ins',
+        AppColors.neonGreen
+      ),
+      (
+        Icons.workspace_premium,
+        '${stats.gearOwned}',
+        'gear owned',
+        AppColors.neonPurple
+      ),
       (Icons.group, '${stats.friends}', 'friends', AppColors.neonPink),
     ];
 
-    return GridView.count(
-      crossAxisCount: 3,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      childAspectRatio: 0.95,
-      children: [
-        for (final (icon, value, label, color) in tiles)
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: AppColors.panelDecoration(accent: color),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+    return LayoutBuilder(
+        builder: (context, constraints) => GridView.count(
+              crossAxisCount: constraints.maxWidth < 340 ||
+                      MediaQuery.textScalerOf(context).scale(1) > 1.3
+                  ? 2
+                  : 3,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: constraints.maxWidth /
+                  (constraints.maxWidth < 340 ||
+                          MediaQuery.textScalerOf(context).scale(1) > 1.3
+                      ? 2
+                      : 3) /
+                  (135 * MediaQuery.textScalerOf(context).scale(1)),
               children: [
-                ThemeIcon(
-                  icon: icon,
-                  matrixChar: switch (icon) {
-                    Icons.bolt => '[A]',
-                    Icons.emoji_events => '[Q]',
-                    Icons.flag => '[J]',
-                    Icons.check_circle => '[C]',
-                    Icons.workspace_premium => '[G]',
-                    Icons.group => '[F]',
-                    _ => '[?]'
-                  },
-                  color: color,
-                  size: 18,
-                ),
-                const SizedBox(height: 6),
-                FittedBox(
-                  child: Text(
-                    value,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(color: color),
+                for (final (icon, value, label, color) in tiles)
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: AppColors.panelDecoration(accent: color),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ThemeIcon(
+                          icon: icon,
+                          matrixChar: switch (icon) {
+                            Icons.bolt => '[A]',
+                            Icons.emoji_events => '[Q]',
+                            Icons.flag => '[J]',
+                            Icons.check_circle => '[C]',
+                            Icons.workspace_premium => '[G]',
+                            Icons.group => '[F]',
+                            _ => '[?]'
+                          },
+                          color: color,
+                          size: 18,
+                        ),
+                        const SizedBox(height: 6),
+                        FittedBox(
+                          child: Text(
+                            value,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(color: AppColors.textPrimary),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          label,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                  color: AppColors.textSecondary, fontSize: 12),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary, fontSize: 10),
-                ),
               ],
-            ),
-          ),
-      ],
-    );
+            ));
   }
 }
 
@@ -813,7 +877,7 @@ class _TrophyRoomState extends ConsumerState<_TrophyRoom> {
     final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => AppDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -837,15 +901,15 @@ class _TrophyRoomState extends ConsumerState<_TrophyRoom> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text('KEEP',
-                style: TextStyle(color: AppColors.textSecondary)),
+            child:
+                Text('KEEP', style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.danger,
-              foregroundColor: AppColors.textPrimary,
-              minimumSize: const Size(0, 40),
+              foregroundColor: Theme.of(context).colorScheme.onError,
+              minimumSize: const Size(0, 48),
             ),
             child: const Text('REMOVE'),
           ),
@@ -854,10 +918,11 @@ class _TrophyRoomState extends ConsumerState<_TrophyRoom> {
     );
     if (confirmed != true) return;
 
-    final ok =
-        await ref.read(trophyControllerProvider.notifier).hide(trophy.challengeId);
+    final ok = await ref
+        .read(trophyControllerProvider.notifier)
+        .hide(trophy.challengeId);
     if (!mounted) return;
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(AppSnackBar(
       content: Text(ok
           ? '"${trophy.questTitle}" removed from your trophies.'
           : 'Could not remove that one - try again.'),
@@ -918,7 +983,7 @@ class _TrophyRoomState extends ConsumerState<_TrophyRoom> {
                   child: Text(
                     'Swipe an entry aside, or use the ✕, to clear it out.',
                     style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary, fontSize: 11),
+                        color: AppColors.textSecondary, fontSize: 12),
                   ),
                 ),
               ],
@@ -926,7 +991,9 @@ class _TrophyRoomState extends ConsumerState<_TrophyRoom> {
           ),
           crossFadeState:
               _open ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-          duration: const Duration(milliseconds: 220),
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 220),
         ),
       ],
     );
@@ -1010,8 +1077,7 @@ class _TrophyTile extends StatelessWidget {
               onPressed: onRemove,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-              icon: Icon(Icons.close,
-                  size: 16, color: AppColors.textSecondary),
+              icon: Icon(Icons.close, size: 16, color: AppColors.textSecondary),
             ),
         ],
       ),
@@ -1073,7 +1139,7 @@ class _LegalLink extends StatelessWidget {
     if (ok || !context.mounted) return;
     // No browser, or the launch was refused: show the address so it can
     // still be reached by hand. Silence would look like a dead button.
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(AppSnackBar(
       content: Text('Could not open the browser. Visit $url'),
       backgroundColor: AppColors.surfaceLight,
     ));
@@ -1124,18 +1190,13 @@ class _InfoRow extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: AppColors.textSecondary),
           const SizedBox(width: 12),
-          Text(label,
-              style: textTheme.bodyMedium
-                  ?.copyWith(color: AppColors.textSecondary)),
-          const Spacer(),
-          Flexible(
-            child: Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: textTheme.bodyMedium,
-            ),
-          ),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text(label, style: textTheme.bodySmall),
+                SelectableText(value, style: textTheme.bodyMedium),
+              ])),
         ],
       ),
     );
@@ -1230,11 +1291,13 @@ class _ModeOptionCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         decoration: BoxDecoration(
           color: colors.background,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShapes.radius),
           border: Border.all(
             color: isSelected ? colors.neonPurple : colors.outline,
             width: isSelected ? 2 : 1,
@@ -1252,7 +1315,7 @@ class _ModeOptionCard extends StatelessWidget {
             Text(
               mode.displayName.toUpperCase(),
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.5,
                 color: isSelected ? colors.neonPurple : colors.textSecondary,
@@ -1281,9 +1344,12 @@ class _ThemeOptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textStyle = switch (type) {
-      AppThemeType.neoBrutalist => GoogleFonts.hankenGrotesk(fontSize: 10, fontWeight: FontWeight.w900, color: colors.textPrimary),
-      AppThemeType.editorial => GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: colors.textPrimary),
-      AppThemeType.auralis => GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: colors.textPrimary),
+      AppThemeType.neoBrutalist => GoogleFonts.hankenGrotesk(
+          fontSize: 12, fontWeight: FontWeight.w900, color: colors.textPrimary),
+      AppThemeType.editorial => GoogleFonts.plusJakartaSans(
+          fontSize: 12, fontWeight: FontWeight.w700, color: colors.textPrimary),
+      AppThemeType.auralis => GoogleFonts.inter(
+          fontSize: 12, fontWeight: FontWeight.w700, color: colors.textPrimary),
     };
 
     return InkWell(
@@ -1293,20 +1359,11 @@ class _ThemeOptionCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
           color: colors.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShapes.radius),
           border: Border.all(
-            color: isSelected ? colors.neonCyan : colors.surfaceLight,
-            width: isSelected ? 2 : 1,
+            color: isSelected ? colors.neonPurple : colors.outline,
+            width: isSelected ? 3 : AppShapes.stroke,
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: colors.neonCyan.withValues(alpha: 0.3),
-                    blurRadius: 10,
-                    spreadRadius: 1,
-                  )
-                ]
-              : null,
         ),
         child: Column(
           children: [

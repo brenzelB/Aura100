@@ -66,9 +66,8 @@ class AgendaItem {
   /// Short label for the card: "today" / "2x left · 4d".
   String get demandLabel {
     if (challenge.checkinPeriod == CheckinPeriod.daily) return 'due today';
-    final left = daysLeftInPeriod == 0
-        ? 'last day'
-        : '${daysLeftInPeriod}d left';
+    final left =
+        daysLeftInPeriod == 0 ? 'last day' : '${daysLeftInPeriod}d left';
     return '${remaining}x to go · $left';
   }
 }
@@ -102,6 +101,29 @@ class HomeAgenda {
   /// 0..1 for the progress ring; null when nothing is running.
   double? get completion =>
       totalRunning == 0 ? null : done.length / totalRunning;
+
+  /// Show locally saved actions immediately, even while a server refresh waits
+  /// for a network timeout. The caller passes only this account's current day.
+  HomeAgenda withPendingCheckIns(Set<String> questIds) {
+    if (!open.any((i) => questIds.contains(i.challenge.id))) return this;
+    return HomeAgenda(
+      open: open.where((i) => !questIds.contains(i.challenge.id)).toList(),
+      done: [
+        ...done,
+        for (final item in open)
+          if (questIds.contains(item.challenge.id))
+            AgendaItem(
+              challenge: item.challenge,
+              doneInPeriod: item.doneInPeriod + 1,
+              target: item.target,
+              daysLeftInPeriod: item.daysLeftInPeriod,
+              strikesUsed: item.strikesUsed,
+              checkedInToday: true,
+            ),
+      ],
+      upcoming: upcoming,
+    );
+  }
 
   static HomeAgenda build({
     required List<Challenge> challenges,
@@ -151,7 +173,8 @@ class HomeAgenda {
 
       // Current period, anchored to the start date (mirrors the server).
       final daysIn = todayDate.difference(start).inDays;
-      final periodStart = start.add(Duration(days: (daysIn ~/ periodLen) * periodLen));
+      final periodStart =
+          start.add(Duration(days: (daysIn ~/ periodLen) * periodLen));
       var periodEnd = periodStart.add(Duration(days: periodLen));
       if (endExclusive != null && periodEnd.isAfter(endExclusive)) {
         periodEnd = endExclusive;

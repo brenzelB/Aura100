@@ -1,3 +1,4 @@
+import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -73,7 +74,7 @@ class _PushPermissionCardState extends ConsumerState<PushPermissionCard> {
       _show = false;
     });
     if (!granted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(AppSnackBar(
         content: const Text(
             'No notifications, then. You can turn them on in Profile.'),
         backgroundColor: AppColors.surfaceLight,
@@ -107,8 +108,8 @@ class _PushPermissionCardState extends ConsumerState<PushPermissionCard> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text('DON\'T GET AMBUSHED',
-                      style: textTheme.headlineSmall
-                          ?.copyWith(color: AppColors.accentText, fontSize: 17)),
+                      style: textTheme.headlineSmall?.copyWith(
+                          color: AppColors.accentText, fontSize: 17)),
                 ),
               ],
             ),

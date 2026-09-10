@@ -1,3 +1,4 @@
+import 'package:aura_quest/core/theme/design_tokens.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -30,11 +31,11 @@ class EmojiPickerSheet extends StatefulWidget {
   }) {
     return showModalBottomSheet<String>(
       context: context,
+      useSafeArea: true,
+      useRootNavigator: true,
       isScrollControlled: true, // rise above the keyboard
       backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      shape: AppShapes.sheet,
       builder: (_) => EmojiPickerSheet(
         initialEmoji: initialEmoji,
         username: username,
@@ -54,12 +55,37 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet> {
   /// A few on-brand picks so the sheet is useful even before opening
   /// the emoji keyboard.
   static const _suggestions = [
-    '⚡', '🔥', '💪', '🏆', '🎮', '🚀', '🧠', '🥷', '👑', '🐉', '🎯', '💎',
+    '⚡',
+    '🔥',
+    '💪',
+    '🏆',
+    '🎮',
+    '🚀',
+    '🧠',
+    '🥷',
+    '👑',
+    '🐉',
+    '🎯',
+    '💎',
   ];
 
   static const _icons = [
-    'face', 'game', 'rocket', 'trophy', 'fire', 'shield', 'pets', 'run',
-    'gym', 'heart', 'star', 'bolt', 'user', 'brain', 'shapes', 'puzzle',
+    'face',
+    'game',
+    'rocket',
+    'trophy',
+    'fire',
+    'shield',
+    'pets',
+    'run',
+    'gym',
+    'heart',
+    'star',
+    'bolt',
+    'user',
+    'brain',
+    'shapes',
+    'puzzle',
   ];
 
   static IconData? _getIconData(String name) {
@@ -89,8 +115,7 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet> {
     super.initState();
     _preview = widget.initialEmoji;
     // Straight to the keyboard — the emoji key is one tap away there.
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _focus.requestFocus());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _focus.requestFocus());
   }
 
   @override
@@ -121,7 +146,8 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Padding(
+    return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: EdgeInsets.only(
         left: 24,
         right: 24,
@@ -133,8 +159,8 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet> {
         children: [
           Text(
             'PICK YOUR AVATAR',
-            style: textTheme.headlineSmall
-                ?.copyWith(color: AppColors.accentText),
+            style:
+                textTheme.headlineSmall?.copyWith(color: AppColors.accentText),
           ),
           const SizedBox(height: 20),
 
@@ -154,7 +180,8 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet> {
             onChanged: _onChanged,
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 24),
-            decoration:  InputDecoration(
+            decoration: InputDecoration(
+              labelText: 'Avatar emoji',
               hintText: 'Tap 😀 on your keyboard',
               helperText: 'Any emoji from your keyboard works',
               helperStyle: TextStyle(color: AppColors.textSecondary),
@@ -173,6 +200,9 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet> {
                   onTap: () => setState(() => _preview = emoji),
                   borderRadius: BorderRadius.circular(10),
                   child: Container(
+                    width: 48,
+                    height: 48,
+                    alignment: Alignment.center,
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: _preview == emoji
@@ -211,6 +241,9 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet> {
                   onTap: () => setState(() => _preview = '❖$iconName'),
                   borderRadius: BorderRadius.circular(10),
                   child: Container(
+                    width: 48,
+                    height: 48,
+                    alignment: Alignment.center,
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: _preview == '❖$iconName'
@@ -224,6 +257,7 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet> {
                       ),
                     ),
                     child: Icon(
+                      semanticLabel: '$iconName avatar',
                       _getIconData(iconName) ?? Icons.face,
                       size: 22,
                       color: _preview == '❖$iconName'
@@ -241,11 +275,11 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet> {
               if (widget.initialEmoji != null)
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.of(context)
-                        .pop(EmojiPickerSheet.clear),
+                    onPressed: () =>
+                        Navigator.of(context).pop(EmojiPickerSheet.clear),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.textSecondary,
-                      side:  BorderSide(color: AppColors.surfaceLight),
+                      side: BorderSide(color: AppColors.surfaceLight),
                     ),
                     child: const Text('REMOVE'),
                   ),

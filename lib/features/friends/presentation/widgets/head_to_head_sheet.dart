@@ -1,3 +1,4 @@
+import 'package:aura_quest/core/theme/design_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,10 +22,11 @@ Future<void> showHeadToHeadSheet(
 }) {
   return showModalBottomSheet(
     context: context,
+    useSafeArea: true,
+    useRootNavigator: true,
+    isScrollControlled: true,
     backgroundColor: AppColors.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
+    shape: AppShapes.sheet,
     builder: (_) => _HeadToHeadSheet(
       userId: userId,
       username: username,
@@ -50,23 +52,12 @@ class _HeadToHeadSheet extends ConsumerWidget {
     final async = ref.watch(headToHeadProvider(
         (id: userId, username: username, emoji: avatarEmoji)));
 
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 18),
-              decoration: BoxDecoration(
-                color: AppColors.textSecondary.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
           Row(
             children: [
               AuraAvatar(
@@ -98,7 +89,7 @@ class _HeadToHeadSheet extends ConsumerWidget {
               child: Center(child: CircularProgressIndicator()),
             ),
             error: (error, _) => Text(
-              'Could not load the record.\n$error',
+              'Could not load the record. Please try again.',
               style: textTheme.bodySmall?.copyWith(color: AppColors.danger),
             ),
             data: (record) => _body(context, textTheme, record),
@@ -150,7 +141,7 @@ class _HeadToHeadSheet extends ConsumerWidget {
               const SizedBox(height: 2),
               Text('check-ins · you : them',
                   style: textTheme.bodySmall
-                      ?.copyWith(color: AppColors.textSecondary, fontSize: 11)),
+                      ?.copyWith(color: AppColors.textSecondary, fontSize: 12)),
               const SizedBox(height: 8),
               Text(headline,
                   style: textTheme.bodyMedium?.copyWith(
