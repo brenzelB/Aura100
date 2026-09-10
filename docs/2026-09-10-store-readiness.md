@@ -21,6 +21,18 @@ therefore remains an unsigned build for validation, with no TestFlight submissio
 - Advance source version to 1.0.0+2; resolve a shared build number in CI.
 - Label iOS job/artifact explicitly unsigned; fail on missing archive.
 - Require iOS SDK >=26 on macOS 26; correct outdated build documentation.
+- Raise the iOS deployment target to 15.0 to match the Firebase SDK requirements.
+- Update the release workflow to the current checkout, Java and artifact actions.
+
+## Current CI validation
+
+- Release run [34458197659](https://github.com/brenzelB/Aura100/actions/runs/34458197659)
+  completed successfully for commit `54849642ab1a40799d941cab3ef839a37700dda1`.
+- `android-release-bundle-2` contains an AAB signed with the configured release
+  keystore; the workflow rejects the Android debug certificate and records commit/build
+  provenance.
+- `ios-unsigned-archive-2` contains a successfully archived iOS build with commit/build
+  provenance. It remains unsigned because no Apple Developer account is configured.
 
 ## Outstanding submission requirements
 
