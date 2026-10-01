@@ -58,11 +58,32 @@ jobs:
         run: flutter analyze
 
       - name: Run Unit & Widget Tests
-        run: flutter test
+        run: flutter test --exclude-tags=golden
+
+  validate-goldens:
+    name: Verify exact theme screenshots (Windows)
+    # Use the same host platform and Flutter version as the pixel baselines.
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: '3.44.6'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Verify Theme Screenshots
+        run: flutter test --tags=golden
 
   build-android:
     name: Build Android App Bundle (.aab)
-    needs: validate
+    needs: [validate, validate-goldens]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -123,7 +144,7 @@ jobs:
 
   build-ios:
     name: Build iOS archive (unsigned, not for submission)
-    needs: validate
+    needs: [validate, validate-goldens]
     runs-on: macos-26
     steps:
       - name: Checkout Code

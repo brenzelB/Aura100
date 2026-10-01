@@ -54,3 +54,6 @@ android/key.properties
 dist/
 *.apk
 *.aab
+
+# Generated golden-test difference images
+/test/failures/

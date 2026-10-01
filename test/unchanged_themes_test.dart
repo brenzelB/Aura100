@@ -81,7 +81,7 @@ void main() {
             find.byType(MaterialApp),
             matchesGoldenFile(
                 'goldens/unchanged_${type.name}_${mode.name}.png'));
-      });
+      }, tags: ['golden']);
     }
   }
 }

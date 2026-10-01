@@ -20,6 +20,19 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter analyze
-      - run: flutter test
+      - run: flutter test --exclude-tags=golden
         env:
           TZ: America/Los_Angeles
+  goldens:
+    # Pixel baselines were captured on Windows with Flutter 3.44.6.
+    # Font rasterization differs across host platforms; keep exact comparisons.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.6'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter test --tags=golden

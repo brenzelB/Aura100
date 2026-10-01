@@ -55,6 +55,7 @@ void main() {
   for (final mode in AppThemeMode.values) {
     for (final width in [320.0, 390.0, 768.0, 1440.0]) {
       for (final scale in [1.0, 2.0]) {
+        final hasGolden = scale == 1 && (width == 390 || width == 1440);
         testWidgets('editorial ${mode.name} / $width / text $scale',
             (tester) async {
           tester.view.physicalSize = Size(width, 1000);
@@ -72,6 +73,13 @@ void main() {
                     themeType: AppThemeType.editorial, child: child!)),
             home: const _Preview(),
           ));
+          // Asset decoding runs outside the fake test clock. Wait explicitly
+          // so a filtered golden run also captures the artwork on its first test.
+          await tester.runAsync(() async {
+            final imageFinder = find.byType(Image);
+            final image = tester.widget<Image>(imageFinder);
+            await precacheImage(image.image, tester.element(imageFinder));
+          });
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
           for (var i = 0; i < 4; i++) {
@@ -83,13 +91,13 @@ void main() {
           await tester.drag(
               find.byType(Scrollable).first, const Offset(0, 4000));
           await tester.pumpAndSettle();
-          if (scale == 1 && (width == 390 || width == 1440)) {
+          if (hasGolden) {
             await expectLater(
                 find.byType(MaterialApp),
                 matchesGoldenFile(
                     'goldens/editorial_${mode.name}_${width.toInt()}.png'));
           }
-        });
+        }, tags: hasGolden ? ['golden'] : null);
       }
     }
   }
