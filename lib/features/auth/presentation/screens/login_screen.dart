@@ -2,6 +2,7 @@ import 'package:aura_quest/core/widgets/app_states.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/editorial_cover.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -333,6 +334,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // ── Hero / branding ──────────────────────────
+                if (AppColors.activeType == AppThemeType.editorial)
+                  const EditorialCover(
+                      title: 'Grow your own way.',
+                      chapter: 'AURA QUEST / GROWTH, UNSCRIPTED',
+                      compact: true,
+                      subtitle:
+                          'Small rituals. Shared adventures. A story that is yours.'),
                 Text(
                   'AURA\nQUEST',
                   textAlign: TextAlign.center,

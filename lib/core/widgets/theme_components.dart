@@ -82,7 +82,8 @@ class ThemeProgressRing extends StatelessWidget {
             else
               Text(
                 '$doneCount/$totalCount',
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(
+                  fontFamily: 'Editorial Body',
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
                   color: AppColors.textPrimary,

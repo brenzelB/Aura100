@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/editorial_cover.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/text/quantity.dart';
@@ -40,23 +41,27 @@ class _QuestActivitySectionState extends ConsumerState<QuestActivitySection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              'ACTIVITY',
-              style: textTheme.headlineSmall
-                  ?.copyWith(color: AppColors.accentText),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'everyone in this quest',
-                style: textTheme.bodySmall
-                    ?.copyWith(color: AppColors.textSecondary),
+        if (AppColors.activeType == AppThemeType.editorial)
+          const EditorialSectionHeading(
+              title: 'Activity', subtitle: 'everyone in this quest')
+        else
+          Row(
+            children: [
+              Text(
+                'ACTIVITY',
+                style: textTheme.headlineSmall
+                    ?.copyWith(color: AppColors.accentText),
               ),
-            ),
-          ],
-        ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'everyone in this quest',
+                  style: textTheme.bodySmall
+                      ?.copyWith(color: AppColors.textSecondary),
+                ),
+              ),
+            ],
+          ),
         const SizedBox(height: 12),
         activityAsync.when(
           // Auto-refresh reloads this; don't flash a spinner over the

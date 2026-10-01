@@ -1,4 +1,6 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -22,12 +24,14 @@ import '../../features/home/application/home_providers.dart';
 ///
 /// Row Level Security applies to realtime too, so a client is only ever
 /// handed rows it could have read anyway.
-class RealtimeSync {
+class RealtimeSync with WidgetsBindingObserver {
   RealtimeSync(this._ref, this._userId);
 
   final Ref _ref;
   final String _userId;
   RealtimeChannel? _channel;
+  Timer? _fallbackTimer;
+  bool _disposed = false;
 
   /// How long the screens wait between safety-net refreshes while the
   /// socket is healthy. Long on purpose — realtime does the real work.
@@ -42,7 +46,9 @@ class RealtimeSync {
     final channel = client.channel('aura-sync-$_userId');
 
     // ── Aimed at me: the notification surfaces ──────────────
-    _on(channel, 'targeted_roasts', column: 'target_id', value: _userId,
+    _on(channel, 'targeted_roasts',
+        column: 'target_id',
+        value: _userId,
         onEvent: () => _ref.invalidate(targetedRoastsProvider));
 
     _on(channel, 'aura_heists', column: 'target_id', value: _userId,
@@ -54,8 +60,7 @@ class RealtimeSync {
     // A Blackout aimed at me. The row lands the moment it is bought,
     // which is usually BEFORE the window opens — the card only shows
     // itself once the clock is inside it, so nothing is given away.
-    _on(channel, 'blackouts', column: 'target_id', value: _userId,
-        onEvent: () {
+    _on(channel, 'blackouts', column: 'target_id', value: _userId, onEvent: () {
       _ref.invalidate(myBlackoutProvider);
       _ref.invalidate(unseenBlackoutsProvider);
     });
@@ -66,15 +71,16 @@ class RealtimeSync {
       _ref.invalidate(unseenNudgesProvider);
       _ref.invalidate(myNudgesProvider);
     });
-    _on(channel, 'nudges', column: 'from_user', value: _userId,
+    _on(channel, 'nudges',
+        column: 'from_user',
+        value: _userId,
         onEvent: () => _ref.invalidate(pokeBacksProvider));
 
     _on(channel, 'duels', column: 'opponent_id', value: _userId, onEvent: () {
       _ref.invalidate(incomingDuelsProvider);
       _ref.invalidate(questDuelsProvider);
     });
-    _on(channel, 'duels', column: 'challenger_id', value: _userId,
-        onEvent: () {
+    _on(channel, 'duels', column: 'challenger_id', value: _userId, onEvent: () {
       _ref.invalidate(questDuelsProvider);
       _ref.invalidate(myChallengesProvider);
     });
@@ -90,10 +96,14 @@ class RealtimeSync {
     });
     // My own request being accepted arrives as an UPDATE on a row where
     // I am the requester, not the addressee — so it needs its own watch.
-    _on(channel, 'friendships', column: 'requester_id', value: _userId,
+    _on(channel, 'friendships',
+        column: 'requester_id',
+        value: _userId,
         onEvent: () => _ref.invalidate(myFriendsProvider));
 
-    _on(channel, 'invites', column: 'invitee_id', value: _userId,
+    _on(channel, 'invites',
+        column: 'invitee_id',
+        value: _userId,
         onEvent: () => _ref.invalidate(myInvitesProvider));
 
     // ── My own standing: aura, strikes, settlement outcomes ──
@@ -126,14 +136,25 @@ class RealtimeSync {
     });
 
     channel.subscribe((status, error) {
+      if (_disposed) return;
       final live = status == RealtimeSubscribeStatus.subscribed;
       connected.value = live;
-      debugPrint('📡 [RealtimeSync] $status${error == null ? '' : ' — $error'}');
+      debugPrint(
+          '📡 [RealtimeSync] $status${error == null ? '' : ' — $error'}');
       // Coming back after a drop means we may have missed events.
-      if (live) _refreshEverything();
+      if (live) refresh();
     });
 
     _channel = channel;
+    WidgetsBinding.instance.addObserver(this);
+    // Keep social notices usable when the socket is unavailable. A healthy
+    // socket already delivers these events, so it needs no extra polling.
+    _fallbackTimer = Timer.periodic(fallbackInterval, (_) {
+      if (_disposed || connected.value) return;
+      final lifecycle = WidgetsBinding.instance.lifecycleState;
+      if (lifecycle != null && lifecycle != AppLifecycleState.resumed) return;
+      _refreshSocial();
+    });
   }
 
   /// Subscribes to every change on [table], optionally narrowed to rows
@@ -160,8 +181,16 @@ class RealtimeSync {
     );
   }
 
-  /// Full catch-up — used when the socket (re)connects.
-  void _refreshEverything() {
+  void _refreshSocial() {
+    _ref.invalidate(myInvitesProvider);
+    _ref.invalidate(friendRequestsProvider);
+    _ref.invalidate(myFriendsProvider);
+  }
+
+  /// Reloads events missed while disconnected or while the app was asleep.
+  void refresh() {
+    if (_disposed) return;
+    _refreshSocial();
     _ref.invalidate(myChallengesProvider);
     _ref.invalidate(homeAgendaProvider);
     _ref.invalidate(settlementEventsProvider);
@@ -175,9 +204,20 @@ class RealtimeSync {
     // and would never see the notice for one they slept through.
     _ref.invalidate(myBlackoutProvider);
     _ref.invalidate(unseenBlackoutsProvider);
+    _ref.invalidate(trophiesProvider);
+    _ref.invalidate(activityByDayProvider);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) refresh();
   }
 
   void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    WidgetsBinding.instance.removeObserver(this);
+    _fallbackTimer?.cancel();
     final channel = _channel;
     if (channel != null) {
       Supabase.instance.client.removeChannel(channel);

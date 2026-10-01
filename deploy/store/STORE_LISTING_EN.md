@@ -64,13 +64,11 @@ habit tracker,habits,gamify,rpg,gamification,routine,streak,duels,goals,producti
 
 ---
 
-## What's New (Version 1.0.0)
+## What's New (Version 1.0.1)
 
 ```text
-Welcome to Aura Quest 1.0! ⚡
-• Multiplayer habit quests with daily check-ins
-• Aura points economy and RPG progression
-• Quest Shop with Streak Shield and Half Damage items
-• Live dice duels and friendly leaderboards
-• Real-time sync and privacy-first architecture
+• More reliable duels and trophy removal.
+• Profile displays refresh correctly after resetting stats.
+• Invitations and friend requests catch up after connection interruptions.
+• New logo and a distinctive Editorial Growth design with light and dark modes.
 ```

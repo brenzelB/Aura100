@@ -4,6 +4,7 @@ import 'package:aura_quest/core/theme/design_tokens.dart';
 import 'package:aura_quest/core/theme/motion.dart';
 import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:aura_quest/core/widgets/theme_scope.dart';
+import 'package:aura_quest/core/widgets/app_theme_background.dart';
 import 'package:aura_quest/features/auth/application/auth_providers.dart';
 import 'package:aura_quest/features/auth/presentation/screens/login_screen.dart';
 import 'package:aura_quest/features/challenges/application/challenge_providers.dart';
@@ -99,126 +100,137 @@ void main() {
     }
   });
 
-  for (final mode in AppThemeMode.values) {
-    for (final scale in [1.0, 1.6]) {
-      for (final (label, page) in <(String, Widget)>[
-        ('login', const LoginScreen()),
-        ('quests', const ChallengesScreen()),
-        ('populated quests', const ChallengesScreen()),
-        (
-          'avatar',
-          const Scaffold(
-              body:
-                  EmojiPickerSheet(initialEmoji: '⚡', username: 'Test player'))
-        ),
-        ('friends', const FriendsScreen()),
-        ('profile', const ProfileScreen()),
-        ('create', const Scaffold(body: CreateChallengeSheet())),
-        ('home', const HomeScreen()),
-        ('detail', const ChallengeDetailScreen(challengeId: 'q')),
-        (
-          'duel',
-          Scaffold(
-              body: DuelSheet(
-                  duel: IncomingDuel(
-                      id: 'd',
-                      questTitle: 'Morning movement',
-                      challengerName: 'Test challenger',
-                      challengerAvatar: null,
-                      stake: 50,
-                      createdAt: DateTime(2026))))
-        ),
-        ('shop', Scaffold(body: ChallengeShopSheet(challenge: _quest()))),
-      ]) {
-        testWidgets('$label at 320px / $mode / text $scale', (tester) async {
-          final errorHandler = FlutterError.onError;
-          FlutterError.onError = (details) {
-            FlutterError.dumpErrorToConsole(details, forceReport: true);
-            errorHandler?.call(details);
-          };
-          addTearDown(() => FlutterError.onError = errorHandler);
-          SharedPreferences.setMockInitialValues(
-              {'selected_theme': 0, 'selected_theme_mode': mode.index});
-          AppColors.apply(AppThemeType.neoBrutalist, mode);
-          tester.view.physicalSize = const Size(320, 800);
-          tester.view.devicePixelRatio = 1;
-          addTearDown(tester.view.resetPhysicalSize);
-          addTearDown(tester.view.resetDevicePixelRatio);
-          await tester.pumpWidget(ProviderScope(
-              overrides: [
-                currentUserProvider.overrideWithValue(null),
-                myChallengesProvider.overrideWith((ref) => [
-                      'home',
-                      'detail',
-                      'shop',
-                      'populated quests'
-                    ].contains(label)
-                        ? [_quest()]
-                        : []),
-                myCheckInsProvider.overrideWith((ref) => {}),
-                checkInsProvider.overrideWith((ref, id) => {}),
-                questMembersProvider.overrideWith((ref, id) => []),
-                questDuelsProvider.overrideWith((ref, id) => []),
-                questActivityProvider.overrideWith((ref, id) => []),
-                questReminderProvider.overrideWith((ref, id) => null),
-                benefitsProvider.overrideWith((ref, id) => [
-                      const Benefit(
-                          id: 'b',
-                          challengeId: 'q',
-                          title: 'Streak Shield',
-                          description: 'Absorbs one missed unit.',
-                          cost: 100)
-                    ]),
-                myBlackoutProvider.overrideWith((ref, id) => null),
-                incomingDuelsProvider.overrideWith((ref) => []),
-                unseenNudgesProvider.overrideWith((ref) => []),
-                targetedRoastsProvider.overrideWith((ref) => []),
-                robbedNoticesProvider.overrideWith((ref) => []),
-                unseenBlackoutsProvider.overrideWith((ref) => []),
-                pokeBacksProvider.overrideWith((ref) => []),
-                settlementEventsProvider.overrideWith((ref) => []),
-                weeklyRecapProvider.overrideWith((ref) => null),
-                myFriendsProvider.overrideWith((ref) => []),
-                friendRequestsProvider.overrideWith((ref) => []),
-                myInvitesProvider.overrideWith((ref) => []),
-                myNudgesProvider.overrideWith((ref) => []),
-                profileRepositoryProvider.overrideWithValue(_ProfileRepo()),
-                currentProfileProvider.overrideWith((ref) => Profile(
-                    id: 'a',
-                    username: 'Test player',
-                    createdAt: DateTime(2026))),
-                myStatsProvider.overrideWith((ref) => const PlayerStats(
-                    questsJoined: 4,
-                    activeQuests: 2,
-                    totalCheckins: 30,
-                    totalAura: 1200,
-                    gearOwned: 3,
-                    friends: 2,
-                    lifetimeXp: 1200)),
-                trophiesProvider.overrideWith((ref) => []),
-                activityByDayProvider.overrideWith((ref) => {}),
-                questRemindersProvider.overrideWith((ref) => {}),
-                notificationSettingsProvider
-                    .overrideWith((ref) => const NotificationSettings()),
-              ],
-              child: MaterialApp(
-                  theme: AppTheme.build(AppThemeType.neoBrutalist, mode),
-                  builder: (context, child) => MediaQuery(
-                      data: MediaQuery.of(context).copyWith(
-                          textScaler: TextScaler.linear(scale),
-                          disableAnimations: true),
-                      child: child!),
-                  home: page)));
-          await tester.pumpAndSettle();
-          expect(tester.takeException(), isNull);
-          final scroll = find.byType(Scrollable).first;
-          for (var i = 0; i < (label == 'create' ? 12 : 8); i++) {
-            await tester.drag(scroll, const Offset(0, -500));
-            await tester.pumpAndSettle();
-            expect(tester.takeException(), isNull);
+  for (final themeType in AppThemeType.values) {
+    for (final width in themeType == AppThemeType.editorial
+        ? [320.0, 768.0, 1440.0]
+        : [320.0]) {
+      for (final mode in AppThemeMode.values) {
+        for (final scale in [1.0, 1.6]) {
+          for (final (label, page) in <(String, Widget)>[
+            ('login', const LoginScreen()),
+            ('quests', const ChallengesScreen()),
+            ('populated quests', const ChallengesScreen()),
+            (
+              'avatar',
+              const Scaffold(
+                  body: EmojiPickerSheet(
+                      initialEmoji: '⚡', username: 'Test player'))
+            ),
+            ('friends', const FriendsScreen()),
+            ('profile', const ProfileScreen()),
+            ('create', const Scaffold(body: CreateChallengeSheet())),
+            ('home', const HomeScreen()),
+            ('detail', const ChallengeDetailScreen(challengeId: 'q')),
+            (
+              'duel',
+              Scaffold(
+                  body: DuelSheet(
+                      duel: IncomingDuel(
+                          id: 'd',
+                          questTitle: 'Morning movement',
+                          challengerName: 'Test challenger',
+                          challengerAvatar: null,
+                          stake: 50,
+                          createdAt: DateTime(2026))))
+            ),
+            ('shop', Scaffold(body: ChallengeShopSheet(challenge: _quest()))),
+          ]) {
+            testWidgets(
+                '$label at ${width.toInt()}px / $themeType / $mode / text $scale',
+                (tester) async {
+              final errorHandler = FlutterError.onError;
+              FlutterError.onError = (details) {
+                FlutterError.dumpErrorToConsole(details, forceReport: true);
+                errorHandler?.call(details);
+              };
+              addTearDown(() => FlutterError.onError = errorHandler);
+              SharedPreferences.setMockInitialValues({
+                'selected_theme': themeType.index,
+                'selected_theme_mode': mode.index
+              });
+              AppColors.apply(themeType, mode);
+              tester.view.physicalSize = Size(width, 800);
+              tester.view.devicePixelRatio = 1;
+              addTearDown(tester.view.resetPhysicalSize);
+              addTearDown(tester.view.resetDevicePixelRatio);
+              await tester.pumpWidget(ProviderScope(
+                  overrides: [
+                    currentUserProvider.overrideWithValue(null),
+                    myChallengesProvider.overrideWith((ref) => [
+                          'home',
+                          'detail',
+                          'shop',
+                          'populated quests'
+                        ].contains(label)
+                            ? [_quest()]
+                            : []),
+                    myCheckInsProvider.overrideWith((ref) => {}),
+                    checkInsProvider.overrideWith((ref, id) => {}),
+                    questMembersProvider.overrideWith((ref, id) => []),
+                    questDuelsProvider.overrideWith((ref, id) => []),
+                    questActivityProvider.overrideWith((ref, id) => []),
+                    questReminderProvider.overrideWith((ref, id) => null),
+                    benefitsProvider.overrideWith((ref, id) => [
+                          const Benefit(
+                              id: 'b',
+                              challengeId: 'q',
+                              title: 'Streak Shield',
+                              description: 'Absorbs one missed unit.',
+                              cost: 100)
+                        ]),
+                    myBlackoutProvider.overrideWith((ref, id) => null),
+                    incomingDuelsProvider.overrideWith((ref) => []),
+                    unseenNudgesProvider.overrideWith((ref) => []),
+                    targetedRoastsProvider.overrideWith((ref) => []),
+                    robbedNoticesProvider.overrideWith((ref) => []),
+                    unseenBlackoutsProvider.overrideWith((ref) => []),
+                    pokeBacksProvider.overrideWith((ref) => []),
+                    settlementEventsProvider.overrideWith((ref) => []),
+                    weeklyRecapProvider.overrideWith((ref) => null),
+                    myFriendsProvider.overrideWith((ref) => []),
+                    friendRequestsProvider.overrideWith((ref) => []),
+                    myInvitesProvider.overrideWith((ref) => []),
+                    myNudgesProvider.overrideWith((ref) => []),
+                    profileRepositoryProvider.overrideWithValue(_ProfileRepo()),
+                    currentProfileProvider.overrideWith((ref) => Profile(
+                        id: 'a',
+                        username: 'Test player',
+                        createdAt: DateTime(2026))),
+                    myStatsProvider.overrideWith((ref) => const PlayerStats(
+                        questsJoined: 4,
+                        activeQuests: 2,
+                        totalCheckins: 30,
+                        totalAura: 1200,
+                        gearOwned: 3,
+                        friends: 2,
+                        lifetimeXp: 1200)),
+                    trophiesProvider.overrideWith((ref) => []),
+                    activityByDayProvider.overrideWith((ref) => {}),
+                    questRemindersProvider.overrideWith((ref) => {}),
+                    notificationSettingsProvider
+                        .overrideWith((ref) => const NotificationSettings()),
+                  ],
+                  child: MaterialApp(
+                      theme: AppTheme.build(themeType, mode),
+                      builder: (context, child) => MediaQuery(
+                          data: MediaQuery.of(context).copyWith(
+                              textScaler: TextScaler.linear(scale),
+                              disableAnimations: true),
+                          child: AppThemeBackground(
+                              themeType: themeType, child: child!)),
+                      home: page)));
+              await tester.pumpAndSettle();
+              expect(tester.takeException(), isNull);
+              final scroll = find.byType(Scrollable).first;
+              for (var i = 0; i < (label == 'create' ? 12 : 8); i++) {
+                await tester.drag(scroll, const Offset(0, -500));
+                await tester.pumpAndSettle();
+                expect(tester.takeException(), isNull);
+              }
+              await tester.pumpWidget(const SizedBox());
+            });
           }
-          await tester.pumpWidget(const SizedBox());
-        });
+        }
       }
     }
   }

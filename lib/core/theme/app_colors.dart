@@ -156,48 +156,46 @@ const neoBrutalistDarkColors = AppThemeColors(
 
 // ── Editorial Growth ────────────────────────────────────────────
 const editorialColors = AppThemeColors(
-  background: Color(0xFFFFF8F2), // Cream base background
-  surface: Color(0xFFFFFFFF), // White card floating tier
-  surfaceLight: Color(0xFFF5F2ED), // Cream/off-white neutral base
-  neonCyan: Color(0xFFE65C4F), // Primary Terracotta
-  neonPink: Color(0xFF2D2D2D), // Secondary Dark Slate
-  neonPurple: Color(0xFFA93027), // Accent Dark Terracotta
-  neonGreen: Color(0xFF4A7C59), // Earthy Sage Green for success
-  neonYellow: Color(0xFFD4A373), // Earthy Ochre/Gold
-  textPrimary: Color(0xFF1E1B16), // Dark brown/slate primary text
-  textSecondary: Color(0xFF58413E), // Warm muted brown secondary text
-  danger: Color(0xFFBA1A1A), // Clean red error
-  outline: Color(0xFFE0BFBB), // outline-variant grey-red
-  inputOutline: Color(0xFF8C716D), // Stronger slate/brown field border
-  shadow: Color(0xFFE65C4F), // Soft terracotta ambient shadow
-  onAccent: Color(0xFFFFF8F2), // Cream text on the dark slate button
-  // Terracotta reads 3.5:1 on white and the ochre only 2.2:1 — both
-  // deepened just enough, hue untouched. The sage green already passed.
-  accentText: Color(0xFFD72F1F),
-  successText: Color(0xFF4A7C59),
-  warningText: Color(0xFF9C6530),
+  background: Color(0xFFF5F0E5),
+  surface: Color(0xFFFFFCF5),
+  surfaceLight: Color(0xFFEAE4D7),
+  neonCyan: Color(0xFF2944C5),
+  neonPink: Color(0xFF2944C5),
+  neonPurple: Color(0xFF873B66),
+  neonGreen: Color(0xFF316348),
+  neonYellow: Color(0xFF856000),
+  textPrimary: Color(0xFF22251E),
+  textSecondary: Color(0xFF5C5C52),
+  danger: Color(0xFFB32C24),
+  outline: Color(0xFFCDC7B9),
+  inputOutline: Color(0xFF777769),
+  shadow: Color(0xFF252D58),
+  onAccent: Color(0xFFFFFFFF),
+  accentText: Color(0xFF2944C5),
+  successText: Color(0xFF316348),
+  warningText: Color(0xFF856000),
   isDark: false,
 );
 
 const editorialDarkColors = AppThemeColors(
-  background: Color(0xFF17120F), // Warm dark paper
-  surface: Color(0xFF201A16),
-  surfaceLight: Color(0xFF2B231E),
-  neonCyan: Color(0xFFFF8672), // Terracotta lifted for dark
-  neonPink: Color(0xFFEDE4DA), // Slate inverts to warm light
-  neonPurple: Color(0xFFD9695B),
-  neonGreen: Color(0xFF7FB08D),
-  neonYellow: Color(0xFFE0B183),
-  textPrimary: Color(0xFFF4EBE3),
-  textSecondary: Color(0xFFC2AC9F),
-  danger: Color(0xFFFF6B5E),
-  outline: Color(0xFF4A3A33),
-  inputOutline: Color(0xFF6E5A51),
-  shadow: Color(0xFFFF8672), // Warm terracotta glow
-  onAccent: Color(0xFF17120F), // Dark text on the light button
-  accentText: Color(0xFFFF8672),
-  successText: Color(0xFF7FB08D),
-  warningText: Color(0xFFE0B183),
+  background: Color(0xFF171320),
+  surface: Color(0xFF241D30),
+  surfaceLight: Color(0xFF332A40),
+  neonCyan: Color(0xFFDBEF86),
+  neonPink: Color(0xFFDBEF86),
+  neonPurple: Color(0xFFCCAFF4),
+  neonGreen: Color(0xFF9BD3AD),
+  neonYellow: Color(0xFFEDC680),
+  textPrimary: Color(0xFFF5F0E5),
+  textSecondary: Color(0xFFC7BDCF),
+  danger: Color(0xFFFF9F93),
+  outline: Color(0xFF50445E),
+  inputOutline: Color(0xFF95859F),
+  shadow: Color(0xFF000000),
+  onAccent: Color(0xFF171320),
+  accentText: Color(0xFFDBEF86),
+  successText: Color(0xFF9BD3AD),
+  warningText: Color(0xFFEDC680),
   isDark: true,
 );
 
@@ -343,18 +341,22 @@ abstract class AppColors {
       case AppThemeType.editorial:
         return BoxDecoration(
           color: effectiveFill,
-          borderRadius: BorderRadius.circular(
-              radius ?? 24.0), // Rounded modern/tactile corners
+          borderRadius: radius != null
+              ? BorderRadius.circular(radius)
+              : const BorderRadius.only(
+                  topLeft: Radius.circular(6),
+                  topRight: Radius.circular(24),
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(6)),
           border: Border.all(
             color: isDanger ? danger : outline, // outline-variant
             width: 1.0,
           ),
           boxShadow: [
             BoxShadow(
-              color: shadow.withValues(alpha: 0.08), // Soft ambient shadow
-              blurRadius: 20,
-              spreadRadius: 2,
-              offset: const Offset(0, 4),
+              color: shadow.withValues(alpha: isDark ? .18 : .05),
+              blurRadius: 12,
+              offset: const Offset(0, 3),
             )
           ],
         );

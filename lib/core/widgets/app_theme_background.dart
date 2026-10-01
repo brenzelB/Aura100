@@ -49,7 +49,13 @@ class AppThemeBackground extends StatelessWidget {
                   ),
                 ),
               ),
-              child,
+              Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1040),
+                  child: child,
+                ),
+              ),
             ],
           ),
         );

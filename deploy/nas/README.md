@@ -1,5 +1,11 @@
 # Aura Quest auf dem UGREEN NAS (NAS-BRA)
 
+Push-Reparatur 16.09.2026: Der Datenbankversand verwendet intern
+`http://functions:9000/push-fcm` mit `x-push-secret`. Die alte Adresse über
+Kong lieferte HTTP 401. Öffentliche Gateway-Regeln bleiben unverändert.
+Prüfung: `node scripts/nas-fix-push-route.mjs`.
+Details: [Android-Push-Prüfung](../../docs/2026-09-16-android-push.md).
+
 Audit-Ergänzung 07.09.2026: Die September-Migrationen einschließlich
 `20260907200000` sind auf dem NAS angewendet. Der zuvor defekte Push-Reaper
 läuft erfolgreich. Details und Prüfgrenzen: [Prüfbericht](../../docs/2026-09-07-code-review.md).

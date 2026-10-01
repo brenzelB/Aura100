@@ -1,5 +1,6 @@
 import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/editorial_cover.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -336,6 +337,7 @@ class ProfileScreen extends ConsumerWidget {
         onRefresh: () {
           ref.invalidate(myStatsProvider);
           ref.invalidate(trophiesProvider);
+          ref.invalidate(activityByDayProvider);
           return ref.refresh(currentProfileProvider.future);
         },
         child: profileAsync.when(
@@ -376,6 +378,12 @@ class ProfileScreen extends ConsumerWidget {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(20),
               children: [
+                if (AppColors.activeType == AppThemeType.editorial)
+                  const EditorialCover(
+                      title: 'A work in progress.',
+                      chapter: 'THE PERSONAL EDIT',
+                      compact: true,
+                      subtitle: 'Your story, one meaningful moment at a time.'),
                 _IdentityCard(
                   profile: profile,
                   busy: busy,
@@ -916,7 +924,7 @@ class _TrophyRoomState extends ConsumerState<_TrophyRoom> {
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
 
     final ok = await ref
         .read(trophyControllerProvider.notifier)
@@ -934,6 +942,7 @@ class _TrophyRoomState extends ConsumerState<_TrophyRoom> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final trophies = widget.trophies;
+    final removing = ref.watch(trophyControllerProvider).isLoading;
     final won = trophies.where((t) => t.completed).length;
 
     return Column(
@@ -977,7 +986,8 @@ class _TrophyRoomState extends ConsumerState<_TrophyRoom> {
             child: Column(
               children: [
                 for (final trophy in trophies)
-                  _TrophyTile(trophy, onRemove: () => _remove(trophy)),
+                  _TrophyTile(trophy,
+                      onRemove: removing ? null : () => _remove(trophy)),
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(

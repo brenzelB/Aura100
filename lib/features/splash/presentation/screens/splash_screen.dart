@@ -44,17 +44,18 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Placeholder logo mark — swap for real branding later.
+            // The same mark is used by the launcher and store icon.
             Container(
-              padding: const EdgeInsets.all(28),
+              padding: const EdgeInsets.all(22),
               decoration: AppColors.panelDecoration(
                   accent: AppColors.neonCyan,
                   fill: AppColors.neonCyan,
                   glow: true),
-              child: Icon(
-                Icons.bolt,
-                size: 64,
-                color: AppColors.onAccent,
+              child: Image.asset(
+                'assets/icon/logo_mark.png',
+                width: 112,
+                height: 112,
+                fit: BoxFit.contain,
               ),
             ),
             const SizedBox(height: 32),

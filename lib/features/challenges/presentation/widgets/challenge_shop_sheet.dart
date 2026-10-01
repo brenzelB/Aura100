@@ -1,5 +1,6 @@
 import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/editorial_cover.dart';
 import '../../../../core/theme/design_tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
@@ -167,6 +168,12 @@ class _ChallengeShopSheetState extends ConsumerState<ChallengeShopSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (AppColors.activeType == AppThemeType.editorial)
+            const EditorialCover(
+                title: 'A little extra.',
+                compact: true,
+                chapter: 'THE PERKS EDIT',
+                subtitle: 'Give your next move a twist.'),
           Text(
             'QUEST PERKS',
             textAlign: TextAlign.center,

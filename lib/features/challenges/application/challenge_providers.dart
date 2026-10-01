@@ -126,44 +126,58 @@ class DuelController extends AutoDisposeAsyncNotifier<void> {
     ref.invalidate(questDuelsProvider);
   }
 
+  // Sending a duel has no modal listener. Hold every request until its
+  // result is handled, even when its initiating widget disappears.
+  Future<AsyncValue<T>?> _run<T>(
+      Future<T> Function(ChallengeRepository repo) action) async {
+    if (state.isLoading) return null;
+    final pending = ref.keepAlive();
+    var active = true;
+    ref.onDispose(() => active = false);
+    try {
+      final repo = ref.read(challengeRepositoryProvider);
+      final auth = ref.read(authRepositoryProvider);
+      final owner = auth.currentUser?.id;
+      state = const AsyncLoading();
+      final result = await AsyncValue.guard(() => action(repo));
+      if (!active) return null;
+      if (auth.currentUser?.id != owner) {
+        state = const AsyncData(null);
+        return null;
+      }
+      state = result.whenData<void>((_) {});
+      if (result.hasError) return null;
+      _refresh();
+      return result;
+    } finally {
+      pending.close();
+    }
+  }
+
   /// Returns true when the challenge went out (stake escrowed).
   Future<bool> create({
     required String challengeId,
     required String opponentId,
     required int stake,
   }) async {
-    final repo = ref.read(challengeRepositoryProvider);
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() => repo.createDuel(
+    final result = await _run((repo) => repo.createDuel(
         challengeId: challengeId, opponentId: opponentId, stake: stake));
-    if (state.hasError) return false;
-    _refresh();
-    return true;
+    return result != null;
   }
 
   /// Accepts and rolls. Returns the result, or null on failure
   /// (error lands in `state`).
   Future<DuelResult?> acceptAndRoll(String duelId) async {
-    final repo = ref.read(challengeRepositoryProvider);
-    state = const AsyncLoading();
-    DuelResult? result;
-    state = await AsyncValue.guard(() async {
-      result = await repo.respondToDuel(duelId: duelId, accept: true);
-    });
-    if (state.hasError) return null;
-    _refresh();
-    return result;
+    final result =
+        await _run((repo) => repo.respondToDuel(duelId: duelId, accept: true));
+    return result?.valueOrNull;
   }
 
   /// Declines (challenger gets refunded). Returns true on success.
   Future<bool> decline(String duelId) async {
-    final repo = ref.read(challengeRepositoryProvider);
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
-        () => repo.respondToDuel(duelId: duelId, accept: false));
-    if (state.hasError) return false;
-    _refresh();
-    return true;
+    final result =
+        await _run((repo) => repo.respondToDuel(duelId: duelId, accept: false));
+    return result != null;
   }
 }
 
@@ -219,12 +233,28 @@ class TrophyController extends AutoDisposeAsyncNotifier<void> {
 
   /// Returns true when the entry left the room.
   Future<bool> hide(String challengeId) async {
-    final repo = ref.read(challengeRepositoryProvider);
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() => repo.hideTrophy(challengeId));
-    if (state.hasError) return false;
-    ref.invalidate(trophiesProvider);
-    return true;
+    if (state.isLoading) return false;
+    final pending = ref.keepAlive();
+    var active = true;
+    ref.onDispose(() => active = false);
+    try {
+      final repo = ref.read(challengeRepositoryProvider);
+      final auth = ref.read(authRepositoryProvider);
+      final owner = auth.currentUser?.id;
+      state = const AsyncLoading();
+      final result = await AsyncValue.guard(() => repo.hideTrophy(challengeId));
+      if (!active) return false;
+      if (auth.currentUser?.id != owner) {
+        state = const AsyncData(null);
+        return false;
+      }
+      state = result;
+      if (result.hasError) return false;
+      ref.invalidate(trophiesProvider);
+      return true;
+    } finally {
+      pending.close();
+    }
   }
 }
 
@@ -390,6 +420,7 @@ class ProgressController extends AutoDisposeFamilyAsyncNotifier<void, String> {
     ref.invalidate(checkInsProvider(arg));
     ref.invalidate(myCheckInsProvider);
     ref.invalidate(settlementEventsProvider);
+    ref.invalidate(activityByDayProvider);
   }
 }
 
@@ -514,6 +545,7 @@ final offlineSyncServiceProvider = Provider<OfflineSyncService>((ref) {
       ref.invalidate(myCheckInsProvider);
       ref.invalidate(settlementEventsProvider);
       ref.invalidate(robbedNoticesProvider);
+      ref.invalidate(activityByDayProvider);
     },
     () async {
       final result = await service
@@ -605,6 +637,7 @@ class CheckInController extends AutoDisposeFamilyAsyncNotifier<void, String> {
       ref.invalidate(myCheckInsProvider);
       ref.invalidate(settlementEventsProvider);
       ref.invalidate(robbedNoticesProvider);
+      ref.invalidate(activityByDayProvider);
       return CheckInResult(status: CheckInStatus.success, auraGained: gained);
     }
 

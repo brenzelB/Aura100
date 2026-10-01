@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/editorial_cover.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/text/dates.dart';
@@ -63,25 +64,32 @@ class _ActivityHeatmapState extends ConsumerState<ActivityHeatmap> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              'THE YEAR',
-              style: textTheme.headlineSmall
-                  ?.copyWith(color: AppColors.accentText),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                totalDays == 0
-                    ? 'nothing logged yet'
-                    : '$totalDays active ${totalDays == 1 ? 'day' : 'days'}',
-                style: textTheme.bodySmall
-                    ?.copyWith(color: AppColors.textSecondary),
+        if (AppColors.activeType == AppThemeType.editorial)
+          EditorialSectionHeading(
+              title: 'The year',
+              subtitle: totalDays == 0
+                  ? 'nothing logged yet'
+                  : '$totalDays active ${totalDays == 1 ? 'day' : 'days'}')
+        else
+          Row(
+            children: [
+              Text(
+                'THE YEAR',
+                style: textTheme.headlineSmall
+                    ?.copyWith(color: AppColors.accentText),
               ),
-            ),
-          ],
-        ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  totalDays == 0
+                      ? 'nothing logged yet'
+                      : '$totalDays active ${totalDays == 1 ? 'day' : 'days'}',
+                  style: textTheme.bodySmall
+                      ?.copyWith(color: AppColors.textSecondary),
+                ),
+              ),
+            ],
+          ),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(14),

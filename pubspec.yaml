@@ -5,7 +5,7 @@
 name: aura_quest
 description: "Gamified social habit-tracker where friends compete in challenges using Aura points."
 publish_to: "none" # This is an app, not a package — never publish to pub.dev.
-version: 1.0.0+2
+version: 1.0.1+5
 
 environment:
   sdk: ^3.5.0
@@ -52,6 +52,17 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icon/logo_mark.png
+    - assets/editorial/growth_day.webp
+    - assets/editorial/growth_night.webp
+  fonts:
+    - family: Editorial Body
+      fonts:
+        - asset: assets/editorial/fonts/PlusJakartaSans.ttf
+    - family: Editorial Display
+      fonts:
+        - asset: assets/editorial/fonts/DMSerifDisplay-Regular.ttf
 
 # Erzeugt die Starter-Symbole aus assets/icon.
 # Neu erzeugen nach einer Aenderung:  dart run flutter_launcher_icons
@@ -59,10 +70,8 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: assets/icon/icon.png
-  # Adaptive Icons trennen Vorder- und Hintergrund. Android beschneidet
-  # die Vordergrundebene je nach Geraeteform - deshalb liegt der Blitz
-  # dort kleiner und mittig, sonst fehlten die Spitzen.
-  adaptive_icon_background: "#0D0F10"
+  # Adaptive icon: the new Q mark stays inside Android's safe zone.
+  adaptive_icon_background: "#F6F0DE"
   adaptive_icon_foreground: assets/icon/icon_foreground.png
   # iOS erlaubt keine Transparenz im App-Symbol.
   remove_alpha_ios: true

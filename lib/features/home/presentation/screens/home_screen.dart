@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/editorial_cover.dart';
 import '../../../../core/widgets/app_states.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -449,6 +450,15 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (AppColors.activeType == AppThemeType.editorial) {
+      return Row(children: [
+        Expanded(
+            child:
+                Text(text, style: Theme.of(context).textTheme.headlineMedium)),
+        const SizedBox(width: 16),
+        Container(width: 32, height: 2, color: AppColors.accentText),
+      ]);
+    }
     return Text(
       text,
       style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: color),
@@ -476,6 +486,22 @@ class _TodayHeader extends StatelessWidget {
         agenda.totalRunning == 0 ? null : confirmed / agenda.totalRunning;
     final allDone = completion == 1.0;
     final accent = allDone ? AppColors.neonGreen : AppColors.neonCyan;
+
+    if (AppColors.activeType == AppThemeType.editorial) {
+      return EditorialCover(
+        title:
+            allDone ? 'Look at you grow.' : 'Small steps.\nWild possibilities.',
+        chapter:
+            username == null ? 'THE DAILY EDIT' : 'THE DAILY EDIT / @$username',
+        subtitle: pendingCount > 0
+            ? '$pendingCount saved on this device · waiting to sync'
+            : agenda.totalRunning == 0
+                ? 'Your next chapter starts with a quest.'
+                : allDone
+                    ? 'Everything done today. Legend.'
+                    : '${agenda.open.length} quests waiting · $confirmed/${agenda.totalRunning} complete',
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(20),

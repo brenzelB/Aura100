@@ -64,13 +64,11 @@ habit tracker,gewohnheiten,gamification,rpg,routine,streak,duelle,fitness,produk
 
 ---
 
-## Versionshinweise / What's New (Version 1.0.0)
+## Versionshinweise / What's New (Version 1.0.1)
 
 ```text
-Willkommen bei Aura Quest 1.0! ⚡
-• Starte gemeinsame Quests mit deinen Freunden
-• Tägliche Check-ins mit Aura-Belohnungen
-• Taktische Shop-Items: Streak Shield & Half Damage
-• Spannende Live-Duelle und Freundes-Ranglisten
-• Sichere Datenhaltung mit Realtime-Synchronisation
+• Duelle und das Entfernen von Trophäen funktionieren zuverlässiger.
+• Nach einem Statistik-Reset werden die Profilanzeigen korrekt aktualisiert.
+• Einladungen und Freundschaftsanfragen werden nach Verbindungsabbrüchen nachgeladen.
+• Neues Logo und neues Editorial-Growth-Design mit Light und Dark Mode.
 ```

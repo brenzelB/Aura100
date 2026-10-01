@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/editorial_cover.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/widgets/app_states.dart';
 
@@ -44,11 +45,25 @@ class ChallengesScreen extends ConsumerWidget {
                   physics: const AlwaysScrollableScrollPhysics(),
                   // Extra bottom padding so the FAB never covers a card.
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
-                  itemCount: challenges.length,
-                  itemBuilder: (context, index) => StaggeredEntrance(
-                    delay: StaggeredEntrance.forIndex(index),
-                    child: ChallengeCard(challenge: challenges[index]),
-                  ),
+                  itemCount: challenges.length +
+                      (AppColors.activeType == AppThemeType.editorial ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    final editorial =
+                        AppColors.activeType == AppThemeType.editorial;
+                    if (editorial && index == 0) {
+                      return const EditorialCover(
+                          title: 'Make room for more.',
+                          chapter: 'THE QUEST EDIT',
+                          compact: true,
+                          subtitle:
+                              'Build a habit. Break a pattern. Surprise yourself.');
+                    }
+                    final questIndex = editorial ? index - 1 : index;
+                    return StaggeredEntrance(
+                      delay: StaggeredEntrance.forIndex(questIndex),
+                      child: ChallengeCard(challenge: challenges[questIndex]),
+                    );
+                  },
                 ),
 
           // ── Loading ───────────────────────────────────────────
@@ -76,6 +91,12 @@ class _EmptyState extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
       children: [
+        if (AppColors.activeType == AppThemeType.editorial)
+          const EditorialCover(
+              title: 'Your next chapter.',
+              compact: true,
+              chapter: 'THE QUEST EDIT',
+              subtitle: 'Every great habit starts somewhere.'),
         AppStatePanel(
             title: 'Your next chapter starts here.',
             message:

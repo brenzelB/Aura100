@@ -12,8 +12,8 @@ Alle Dateien liegen einsatzbereit im Ordner `deploy/store/`:
 |---|---|
 | [`build/app/outputs/bundle/release/app-release.aab`](../../build/app/outputs/bundle/release/app-release.aab) | **Signiertes Android App Bundle** (Release-Signatur aktiv) |
 | [`deploy/store/assets/icon_512.png`](assets/icon_512.png) | **Google Play App Icon** (512 × 512 px, 32-bit PNG) |
-| [`deploy/store/assets/feature_graphic_1024x500.png`](assets/feature_graphic_1024x500.png) | **Google Play Feature Graphic** (1024 × 500 px Banner) |
-| [`deploy/store/assets/screenshots/`](assets/screenshots/) | **Reale Screenshots** aus der App (Dashboard, Duelle etc.) |
+| [`deploy/store/assets/feature_graphic_1024x500_v2.png`](assets/feature_graphic_1024x500_v2.png) | **Google Play Feature Graphic** (1024 × 500 px Banner, neues Aura-Quest-Design) |
+| [`deploy/store/assets/screenshots/`](assets/screenshots/) | **Reale Screenshots** aus dem Android-Emulator (Dashboard, Quests, Quest-Editor und Perks) |
 | [`deploy/store/STORE_LISTING_DE.md`](STORE_LISTING_DE.md) | App-Titel, Untertitel, Kurzbeschreibung & Langtext (Deutsch) |
 | [`deploy/store/STORE_LISTING_EN.md`](STORE_LISTING_EN.md) | App-Titel, Subtitle, Short Description & Full Text (Englisch) |
 | [`deploy/store/DATA_SAFETY_GOOGLE.md`](DATA_SAFETY_GOOGLE.md) | Exakte Antworten für das **Google Play Datensicherheitsformular** |
@@ -48,8 +48,15 @@ Gehe im linken Menü auf **App-Inhalte** und fülle die Pflichtformulare aus:
 Unter **Haupt-Store-Eintrag**:
 - **Kurzbeschreibung & Vollständige Beschreibung:** Kopiere die Texte aus [`deploy/store/STORE_LISTING_DE.md`](STORE_LISTING_DE.md).
 - **App-Symbol:** Lade [`deploy/store/assets/icon_512.png`](assets/icon_512.png) hoch.
-- **Feature-Grafik:** Lade [`deploy/store/assets/feature_graphic_1024x500.png`](assets/feature_graphic_1024x500.png) hoch.
-- **Screenshots für Smartphones:** Lade mindestens 4 Screenshots aus [`deploy/store/assets/screenshots/`](assets/screenshots/) hoch.
+- **Feature-Grafik:** Lade [`deploy/store/assets/feature_graphic_1024x500_v2.png`](assets/feature_graphic_1024x500_v2.png) hoch.
+- **Screenshots für Smartphones:** Lade mindestens 4 der neuen Store-Screenshots hoch. Die fertige Auswahl liegt hier:
+  - [`store_01_home_progress.png`](assets/screenshots/store_01_home_progress.png) — Startseite mit Tagesfortschritt und erledigten Quests
+  - [`store_02_quests_overview.png`](assets/screenshots/store_02_quests_overview.png) — Quest-Übersicht mit Check-off, Fortschritt, Perks und neuem Quest
+  - [`store_03_progress_detail.png`](assets/screenshots/store_03_progress_detail.png) — Fortschrittsziel mit Streak, Tagesziel und Gesamtstatistik
+  - [`store_04_new_quest_modes.png`](assets/screenshots/store_04_new_quest_modes.png) — Quest-Editor mit Progress, Einheiten, Co-op und Freundeseinladung
+  - [`store_05_perks.png`](assets/screenshots/store_05_perks.png) — Perks mit Aura-Heist, Aura-Ward und Targeted Roast
+
+  Die Aufnahmen stammen aus einem echten 1280 × 2856 Android-Testemulator. Die unveränderten Rohaufnahmen liegen zu Prüfzwecken unter [`assets/screenshots/raw/`](assets/screenshots/raw/).
 
 ### Schritt 2.5: Release erstellen & Testen
 > **Wichtig (Google-Regel seit Nov. 2023 für persönliche Konten):**
@@ -58,8 +65,8 @@ Unter **Haupt-Store-Eintrag**:
 2. Erstelle einen neuen Release und ziehe die Datei:
    `build/app/outputs/bundle/release/app-release.aab`
    in das Upload-Feld.
-3. Versionsname: `1.0.0 (1)`
-4. Release-Hinweise aus `STORE_LISTING_DE.md` einfügen.
+3. Versionsname: `1.0.1`, Versionscode: `5`.
+4. Release-Hinweise aus [`RELEASE_NOTES_1.0.1.md`](RELEASE_NOTES_1.0.1.md) einfügen.
 5. Testerliste (E-Mails von Freunden / Familie) hinterlegen und Testlink teilen.
 6. Nach Ablauf der 14 Tage geschlossenen Tests den Antrag auf Produktionszugriff stellen.
 
@@ -84,15 +91,11 @@ Unter **Haupt-Store-Eintrag**:
 
 ### Schritt 3.3: iOS Build erstellen (Cloud CI/CD auf Windows)
 Da du auf Windows arbeitest, nutzt du die fertige GitHub Actions Pipeline:
-1. Hinterlege dein Repository auf GitHub (privat).
-2. Pushe ein Git-Tag, z. B.:
-   ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
-   ```
-3. Alternativ: Klicke unter **GitHub → Actions → Release Builds → Run workflow**.
-4. Der GitHub-Runner auf macOS kompiliert die App und generiert das signierte iOS-Archiv (`Runner.xcarchive` / `.ipa`).
-5. Alternativ: Verbinde Codemagic oder Fastlane mit App Store Connect API Key für automatischen TestFlight-Upload.
+1. Nutze die Release-Pipeline im GitHub-Repository `brenzelB/Aura100`.
+2. Klicke unter **GitHub → Actions → Release Builds → Run workflow** und setze `build_number` auf `5` für Version `1.0.1`.
+3. Der macOS-Runner erstellt `ios-unsigned-archive-5`, ein **unsigniertes** `Runner.xcarchive` zur Build-Prüfung. Dieses ist noch keine hochladbare IPA.
+4. Für eine App-Store-IPA müssen Apple-Developer-Team, Distributionszertifikat, Provisioning-Profil und Export-Konfiguration eingerichtet werden. Die derzeitige Pipeline führt keinen Apple-Upload durch.
+5. Konfiguriere vor der Apple-Veröffentlichung außerdem Firebase/APNs für iOS und prüfe Push auf einem echten iPhone. Details und Versionshinweise: [`RELEASE_NOTES_1.0.1.md`](RELEASE_NOTES_1.0.1.md).
 
 ### Schritt 3.4: Store-Listing & Datenschutz in App Store Connect
 1. **App-Informationen:**

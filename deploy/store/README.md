@@ -19,7 +19,7 @@ GitHub Actions requires encrypted repository secrets:
 Never commit signing credentials. With Play App Signing, a lost upload key
 can be reset through Play Console; it differs from Google's app signing key.
 
-Build: flutter build appbundle --release --build-number=2
+Build: flutter build appbundle --release --build-name=1.0.1 --build-number=5
 Verify the resulting AAB with keytool -printcert -jarfile.
 The certificate must not identify Android Debug.
 
@@ -36,3 +36,7 @@ iOS Firebase/APNs and physical-device testing are also outstanding.
 
 No store upload or review submission happens automatically.
 See docs/2026-09-10-store-readiness.md for remaining blockers.
+
+Current update: version 1.0.1, build 5. Launch the release workflow with an
+explicit `build_number=5` so local and cloud builds use the same version.
+See RELEASE_NOTES_1.0.1.md for store release notes and submission boundaries.

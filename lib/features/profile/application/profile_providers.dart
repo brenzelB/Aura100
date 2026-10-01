@@ -93,6 +93,10 @@ class ProfileController extends AutoDisposeAsyncNotifier<void> {
     ref.invalidate(myStatsProvider);
     ref.invalidate(currentProfileProvider);
     ref.invalidate(myChallengesProvider);
+    ref.invalidate(activityByDayProvider);
+    ref.invalidate(trophiesProvider);
+    ref.invalidate(weeklyRecapProvider);
+    ref.invalidate(checkInsProvider);
     return true;
   }
 }

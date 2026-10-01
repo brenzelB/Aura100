@@ -77,6 +77,7 @@ class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final membersAsync = ref.watch(questMembersProvider(widget.challenge.id));
+    final duelBusy = ref.watch(duelControllerProvider).isLoading;
 
     // Server rejections from poking or inviting → red SnackBars.
     void listenErrors(ProviderListenable<AsyncValue<void>> provider) {
@@ -143,12 +144,14 @@ class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
                   teamColor: teamColor,
                   isNudging: _nudgingUserId == member.userId,
                   onNudge: () => _nudge(member),
-                  onDuel: () => startDuelFlow(
-                    context,
-                    ref,
-                    challenge: widget.challenge,
-                    opponent: member,
-                  ),
+                  onDuel: duelBusy
+                      ? null
+                      : () => startDuelFlow(
+                            context,
+                            ref,
+                            challenge: widget.challenge,
+                            opponent: member,
+                          ),
                 );
 
             if (widget.challenge.mode == QuestMode.versus) {
@@ -542,7 +545,7 @@ class _MemberTile extends ConsumerWidget {
   final Challenge challenge;
   final bool isNudging;
   final VoidCallback onNudge;
-  final VoidCallback onDuel;
+  final VoidCallback? onDuel;
 
   /// Versus quests colour the avatar ring by team (owner crown stays).
   final Color? teamColor;

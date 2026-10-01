@@ -1,5 +1,6 @@
 import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/editorial_cover.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
@@ -239,6 +240,13 @@ class FriendsScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(20),
           children: [
             // ── Friend requests (only when there are any) ─────
+            if (AppColors.activeType == AppThemeType.editorial)
+              const EditorialCover(
+                  title: 'Better, together.',
+                  chapter: 'THE PEOPLE EDIT',
+                  compact: true,
+                  subtitle:
+                      'A little encouragement. A little friendly rivalry.'),
             requestsAsync.maybeWhen(
               data: (requests) => requests.isEmpty
                   ? const SizedBox.shrink()

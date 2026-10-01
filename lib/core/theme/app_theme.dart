@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 import 'design_tokens.dart';
+import 'editorial_theme.dart';
 
 /// One component system, three optional palettes, two deliberate modes.
 abstract class AppTheme {
@@ -37,12 +38,19 @@ abstract class AppTheme {
       AppThemeType.auralis => 'Inter',
     };
     TextStyle type(double size, FontWeight weight, {bool muted = false}) =>
-        GoogleFonts.getFont(family,
-            fontSize: size,
-            fontWeight: weight,
-            height: size >= 24 ? 1.12 : 1.4,
-            letterSpacing: size >= 24 ? -.6 : 0,
-            color: muted ? AppColors.textSecondary : AppColors.textPrimary);
+        themeType == AppThemeType.editorial
+            ? TextStyle(
+                fontFamily: 'Editorial Body',
+                fontSize: size,
+                fontWeight: weight,
+                height: 1.4,
+                color: muted ? AppColors.textSecondary : AppColors.textPrimary)
+            : GoogleFonts.getFont(family,
+                fontSize: size,
+                fontWeight: weight,
+                height: size >= 24 ? 1.12 : 1.4,
+                letterSpacing: size >= 24 ? -.6 : 0,
+                color: muted ? AppColors.textSecondary : AppColors.textPrimary);
     final text = base.textTheme.copyWith(
       displayLarge: type(44, FontWeight.w900),
       displayMedium: type(36, FontWeight.w900),
@@ -64,7 +72,7 @@ abstract class AppTheme {
     OutlineInputBorder input(Color color, double width) => OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppShapes.radius),
         borderSide: BorderSide(color: color, width: width));
-    return base.copyWith(
+    final result = base.copyWith(
       textTheme: text,
       iconTheme: IconThemeData(color: AppColors.textPrimary, size: 22),
       focusColor: AppColors.neonPurple.withValues(alpha: .22),
@@ -229,5 +237,8 @@ abstract class AppTheme {
               color: AppColors.textPrimary,
               borderRadius: BorderRadius.circular(6))),
     );
+    return themeType == AppThemeType.editorial
+        ? EditorialTheme.refine(result)
+        : result;
   }
 }
