@@ -1,7 +1,9 @@
 # Aura Quest — Apple App Store launch readiness
 
 **Checked:** 9 October 2026
-**Scope:** Repository and read-only NAS inspection. No code was pushed, no store build uploaded, and the app database was not changed.
+**Scope:** Repository and read-only NAS inspection. Launch-preparation changes were pushed to `main` in commit `292647e`. No store build was uploaded, and the app database was not changed.
+
+The branch push does not start the release workflow, which runs only for version tags or a manual dispatch. The local GitHub CLI is not authenticated, so no workflow run was started.
 
 ## Work completed in this pass
 
