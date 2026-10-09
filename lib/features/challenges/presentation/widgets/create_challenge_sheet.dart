@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../../../core/config/supabase_config.dart';
+import '../../../../core/content/community_content_filter.dart';
 import '../../../../core/text/quantity.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/motion.dart';
@@ -262,9 +263,9 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
     ref.listen(createChallengeControllerProvider, (_, next) {
       final error = next.error;
       if (error == null) return;
-      final message = error is PostgrestException
-          ? error.message
-          : 'Could not create the challenge.';
+      final message = error is PostgrestException && error.code == 'P0001'
+          ? 'Edit the wording to follow the community rules.'
+          : 'Could not create the challenge. Please try again.';
       ScaffoldMessenger.of(context).showSnackBar(
         AppSnackBar(content: Text(message), backgroundColor: AppColors.danger),
       );
@@ -312,9 +313,14 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
                         hintText: 'e.g. Gym every day',
                         counterText: '',
                       ),
-                      validator: (value) => (value?.trim().isEmpty ?? true)
-                          ? 'Give your quest a name'
-                          : null,
+                      validator: (value) {
+                        final title = value?.trim() ?? '';
+                        if (title.isEmpty) return 'Give your quest a name';
+                        if (CommunityContentFilter.containsBlockedWord(title)) {
+                          return 'Edit the wording to follow the community rules';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
 
@@ -328,6 +334,14 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
                         hintText: 'What are the rules?',
                         counterText: '',
                       ),
+                      validator: (value) {
+                        if (CommunityContentFilter.containsBlockedWord(
+                          value ?? '',
+                        )) {
+                          return 'Edit the wording to follow the community rules';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
 

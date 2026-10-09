@@ -19,8 +19,10 @@ GitHub Actions requires encrypted repository secrets:
 Never commit signing credentials. With Play App Signing, a lost upload key
 can be reset through Play Console; it differs from Google's app signing key.
 
-Build: flutter build appbundle --release --build-name=1.0.1 --build-number=5
-Verify the resulting AAB with keytool -printcert -jarfile.
+Build: flutter build appbundle --release --build-name=1.0.2 --build-number=6
+The existing local AAB was built on 30 September 2026, before the current
+changes. Do not upload it. Build a fresh AAB from the final, tested commit
+through the release workflow, then verify it with keytool -printcert -jarfile.
 The certificate must not identify Android Debug.
 
 ## Apple
@@ -29,14 +31,18 @@ The workflow produces an **unsigned xcarchive**, not a distributable IPA.
 Its artifact name says ios-unsigned-archive. It checks iOS SDK >=26 on macOS 26
 and fails if the archive is missing.
 
-Store export needs an Apple Developer team, distribution certificate,
-provisioning profile for com.auraquest.auraQuest and export options.
-Configure them after the account/app identity is confirmed.
-iOS Firebase/APNs and physical-device testing are also outstanding.
+The project now contains Sign in with Apple and Push Notifications capability
+settings. Store export still needs the active Apple team, distribution
+certificate, provisioning profile for `com.auraquest.auraQuest`, export
+options, and the matching iOS Firebase/APNs configuration. The current job
+still creates an unsigned archive, not an IPA. TestFlight and real-device
+acceptance have not been completed.
 
 No store upload or review submission happens automatically.
-See docs/2026-09-10-store-readiness.md for remaining blockers.
+See [the current readiness report](../../docs/2026-10-09-apple-launch-readiness.md)
+for remaining blockers. The September report is historical.
 
-Current update: version 1.0.1, build 5. Launch the release workflow with an
-explicit `build_number=5` so local and cloud builds use the same version.
-See RELEASE_NOTES_1.0.1.md for store release notes and submission boundaries.
+Current release candidate: version 1.0.2, build 6. Confirm build 6 is unused
+in both stores before building. Launch the release workflow with an explicit
+`build_number=6` so Android and iOS share the same build number.
+See RELEASE_NOTES_1.0.2.md for the current store notes.

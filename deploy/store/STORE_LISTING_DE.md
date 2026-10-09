@@ -1,74 +1,54 @@
-# Aura Quest — Store-Eintrag (Deutsch / German)
+# Aura Quest — Store-Eintrag (Deutsch)
 
 ## Metadaten
 
-| Feld | Wert | Zeichenlimit |
+| Feld | Vorschlag | Hinweis |
 |---|---|---|
-| **App-Name** | `Aura Quest: Gamified Habits` | Max. 30 Zeichen (Play Store & App Store) |
-| **Untertitel (iOS)** | `Gewohnheiten, Duelle & Aura` | Max. 30 Zeichen |
-| **Kurzbeschreibung (Android)** | `Verwandle deine Gewohnheiten in ein RPG-Abenteuer mit Quests, Duellen & Freunden.` | Max. 80 Zeichen |
-| **Primäre Kategorie** | Produktivität / Lifestyle | — |
-| **Sekundäre Kategorie** | Rollenspiel (RPG) / Soziales Netz | — |
-| **Alterseinstufung** | USK ab 0 / PEGI 3 / 4+ (App Store) | — |
-| **Inhalts-Tags** | Gewohnheitstracker, Gamification, RPG, Social Habits, Habit Tracker, Routine | — |
+| App-Name | `Aura Quest: Gamified Habits` | Unter dem Limit von 30 Zeichen |
+| Untertitel (iOS) | `Gewohnheiten, Duelle & Aura` | Unter dem Limit von 30 Zeichen |
+| Kurzbeschreibung (Google Play) | `Gewohnheiten werden Quests: Sammle Aura, spiele mit Freunden.` | 61 Zeichen; unter dem Limit von 80 |
+| Kategorie | Produktivität | In App Store Connect anhand der verfügbaren Kategorien auswählen |
+| Alterseinstufung | Noch nicht festgelegt | Den aktuellen Fragebogen in App Store Connect beantworten. Aura Heist enthält Zufallschancen und virtuelle Aura-Einsätze; keine Echtgeld-Wetten. |
 
----
-
-## Ausführliche Beschreibung (Full Description)
+## Vollständige Beschreibung
 
 ```text
-⚡ Verwandle deine täglichen Gewohnheiten in ein episches Rollenspiel!
+⚡ Mach aus deinen Gewohnheiten ein Abenteuer.
 
-Aura Quest macht persönliche Weiterentwicklung und Gewohnheitsbildung so fesselnd wie ein Retro-RPG. Schließe dich mit Freunden zusammen, starte gemeinsame Quests, duelliere dich um wertvolle Aura-Punkte und halte deine Streaks am Leben!
+Aura Quest verbindet tägliche Routinen mit gemeinsamen Quests, sichtbarem Fortschritt und einer Prise RPG. Starte eine Quest, lade Freunde ein und halte mit kurzen Check-ins fest, wie es läuft.
 
-🎮 WARUM AURA QUEST?
-Klassische Habit-Tracker sind oft trocken und schnell vergessen. Bei Aura Quest steht das gemeinsame Spielerlebnis im Mittelpunkt: Jede erledigte Gewohnheit belohnt dich mit Aura-Punkten, schützt dein Team vor Strafen und schaltet mächtige Items im Quest-Shop frei.
+⚔️ GEMEINSAME QUESTS
+• Erstelle eigene Ziele – vom Lesen bis zum Training.
+• Lade Freunde ein und erlebt den Fortschritt gemeinsam.
+• Verfolge Check-ins, Streaks und euren Quest-Fortschritt.
 
-✨ KEY FEATURES:
+🎲 DUELLE UND SPIELZÜGE
+• Fordere Freunde zu Würfelduellen heraus.
+• Setze erspielte Aura ein und entscheide mit, wie riskant ein Zug wird.
+• Nutze Quest-Perks wie Streak Shield und Aura Ward.
+• Wage einen Aura Heist mit klar angezeigter Chance und virtuellen Einsätzen.
 
-⚔️ GEMEINSAME QUESTS & HERAUSFORDERUNGEN
-• Erstelle Quests mit Freunden (z. B. 30 Tage Fitness, Tägliches Lesen, Meditation, Clean Eating).
-• Jeder Check-in stärkt deine Aura und treibt die Quest voran.
-• Bleib diszipliniert: Verpasste Tage kosten Aura und verbrauchen Strikes deines Teams!
+👥 ZUSAMMEN DRANBLEIBEN
+• Sieh, wer in deiner Quest eingecheckt hat.
+• Erinnere Freunde mit einem Nudge an ihr Ziel.
+• Melde oder blockiere Nutzer direkt in der App.
 
-🎲 LIVE-DUELLE & WÜRFELKÄMPFE
-• Fordere deine Freunde zu rasanten Würfel-Duellen heraus!
-• Setze deine hart verdiente Aura aufs Spiel und teste dein Würfelglück.
-• Erklimme die Rangliste und zeige deinen Freunden, wer die meiste Disziplin besitzt.
+🌱 DEIN FORTSCHRITT
+• Baue Routinen Schritt für Schritt auf.
+• Behalte deine Streaks und persönlichen Statistiken im Blick.
+• Passe das Erlebnis mit verschiedenen Themes und Light- oder Dark-Mode an.
 
-🛡️ DER QUEST-SHOP — STRATEGISCHE VORTEILE
-• Schütze deinen Streak: Kaufe den "Streak Shield", um verpasste Tage ohne Strike-Verlust zu überstehen.
-• Halbiere Strafen: Sichere dir das "Half Damage"-Artefakt für besonders harte Tage.
-• Setze deine erspielte Quest-Aura gezielt ein, um dein Team ins Ziel zu bringen.
+Dein Account lässt sich direkt in der App löschen. Aura Quest enthält keine Echtgeld-Wetten oder Käufe mit echtem Geld.
 
-👥 SOCIAL & MOTIVATION
-• Piekse deine Freunde mit dem täglichen "Nudge", wenn sie ihren Check-in vergessen haben.
-• Retro Cyber-Pixel-Design: Einzigartiger Mix aus modernem Social-Design und 8-Bit-Gaming-Nostalgie.
-• Feiere Triumphe und sieh in Echtzeit, wer heute schon aktiv war.
-
-🔒 DATENSCHUTZ & TRANSPARENZ
-• Keine nervige Werbung, kein Tracking, kein Datenverkauf.
-• Direkte und unkomplizierte Account-Löschung jederzeit direkt in der App.
-• Deine Daten gehören dir.
-
-Beginne dein Abenteuer noch heute und level dein Leben auf mit Aura Quest! ⚡
+Starte eine Quest und mach den nächsten Schritt – auch wenn er klein ist.
 ```
 
----
-
-## Keywords (iOS App Store — max. 100 Zeichen)
+## Keywords (iOS; höchstens 100 Zeichen, ohne Leerzeichen nach Kommas)
 
 ```text
-habit tracker,gewohnheiten,gamification,rpg,routine,streak,duelle,fitness,produktivität,disziplin
+gewohnheiten,routine,habit tracker,streak,ziele,fitness,produktivität,duelle,freunde,rpg
 ```
 
----
+## Versionshinweise
 
-## Versionshinweise / What's New (Version 1.0.1)
-
-```text
-• Duelle und das Entfernen von Trophäen funktionieren zuverlässiger.
-• Nach einem Statistik-Reset werden die Profilanzeigen korrekt aktualisiert.
-• Einladungen und Freundschaftsanfragen werden nach Verbindungsabbrüchen nachgeladen.
-• Neues Logo und neues Editorial-Growth-Design mit Light und Dark Mode.
-```
+Die Versionshinweise müssen vor Einreichung mit dem tatsächlich hochgeladenen Build abgeglichen und in der Sprache des Store-Eintrags gepflegt werden.

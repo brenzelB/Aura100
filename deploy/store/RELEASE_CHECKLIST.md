@@ -10,7 +10,7 @@ Alle Dateien liegen einsatzbereit im Ordner `deploy/store/`:
 
 | Dateipfad | Zweck |
 |---|---|
-| [`build/app/outputs/bundle/release/app-release.aab`](../../build/app/outputs/bundle/release/app-release.aab) | **Signiertes Android App Bundle** (Release-Signatur aktiv) |
+| Aktueller CI-Build | Das vorhandene AAB wurde am 30.09.2026 gebaut und ist älter als die aktuellen Änderungen. Vor einem Test oder Upload muss ein neuer signierter Build aus dem finalen Commit erstellt werden. |
 | [`deploy/store/assets/icon_512.png`](assets/icon_512.png) | **Google Play App Icon** (512 × 512 px, 32-bit PNG) |
 | [`deploy/store/assets/feature_graphic_1024x500_v2.png`](assets/feature_graphic_1024x500_v2.png) | **Google Play Feature Graphic** (1024 × 500 px Banner, neues Aura-Quest-Design) |
 | [`deploy/store/assets/screenshots/`](assets/screenshots/) | **Reale Screenshots** aus dem Android-Emulator (Dashboard, Quests, Quest-Editor und Perks) |
@@ -62,11 +62,9 @@ Unter **Haupt-Store-Eintrag**:
 > **Wichtig (Google-Regel seit Nov. 2023 für persönliche Konten):**
 > Neue private Entwicklerkonten müssen vor der Freigabe für die Produktion einen **geschlossenen Test mit mindestens 12 Testern über 14 Tage** durchführen.
 1. Gehe zu **Testen → Geschlossener Test**.
-2. Erstelle einen neuen Release und ziehe die Datei:
-   `build/app/outputs/bundle/release/app-release.aab`
-   in das Upload-Feld.
-3. Versionsname: `1.0.1`, Versionscode: `5`.
-4. Release-Hinweise aus [`RELEASE_NOTES_1.0.1.md`](RELEASE_NOTES_1.0.1.md) einfügen.
+2. Erstelle nach erfolgreicher CI-Prüfung einen neuen Release und lade das signierte AAB des aktuellen Commits aus dem GitHub-Actions-Artefakt hoch. Das lokale AAB vom 30.09.2026 nicht verwenden.
+3. Versionsname: `1.0.2`, Versionscode: `6` (nur verwenden, wenn 6 in der Play Console noch frei ist).
+4. Release-Hinweise aus [`RELEASE_NOTES_1.0.2.md`](RELEASE_NOTES_1.0.2.md) einfügen.
 5. Testerliste (E-Mails von Freunden / Familie) hinterlegen und Testlink teilen.
 6. Nach Ablauf der 14 Tage geschlossenen Tests den Antrag auf Produktionszugriff stellen.
 
@@ -74,42 +72,38 @@ Unter **Haupt-Store-Eintrag**:
 
 ## 3. Apple App Store (iOS)
 
-### Schritt 3.1: Apple Developer Program Account
-1. Registriere dich unter [developer.apple.com](https://developer.apple.com/programs/) (**99 USD / Jahr**).
-2. Melde dich bei [App Store Connect](https://appstoreconnect.apple.com) an.
+### Schritt 3.1: Konto und App-Eintrag
 
-### Schritt 3.2: Identifiers & App-Eintrag in App Store Connect
-1. **App ID anlegen:**
-   - Identifier: `com.auraquest.auraQuest` (exakt wie in `ios/Runner.xcodeproj`).
-   - Capabilities aktivieren: **Push Notifications**.
-2. **In App Store Connect neue App anlegen:**
-   - Plattform: iOS
-   - Name: `Aura Quest`
-   - Primäre Sprache: Deutsch
-   - Bundle-ID: `com.auraquest.auraQuest`
-   - SKU: `auraquest-ios-1`
+Du hast inzwischen ein Apple Developer Konto. Prüfe in [App Store Connect](https://appstoreconnect.apple.com), dass die Mitgliedschaft aktiv ist und Aura Quest als iOS-App angelegt ist. Für den Eintrag müssen diese Werte stimmen:
 
-### Schritt 3.3: iOS Build erstellen (Cloud CI/CD auf Windows)
-Da du auf Windows arbeitest, nutzt du die fertige GitHub Actions Pipeline:
-1. Nutze die Release-Pipeline im GitHub-Repository `brenzelB/Aura100`.
-2. Klicke unter **GitHub → Actions → Release Builds → Run workflow** und setze `build_number` auf `5` für Version `1.0.1`.
-3. Der macOS-Runner erstellt `ios-unsigned-archive-5`, ein **unsigniertes** `Runner.xcarchive` zur Build-Prüfung. Dieses ist noch keine hochladbare IPA.
-4. Für eine App-Store-IPA müssen Apple-Developer-Team, Distributionszertifikat, Provisioning-Profil und Export-Konfiguration eingerichtet werden. Die derzeitige Pipeline führt keinen Apple-Upload durch.
-5. Konfiguriere vor der Apple-Veröffentlichung außerdem Firebase/APNs für iOS und prüfe Push auf einem echten iPhone. Details und Versionshinweise: [`RELEASE_NOTES_1.0.1.md`](RELEASE_NOTES_1.0.1.md).
+- Bundle-ID: `com.auraquest.auraQuest` (wie im Xcode-Projekt)
+- Plattform: iOS; App Name und SKU nach dem bereits angelegten Eintrag
+- App ID: **Sign in with Apple** und **Push Notifications** aktivieren
+- Entwicklerkontakt und Support-URL eintragen
 
-### Schritt 3.4: Store-Listing & Datenschutz in App Store Connect
-1. **App-Informationen:**
-   - Untertitel: `Gewohnheiten, Duelle & Aura`
-   - Kategorie: Produktivität
-   - Datenschutzrichtlinie-URL: `https://legal.brenzel.uk/aura-quest/`
-2. **App-Datenschutz:**
-   - Folge den Vorgaben aus [`deploy/store/APP_PRIVACY_APPLE.md`](APP_PRIVACY_APPLE.md).
-   - Das erforderliche `PrivacyInfo.xcprivacy` ist bereits im Projekt eingebunden!
-3. **App-Überprüfungsinformationen (App Review):**
-   - Kontaktdaten angeben.
-   - Demo-Konto angeben (E-Mail und Passwort eines Demo-Users in Supabase, z. B. `apple-review@auraquest.local`), damit der Apple-Prüfer alle Tabs, Quests und Duelle sofort testen kann.
+### Schritt 3.2: Backend und Anmeldung
+
+- Apple Provider in Supabase aktivieren und die Service-ID/Schlüsselwerte im Supabase Auth-Dashboard konfigurieren. Apple-Anmeldung ist im iOS-Client eingebaut; ein erfolgreicher Build allein bestätigt den Provider noch nicht.
+- Für iOS Push `GoogleService-Info.plist` zur Firebase-App mit Bundle-ID `com.auraquest.auraQuest` erzeugen, einen APNs-Auth-Key in Firebase hinterlegen und die Konfiguration sicher in den Build geben. Schlüssel und Plist nicht ins Repository committen.
+- Die neue Moderationsmigration `20261009120000_app_store_moderation.sql` muss nach Backup und Regressionstest auf dem NAS angewendet werden. Danach Test durchführen: problematische Profil-/Quest-Texte werden abgewiesen, normale Texte gespeichert, Meldungen in der Moderationswarteschlange sichtbar.
+- Push, Anmeldung, Account-Löschung und Report/Block mit echten Testkonten auf einem iPhone durchspielen.
+
+### Schritt 3.3: Signierter iOS-Build
+
+Windows kann kein iOS-IPA erzeugen. Die GitHub-Action baut derzeit nur ein **unsigniertes** Archiv. Für eine einreichbare IPA braucht der macOS-Runner eine Apple-Distribution-Signatur, ein App-Store-Provisioning-Profil und die Export-Optionen für das Team. Firebase-Konfiguration muss ebenfalls sicher eingebunden sein. Die bestehende Pipeline lädt nichts hoch.
+
+Die Version ist aktuell `1.0.2`, Build `6`. Verwende Build 6 nur, wenn er in App Store Connect noch frei ist; andernfalls erhöhe die gemeinsame Android-/iOS-Build-Nummer. Version und Build-Nummer müssen zum App-Store-Connect-Datensatz passen.
+
+### Schritt 3.4: Listing und Prüfung
+
+- Beschreibung und Keywords aus [`STORE_LISTING_DE.md`](STORE_LISTING_DE.md) übernehmen und im finalen Build verifizierte Aussagen verwenden.
+- Datenschutz-URL: `https://legal.brenzel.uk/aura-quest/`. Die lokale Website enthält jetzt Community-Regeln; sie muss nach dem Datenbank- und Build-Update veröffentlicht und live geprüft werden.
+- Datenschutzangaben mit [`APP_PRIVACY_APPLE.md`](APP_PRIVACY_APPLE.md) und dem endgültigen SDK-/Datenfluss abgleichen.
+- Apple verlangt mindestens einen iPhone-Screenshot für ein iPhone mit Dynamic Island in mittlerer Displaygröße. Weil das Projekt iPad unterstützt, wird zusätzlich ein iPad-13-Zoll-Screenshot benötigt. Die vorhandenen Store-Bilder stammen nur von Android und sind dafür kein Ersatz.
+- Den aktuellen Altersfreigabe-Fragebogen selbst vollständig beantworten. Dabei Aura Heist, Zufallschancen und ausschließlich virtuelle Aura-Einsätze wahrheitsgemäß angeben; die alte pauschale Angabe „4+“ nicht übernehmen.
+- App Review Zugangsdaten für ein funktionierendes Demo-Konto bereitstellen und sicherstellen, dass Backend und Testzugang während der Prüfung erreichbar sind.
+- Export-Compliance, App-Privacy, Supportkontakt, Lizenztexte und finale Datenschutzseite vor dem Einreichen abhaken.
 
 ### Schritt 3.5: Einreichen
-1. Wähle den Build aus TestFlight aus.
-2. Klicke auf **Zur Überprüfung einreichen**.
-3. Die Apple-Prüfung dauert üblicherweise 24 bis 48 Stunden.
+
+Nur nach erfolgreichem signiertem Upload, Verarbeitung in TestFlight und bestandener iPhone-/iPad-Prüfung den Build zur App-Review einreichen. Upload und Einreichung erfolgen nicht automatisch durch das Repository.

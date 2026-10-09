@@ -1,6 +1,10 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart'
+    show LicenseEntryWithLineBreaks, LicenseRegistry;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
@@ -10,6 +14,23 @@ import 'core/push/push_service.dart';
 Future<void> main() async {
   // Required because we do async work (Supabase init) before runApp.
   WidgetsFlutterBinding.ensureInitialized();
+
+  // The exact font files used by the two non-editorial themes are bundled as
+  // assets. Keep runtime fetching off so fonts never make a network request.
+  GoogleFonts.config.allowRuntimeFetching = false;
+  LicenseRegistry.addLicense(() async* {
+    final hanken = await rootBundle.loadString(
+      'assets/google_fonts/OFL-HankenGrotesk.txt',
+    );
+    yield LicenseEntryWithLineBreaks(
+      ['Hanken Grotesk'],
+      hanken,
+    );
+    final inter = await rootBundle.loadString(
+      'assets/google_fonts/OFL-Inter.txt',
+    );
+    yield LicenseEntryWithLineBreaks(['Inter'], inter);
+  });
 
   // Initialize Supabase (Auth + Database).
   // Skipped while the credentials are still placeholders so the Phase 1

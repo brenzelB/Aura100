@@ -102,5 +102,7 @@ class AuthController extends AutoDisposeAsyncNotifier<void> {
 
   Future<bool> signInWithGoogle() => _run((repo) => repo.signInWithGoogle());
 
+  Future<bool> signInWithApple() => _run((repo) => repo.signInWithApple());
+
   Future<bool> signOut() => _run((repo) => repo.signOut());
 }

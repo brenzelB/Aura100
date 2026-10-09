@@ -2,13 +2,17 @@ import 'package:aura_quest/core/widgets/app_states.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import '../../../../core/widgets/editorial_cover.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../../../core/config/supabase_config.dart';
+import '../../../../core/content/community_content_filter.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../application/auth_providers.dart';
@@ -291,6 +295,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     await ref.read(authControllerProvider.notifier).signInWithGoogle();
   }
 
+  Future<void> _signInWithApple() async {
+    if (_handleUnconfigured()) return;
+    await ref.read(authControllerProvider.notifier).signInWithApple();
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -424,8 +433,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   counterText: '', // hide the maxLength counter
                 ),
                 validator: (value) {
-                  if ((value?.trim().length ?? 0) < 3) {
+                  final username = value?.trim() ?? '';
+                  if (username.length < 3) {
                     return 'Username needs at least 3 characters';
+                  }
+                  if (CommunityContentFilter.containsBlockedWord(username)) {
+                    return 'Choose a username that follows the community rules';
                   }
                   return null;
                 },
@@ -518,6 +531,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               icon: const Icon(Icons.g_mobiledata, size: 28),
               label: const Text('CONTINUE WITH GOOGLE'),
             ),
+            if (defaultTargetPlatform == TargetPlatform.iOS) ...[
+              const SizedBox(height: 12),
+              SignInWithAppleButton(
+                onPressed: isLoading ? null : _signInWithApple,
+                text: _isSignUp ? 'Create Account' : 'Sign in with Apple',
+                style: Theme.of(context).brightness == Brightness.dark
+                    ? SignInWithAppleButtonStyle.white
+                    : SignInWithAppleButtonStyle.black,
+                borderRadius: BorderRadius.circular(12),
+                height: 50,
+              ),
+            ],
             const SizedBox(height: 24),
 
             // ── Mode toggle ──────────────────────────────

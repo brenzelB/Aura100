@@ -1,4 +1,9 @@
-import 'package:flutter/foundation.dart' show debugPrint, debugPrintStack, kIsWeb;
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart'
+    show debugPrint, debugPrintStack, kIsWeb;
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/supabase_config.dart';
@@ -63,8 +68,7 @@ class AuthRepository {
           email: email,
           password: password,
           data: {'username': username},
-          emailRedirectTo:
-              kIsWeb ? null : SupabaseConfig.confirmRedirectUrl,
+          emailRedirectTo: kIsWeb ? null : SupabaseConfig.confirmRedirectUrl,
         );
         debugPrint(
           '✅ [AuthRepository.signUpWithEmail] user created: '
@@ -108,8 +112,7 @@ class AuthRepository {
         await _client.auth.resend(
           type: OtpType.signup,
           email: email,
-          emailRedirectTo:
-              kIsWeb ? null : SupabaseConfig.confirmRedirectUrl,
+          emailRedirectTo: kIsWeb ? null : SupabaseConfig.confirmRedirectUrl,
         );
         debugPrint('✅ [AuthRepository.resendConfirmation] sent to $email');
       });
@@ -168,6 +171,39 @@ class AuthRepository {
           redirectTo: kIsWeb ? null : SupabaseConfig.oauthRedirectUri,
         );
         debugPrint('✅ [AuthRepository.signInWithGoogle] browser flow launched');
+      });
+
+  /// Uses Apple's native authorization sheet and exchanges its identity
+  /// token directly with Supabase. The raw nonce is verified by Supabase;
+  /// Apple receives only its SHA-256 hash.
+  Future<void> signInWithApple() => _guarded('signInWithApple', () async {
+        final rawNonce = generateNonce();
+        final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
+
+        late final AuthorizationCredentialAppleID credential;
+        try {
+          credential = await SignInWithApple.getAppleIDCredential(
+            scopes: const [AppleIDAuthorizationScopes.email],
+            nonce: hashedNonce,
+          );
+        } on SignInWithAppleAuthorizationException catch (error) {
+          if (error.code == AuthorizationErrorCode.canceled) return;
+          rethrow;
+        }
+
+        final idToken = credential.identityToken;
+        if (idToken == null) {
+          throw const AuthException(
+            'Apple did not return an identity token. Please try again.',
+          );
+        }
+
+        await _client.auth.signInWithIdToken(
+          provider: OAuthProvider.apple,
+          idToken: idToken,
+          nonce: rawNonce,
+        );
+        debugPrint('✅ [AuthRepository.signInWithApple] signed in');
       });
 
   Future<void> signOut() => _guarded('signOut', () async {

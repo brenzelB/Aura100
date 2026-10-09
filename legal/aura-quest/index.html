@@ -54,9 +54,10 @@
 
 <header>
   <h1>Aura Quest — Rechtliches</h1>
-  <div class="sub">Stand: 7. August 2026</div>
+  <div class="sub">Stand: 9. Oktober 2026</div>
   <nav>
     <a href="#datenschutz">Datenschutzerklärung</a>
+    <a href="#community">Community-Regeln</a>
     <a href="#impressum">Impressum</a>
   </nav>
 </header>
@@ -113,13 +114,15 @@ Verbindungsdaten (IP-Adresse, Zeitpunkt, Pfad), ausschließlich für
 Betrieb und Missbrauchsabwehr.</p>
 
 <h3>4. Empfänger und Drittanbieter</h3>
-<p>Diese vier Dienste sind eingebunden. Andere gibt es nicht,
-insbesondere keine Analyse-, Werbe- oder Absturzberichtsdienste.</p>
+<p>Diese Dienste verarbeiten Daten, wenn du die jeweilige Funktion nutzt.
+Aura Quest verwendet keine Analyse-, Werbe- oder Absturzberichtsdienste.</p>
 <table>
   <tr><th>Dienst</th><th>Wofür</th><th>Grundlage</th></tr>
   <tr><td>Cloudflare</td><td>Erreichbarkeit und TLS-Verschlüsselung; verarbeitet Verbindungsdaten inkl. IP</td><td>Art. 6 I f</td></tr>
   <tr><td>Resend (via AWS SES, Irland)</td><td>Bestätigungs- und Passwort-Mails</td><td>Art. 6 I b</td></tr>
-  <tr><td>Google Firebase</td><td>Push-Zustellung, optional</td><td>Art. 6 I a</td></tr>
+  <tr><td>Google Sign-In</td><td>Optionale Anmeldung; Google verarbeitet die Anmeldung und gibt ein Identitätstoken sowie, falls verfügbar, die E-Mail-Adresse an Aura Quest weiter</td><td>Art. 6 I a</td></tr>
+  <tr><td>Sign in with Apple</td><td>Optionale Anmeldung; Apple verarbeitet die Anmeldung. Du kannst deine E-Mail-Adresse verbergen und eine Relay-Adresse verwenden</td><td>Art. 6 I a</td></tr>
+  <tr><td>Google Firebase</td><td>Optionale Push-Zustellung; Google erhält Geräte-Token und Zustellzeitpunkt. iOS-Push wird erst nach separater Firebase-/APNs-Konfiguration aktiviert</td><td>Art. 6 I a</td></tr>
   <tr><td>ntfy (selbst betrieben)</td><td>Push-Zustellung ohne Dritte</td><td>Art. 6 I a</td></tr>
 </table>
 <p><strong>Zu Firebase:</strong> Google erfährt Geräte-Kennung und
@@ -131,6 +134,8 @@ erreichen Google nicht. Dabei kann eine Übermittlung in die USA
 erfolgen; Google LLC ist unter dem EU-US Data Privacy Framework
 zertifiziert. Die Einwilligung ist in den App-Einstellungen jederzeit
 widerrufbar.</p>
+<p>Die verwendeten Schriftdateien werden mit der App ausgeliefert. Die App
+ruft Google Fonts daher nicht zur Laufzeit ab.</p>
 
 <h3>5. Speicherdauer</h3>
 <table>
@@ -203,9 +208,23 @@ vor einer Verbraucherschlichtungsstelle teilzunehmen.</p>
 nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 DDG bin
 ich nicht verpflichtet, übermittelte oder gespeicherte fremde
 Informationen zu überwachen. Von Nutzern erzeugte Inhalte —
-Benutzernamen, Quest-Titel und -Beschreibungen — werden nicht vorab
-geprüft; bei Kenntnis von Rechtsverletzungen werden sie umgehend
-entfernt. Die App bietet dafür eine Melde- und eine Blockierfunktion.</p>
+Benutzernamen und Quest-Texte — werden beim Speichern automatisch auf
+gängige Schimpfwörter geprüft. Diese technische Prüfung erkennt nicht
+jeden problematischen Inhalt. Meldungen werden zeitnah geprüft; die App
+bietet dafür eine Melde- und eine Blockierfunktion.</p>
+
+<h2 id="community">Community-Regeln</h2>
+<p>Aura Quest ist für gemeinsame Ziele und freundschaftlichen Wettbewerb
+gedacht. Verwende respektvolle Benutzernamen und Quest-Texte. Untersagt
+sind insbesondere Hassrede, Drohungen, gezielte Belästigung, sexuelle
+Inhalte, diskriminierende Ausdrücke und Spam. Ein automatischer Filter
+blockiert häufige Schimpfwörter, kann aber nicht jeden Verstoß erkennen.</p>
+<p>Wenn dich ein Nutzer oder Inhalt stört, kannst du die Person in der
+App melden oder blockieren. Eine Blockierung unterbindet weitere
+Interaktionen zwischen euch. Meldungen werden regelmäßig geprüft und
+bei bestätigten Verstößen können Inhalte entfernt und Konten gesperrt
+werden. Für dringende Sicherheitsanliegen erreichst du den Betreiber
+unter <a href="mailto:kontakt@brenzel.uk" style="color:var(--accent)">kontakt@brenzel.uk</a>.</p>
 
 <h3>Urheberrecht</h3>
 <p>Die durch den Betreiber erstellten Inhalte und Werke unterliegen dem

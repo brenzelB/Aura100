@@ -2,73 +2,53 @@
 
 ## Metadata
 
-| Field | Value | Character Limit |
+| Field | Draft | Note |
 |---|---|---|
-| **App Name** | `Aura Quest: Gamified Habits` | Max 30 chars (Play Store & App Store) |
-| **Subtitle (iOS)** | `Habits, Duels & Aura Points` | Max 30 chars |
-| **Short Description (Android)** | `Turn your daily habits into an epic RPG adventure with quests, duels & friends.` | Max 80 chars |
-| **Primary Category** | Productivity / Lifestyle | — |
-| **Secondary Category** | Role Playing (RPG) / Social Networking | — |
-| **Content Rating** | PEGI 3 / USK 0 / Everyone / 4+ (App Store) | — |
-| **Tags** | Habit Tracker, Gamification, RPG, Social Habits, Routines, Goals, Streaks | — |
+| App name | `Aura Quest: Gamified Habits` | Under the 30-character limit |
+| iOS subtitle | `Habits, Duels & Aura` | Under the 30-character limit |
+| Google Play short description | `Turn habits into quests. Earn Aura and play with friends.` | Under the 80-character limit |
+| Category | Productivity | Select the closest available category in App Store Connect |
+| Age rating | Not assigned | Complete the current App Store Connect questionnaire. Aura Heist uses chance and virtual Aura stakes; it has no real-money wagering. |
 
----
-
-## Full Description
+## Full description
 
 ```text
-⚡ Transform your daily habits into an epic role-playing adventure!
+⚡ Turn your habits into an adventure.
 
-Aura Quest makes personal growth and habit building as thrilling as a classic retro RPG. Team up with friends, embark on multiplayer habit quests, duel for valuable Aura points, and keep your winning streaks alive!
+Aura Quest pairs everyday routines with shared quests, visible progress, and a little RPG spirit. Start a quest, invite friends, and use quick check-ins to keep each other moving.
 
-🎮 WHY AURA QUEST?
-Traditional habit trackers are boring and easy to abandon. Aura Quest puts social gameplay and accountability first: Every completed habit awards you Aura points, protects your team from penalties, and unlocks powerful items in the Quest Shop.
+⚔️ QUEST TOGETHER
+• Create goals for anything from reading to training.
+• Invite friends and make progress side by side.
+• Follow check-ins, streaks, and quest progress.
 
-✨ KEY FEATURES:
+🎲 DUELS AND GAMEPLAY
+• Challenge friends to dice duels.
+• Put earned Aura at stake and choose how risky to play.
+• Use quest perks such as Streak Shield and Aura Ward.
+• Try an Aura Heist with clearly shown odds and virtual stakes.
 
-⚔️ MULTIPLAYER QUESTS & CHALLENGES
-• Create custom quests with friends (e.g., 30 Days Fitness, Daily Reading, Meditation, Deep Work).
-• Every daily check-in boosts your Aura and advances your quest.
-• Stay accountable: Missed days cost Aura penalties and consume your team's strikes!
+👥 KEEP EACH OTHER GOING
+• See who has checked in on a shared quest.
+• Send a nudge when a friend needs a reminder.
+• Report or block users in the app.
 
-🎲 REAL-TIME DUELS & DICE BATTLES
-• Challenge your friends to quick dice duels!
-• Wager your hard-earned Aura and test your luck.
-• Climb the leaderboard and show who has the strongest discipline.
+🌱 YOUR PROGRESS
+• Build routines one step at a time.
+• Keep an eye on streaks and personal stats.
+• Choose from distinct themes and light or dark mode.
 
-🛡️ THE QUEST SHOP — TACTICAL POWER-UPS
-• Protect your streak: Buy the "Streak Shield" to absorb missed check-ins without losing strikes.
-• Mitigate loss: Equip the "Half Damage" artifact to halve penalties on tough days.
-• Spend your challenge Aura strategically to carry your party to victory.
+You can delete your account directly in the app. Aura Quest has no real-money wagers or purchases.
 
-👥 SOCIAL ACCOUNTABILITY & NUDGES
-• Send a quick "Nudge" poke to friends who haven't logged their habits yet.
-• Cyber-Pixel Vibe: Stunning blend of modern clean UX and nostalgic 8-bit retro aesthetic.
-• Real-time updates so you always know when your party members check in.
-
-🔒 PRIVACY-FIRST & TRANSPARENT
-• No ads, no third-party tracking, no data selling.
-• Simple in-app account deletion anytime you want.
-• Your data remains yours.
-
-Start your quest today and level up your life with Aura Quest! ⚡
+Start a quest and take the next step, however small.
 ```
 
----
-
-## Keywords (iOS App Store — max 100 chars)
+## Keywords (iOS; 100 characters maximum, no spaces after commas)
 
 ```text
-habit tracker,habits,gamify,rpg,gamification,routine,streak,duels,goals,productivity,friends
+habits,routine,habit tracker,streak,goals,fitness,duels,friends,rpg,productivity
 ```
 
----
+## Version notes
 
-## What's New (Version 1.0.1)
-
-```text
-• More reliable duels and trophy removal.
-• Profile displays refresh correctly after resetting stats.
-• Invitations and friend requests catch up after connection interruptions.
-• New logo and a distinctive Editorial Growth design with light and dark modes.
-```
+Confirm these notes against the actual uploaded build and maintain a separate localized version before submission.

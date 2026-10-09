@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 import '../../../../core/widgets/theme_components.dart';
 
 import '../../../../core/config/supabase_config.dart';
+import '../../../../core/content/community_content_filter.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/design_tokens.dart';
@@ -99,6 +100,9 @@ class ProfileScreen extends ConsumerWidget {
               final name = value?.trim() ?? '';
               if (name.length < 3) return 'At least 3 characters';
               if (name.length > 24) return 'At most 24 characters';
+              if (CommunityContentFilter.containsBlockedWord(name)) {
+                return 'Choose a username that follows the community rules';
+              }
               return null;
             },
             onFieldSubmitted: (_) {
@@ -143,10 +147,15 @@ class ProfileScreen extends ConsumerWidget {
       final error = ref.read(profileControllerProvider).error;
       // 23505 = unique violation, i.e. the name is already taken.
       final taken = error is PostgrestException && error.code == '23505';
+      final blocked = error is PostgrestException && error.code == 'P0001';
       messenger.showSnackBar(AppSnackBar(
-        content: Text(taken
-            ? '"$newName" is already taken - pick another one.'
-            : 'Could not rename - try again.'),
+        content: Text(
+          taken
+              ? '"$newName" is already taken - pick another one.'
+              : blocked
+                  ? 'Choose a username that follows the community rules.'
+                  : 'Could not rename - try again.',
+        ),
         backgroundColor: AppColors.danger,
       ));
     }
@@ -564,6 +573,11 @@ class ProfileScreen extends ConsumerWidget {
                   icon: Icons.gavel_outlined,
                   label: 'Legal notice',
                   url: '$_legalBaseUrl#impressum',
+                ),
+                _LegalLink(
+                  icon: Icons.groups_2_outlined,
+                  label: 'Community guidelines',
+                  url: '$_legalBaseUrl#community',
                 ),
                 const SizedBox(height: 16),
                 OutlinedButton.icon(
