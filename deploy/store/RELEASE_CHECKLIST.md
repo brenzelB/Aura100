@@ -93,14 +93,14 @@ Du hast inzwischen ein Apple Developer Konto. Prüfe in [App Store Connect](http
 
 Windows kann kein iOS-IPA erzeugen. Die GitHub-Action baut standardmäßig ein **unsigniertes** Archiv; `ios_signing=app-store` erstellt die signierte IPA. Zertifikat, Profil und die genehmigten Secrets sind eingerichtet und der signierte Export ist erfolgreich geprüft. Der gesonderte Apple-Upload von Build 9 wurde verarbeitet und intern freigegeben. `upload_testflight=true` reicht die App nicht zur Review ein. Details: [Build-Anleitung](README.md).
 
-Die Version ist aktuell `1.0.2`, signierter Kandidat `10`. Dieser Build ist noch nicht zu Apple hochgeladen. Der tatsächlich freigegebene interne Test ist Build `9`. Für eine spätere neue App-Binary eine höhere freie gemeinsame Android-/iOS-Build-Nummer verwenden.
+Die Version ist aktuell `1.0.2`, signierter Kandidat `11`. Dieser Build ist noch nicht zu Apple hochgeladen. Der tatsächlich freigegebene interne Test ist Build `9`. Für eine spätere neue App-Binary eine höhere freie gemeinsame Android-/iOS-Build-Nummer verwenden.
 
 ### Schritt 3.4: Listing und Prüfung
 
 - Beschreibung und Keywords aus [`STORE_LISTING_DE.md`](STORE_LISTING_DE.md) übernehmen und im finalen Build verifizierte Aussagen verwenden.
 - Datenschutz-URL: `https://legal.brenzel.uk/aura-quest/`. Community-Regeln und aktuelle Provider-Angaben sind veröffentlicht und per HTTPS geprüft.
 - Datenschutzangaben mit [`APP_PRIVACY_APPLE.md`](APP_PRIVACY_APPLE.md) und dem endgültigen SDK-/Datenfluss abgleichen.
-- Apple verlangt mindestens einen iPhone-Screenshot für ein iPhone mit Dynamic Island in mittlerer Displaygröße. Weil das Projekt iPad unterstützt, wird zusätzlich ein iPad-13-Zoll-Screenshot benötigt. Die vorhandenen Store-Bilder stammen nur von Android und sind dafür kein Ersatz.
+- Die geprüfte [Apple-Auswahl](assets/screenshots/apple/README.md) enthält drei iPhone-17-Pro-Bilder (1206 × 2622) und vier iPad-Pro-13-Zoll-Bilder (2064 × 2752). Die Aufnahmen zeigen Produktions-Widgets mit lokalen Beispielen. Das iPhone-Dark-Bild ist wegen unlesbarer Statussymbole im Simulator ausgeschlossen; die Statusleiste auf einem echten iPhone prüfen. Android-Bilder sind kein Ersatz für Apple-Aufnahmen.
 - Den vorbereiteten [Alters- und Inhaltsrechte-Fragebogen](APPLE_AGE_AND_CONTENT_DECLARATIONS.md) bestätigen und Apples tatsächliche Einstufung prüfen. Würfelduelle mit virtuellen Aura-Einsätzen als simuliertes Glücksspiel angeben; die alte pauschale Angabe „4+“ nicht übernehmen.
 - App Review Zugangsdaten für ein funktionierendes Demo-Konto bereitstellen und sicherstellen, dass Backend und Testzugang während der Prüfung erreichbar sind.
 - Export-Compliance gemäß [technischem Entwurf](APPLE_EXPORT_TECHNICAL_DRAFT.md), App-Privacy, Supportkontakt, Lizenztexte und finale Datenschutzseite vor dem Einreichen abhaken. Kostenloser Preis, Copyright, deutsche/englische Texte und 175 Länder für den künftigen Start sind bereits als Entwurf gespeichert.

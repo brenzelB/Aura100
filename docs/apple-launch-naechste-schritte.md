@@ -10,7 +10,14 @@ wurde noch nicht zur App Review eingereicht.
   fand danach einen Kontrastfehler der Activity-Karte beim Wechsel ins dunkle Theme.
   Er ist korrigiert; alle **376 Flutter-Tests** einschließlich der unveränderten
   Theme-Goldens sind erfolgreich. Der neue signierte Build **1.0.2 (11)** hat
-  alle vier Release-Prüfungen bestanden. Passende Aufnahmen werden vorbereitet.
+  alle vier Release-Prüfungen bestanden.
+- Sieben geprüfte Apple-Simulatorbilder sind ausgewählt: drei für iPhone und
+  vier für iPad, einschließlich Editorial Light/Dark. Sie zeigen Produktions-
+  Ansichten mit lokalen Beispielquests. Das iPhone-Dark-Bild ist wegen dunkler
+  Statussymbole ausgeschlossen; diese Darstellung muss am echten Gerät geprüft werden.
+  Die Auswahl ist für Deutsch und Englisch (USA) im Store-Entwurf gespeichert
+  und nach Neuladen geprüft.
+  Die Dateien liegen auch auf dem Desktop unter `AuraQuest_Store_Bilder/Apple_iOS`.
 - Der Store-Eintrag enthält deutsche und englische Texte, das Copyright,
   die Datenschutz-URL, den kostenlosen Preis und 175 Länder für den späteren Start.
 - Die Kontolöschung mit vorherigem Apple-Widerruf ist implementiert. Ihre
@@ -38,8 +45,7 @@ Diese Schritte wurden nicht ausgeführt.
 3. Die erneut gesicherte und isoliert geprüfte Datenbankmigration aktivieren.
 4. Die passende Datenschutzerklärung veröffentlichen und über die öffentliche URL prüfen.
 5. Den finalen Build zu Apple hochladen und für den internen Gerätetest bereitstellen.
-6. Echte iPhone-/iPad-Aufnahmen prüfen und in beiden Store-Sprachen hochladen.
-7. Privacy, Altersfreigabe, Review-Zugang und Kontakt vollständig speichern.
+6. Privacy, Altersfreigabe, Review-Zugang und Kontakt vollständig speichern.
 
 ## Gerätetest und weltweiter Vertrieb
 

@@ -33,7 +33,7 @@ iOS und Android verwenden denselben Backend-Dienst unter `https://api.brenzel.uk
 | Push abgelehnt | Benachrichtigungen in iOS-Einstellungen deaktivieren und die App weiter nutzen. | Die App bleibt bedienbar; Aktivitäten sind weiterhin in der App sichtbar. | Offen |
 | Melden und Blockieren | Einen testweise problematischen Inhalt melden und das zweite Testkonto blockieren. | Bestätigung erscheint; blockierte Interaktionen werden verhindert; die Meldung ist beim Betreiber vorhanden. | Offen |
 | Netzunterbrechung | Kurz den Flugmodus einschalten, einen Check-in versuchen, Verbindung wiederherstellen. | Kein verlorener oder doppelter Check-in; der tatsächliche Status ist nachvollziehbar. | Offen |
-| Darstellung | Alle drei Themes in Hell/Dunkel öffnen; große iOS-Schrift, Hoch-/Querformat und ein iPad prüfen. | Keine abgeschnittenen Bedienelemente, lesbarer Text und keine auffälligen Ruckler. | Offen |
+| Darstellung | Alle drei Themes in Hell/Dunkel öffnen; große iOS-Schrift, Hoch-/Querformat und ein iPad prüfen. Bei heller iOS-Systemdarstellung auch in den App-Dark-Mode wechseln und die Statusleiste prüfen. | Keine abgeschnittenen Bedienelemente, lesbarer Text einschließlich Uhrzeit/Statussymbolen und keine auffälligen Ruckler. Der iPhone-Simulator zeigte im App-Dark-Mode schwarze Statussymbole; die reale Gerätewirkung ist offen. | Offen |
 
 ## Noch gesperrte Abnahme
 

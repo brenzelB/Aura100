@@ -99,8 +99,22 @@ the screenshot inspection. This is not evidence of public release or device acce
   detached, dimensions/duplicates are checked, and all eight images are required.
   The controller's dev dependency was already present at the same version as a
   transitive dependency; no runtime dependency or normal release entrypoint changed.
-  Analyzer passed after the controller update. Replacement images will be visually
-  checked before uploading.
+  Analyzer passed after the controller update. Replacement run 38076725703
+  completed successfully with eight distinct, correctly sized renders. All eight
+  were visually inspected, and no Flutter rendering exceptions were found in its
+  logs. The fixed iPad Activity panel is readable in Editorial Dark. Seven images
+  were selected: three iPhone and four iPad images, unchanged PNGs with SHA256
+  provenance in `deploy/store/assets/screenshots/apple/manifest.json`.
+  The iPhone Editorial Dark image is excluded because its native status symbols
+  stayed dark over the dark background. The AppBar already requests light symbols;
+  the actual device effect remains open in the TestFlight acceptance plan.
+  The seven selected images are explicitly saved for both German and English
+  (USA) in App Store Connect version 1.0.2. All four language/device counters
+  persisted after reloading: three iPhone and four iPad images per localization.
+  Save is disabled, with no unsaved changes. No review submission was initiated.
+  The selection, README and manifest were copied to the requested Desktop
+  `AuraQuest_Store_Bilder/Apple_iOS/` folder, with all seven hashes checked.
+  The excluded iPhone Dark original is separately labelled `Nicht_fuer_Store`.
 - Worldwide encryption/export compliance remains open. Removing webcrypto does
   not prove OS-only encryption: the exported Flutter engine still contains TLS
   implementation markers. No unverified exemption flag was added.

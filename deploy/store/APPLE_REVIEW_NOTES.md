@@ -6,7 +6,10 @@ during screenshot inspection. Its signed release run passed all four jobs;
 build 10 is superseded and neither candidate has been uploaded to Apple.
 Apple revocation code and its isolated NAS database tests are complete;
 the dedicated signing key and live deployment await confirmation. Real device
-acceptance, screenshots and App Store privacy/age/export forms remain open.
+acceptance and App Store privacy/age/export forms remain open. Seven checked
+simulator images are selected; their provenance is recorded in
+`assets/screenshots/apple/manifest.json`. The iPhone Dark capture is excluded for
+native status-bar contrast, which remains part of real-device acceptance.
 Reviewer credentials have been prepared locally but not shared with Apple.
 See [the current checkpoint](../../docs/2026-10-10-apple-launch-completion.md).
 

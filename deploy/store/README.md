@@ -60,10 +60,12 @@ No store upload or review submission happens automatically.
 See [the current readiness report](../../docs/2026-10-10-apple-launch-completion.md)
 for remaining blockers. The September report is historical.
 
-Current signed candidate: **1.0.2 (10)**, source `f8590f6`,
-[release run 38052895628](https://github.com/brenzelB/Aura100/actions/runs/38052895628).
-Its `ios-app-store-ipa-10` and `android-release-bundle-10` artifacts are already
-downloaded under ignored `build/store/`; neither build 10 artifact is uploaded.
-Apple's active internal test remains build 9. For a new binary after build 10,
+Current signed candidate: **1.0.2 (11)**, source `423dad4`,
+[release run 38075183018](https://github.com/brenzelB/Aura100/actions/runs/38075183018).
+Its `ios-app-store-ipa-11` and `android-release-bundle-11` artifacts are already
+downloaded under ignored `build/store/`; neither build 11 artifact is uploaded.
+The [Apple screenshot selection](assets/screenshots/apple/README.md) contains
+three checked iPhone renders and four checked iPad renders, with provenance.
+Apple's active internal test remains build 9. For a new binary after build 11,
 check both stores and use a greater unused shared build number.
 See RELEASE_NOTES_1.0.2.md for the current store notes.
