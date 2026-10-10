@@ -1,6 +1,10 @@
 # Standard Flutter lints — keeps the codebase clean as it grows.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  exclude:
+    - build/**
+
 linter:
   rules:
     prefer_single_quotes: true

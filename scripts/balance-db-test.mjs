@@ -27,6 +27,14 @@ function sql(s){return remote(`docker exec -i ${name} psql -XAt -U postgres -d p
 if(process.argv.includes('--replay')) {
   remote(`docker exec ${name} psql -X -U supabase_admin -d postgres -c 'alter role postgres superuser'`);
   sql('create table if not exists public.audit_migrations(name text primary key); create extension if not exists pg_net; create extension if not exists pgtap;');
+  // GoTrue normally creates this table. This network-isolated PostgreSQL-only
+  // fixture has no Auth service; model the fields read by the deletion guard.
+  sql(`create table if not exists auth.identities (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null references auth.users(id) on delete cascade,
+    provider_id text not null, provider text not null,
+    identity_data jsonb not null default '{}'::jsonb,
+    unique(provider,provider_id));`);
   const applied=new Set(sql('select name from public.audit_migrations').trim().split('\n'));
   for(const file of readdirSync('supabase/migrations').filter(n=>n.endsWith('.sql')).sort()) {
     if(applied.has(file)) continue;

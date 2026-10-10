@@ -1,4 +1,6 @@
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart'
+    show debugPrint, defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/profile.dart';
@@ -62,8 +64,7 @@ class ProfileRepository {
     try {
       await _client
           .from('profiles')
-          .update({'username': username})
-          .eq('id', userId);
+          .update({'username': username}).eq('id', userId);
       debugPrint('✅ [ProfileRepository.updateUsername] → "$username"');
     } on PostgrestException catch (e) {
       _log('updateUsername', e);
@@ -80,8 +81,7 @@ class ProfileRepository {
     try {
       await _client
           .from('profiles')
-          .update({'avatar_emoji': emoji})
-          .eq('id', userId);
+          .update({'avatar_emoji': emoji}).eq('id', userId);
       debugPrint('✅ [ProfileRepository.updateAvatarEmoji] '
           '→ ${emoji ?? '(cleared)'}');
     } on PostgrestException catch (e) {
@@ -106,7 +106,31 @@ class ProfileRepository {
   /// nobody else is in them), then every trace of the user goes.
   Future<void> deleteAccount() async {
     try {
-      await _client.rpc<void>('delete_my_account');
+      try {
+        await _client.functions
+            .invoke('apple-account', body: {'action': 'delete'});
+      } on FunctionException catch (error) {
+        if (error.details is! Map ||
+            error.details['error'] != 'apple_reauthentication_required') {
+          rethrow;
+        }
+        // Legacy TestFlight accounts predate token retention. Reauthorize once
+        // on an Apple device; the backend checks the Apple subject before use.
+        if (kIsWeb ||
+            (defaultTargetPlatform != TargetPlatform.iOS &&
+                defaultTargetPlatform != TargetPlatform.macOS)) {
+          throw const AuthException(
+              'Sign in with Apple on an iPhone once before deleting this account.');
+        }
+        final credential =
+            await SignInWithApple.getAppleIDCredential(scopes: const []);
+        await _client.functions.invoke('apple-account', body: {
+          'action': 'retain',
+          'code': credential.authorizationCode,
+        });
+        await _client.functions
+            .invoke('apple-account', body: {'action': 'delete'});
+      }
       debugPrint('✅ [ProfileRepository.deleteAccount] account deleted');
     } on PostgrestException catch (e) {
       _log('deleteAccount', e);

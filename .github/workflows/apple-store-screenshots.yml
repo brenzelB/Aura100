@@ -1,0 +1,66 @@
+name: Capture Apple Store Screenshots
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  screenshots:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.6'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Configure the existing Firebase build configuration
+        env:
+          FIREBASE_PLIST_BASE64: ${{ secrets.IOS_FIREBASE_PLIST_BASE64 }}
+        run: printf '%s' "$FIREBASE_PLIST_BASE64" | base64 --decode > ios/Runner/GoogleService-Info.plist
+      - name: Build the isolated screenshot app for the iOS simulator
+        run: flutter build ios --debug --simulator -t tool/store_preview.dart --dart-define=STORE_PREVIEW=true
+      - name: Capture real simulator renders with illustrative local quests
+        run: |
+          mkdir -p build/apple-store-screenshots
+          xcrun simctl list devices available --json > build/simulators.json
+          python3 - <<'PY'
+          import json
+          devices = [d for ds in json.load(open('build/simulators.json'))['devices'].values() for d in ds]
+          selected = []
+          for token in ['iPhone 16 Pro', 'iPad Pro 13-inch']:
+              matches = [d for d in devices if token in d['name']]
+              if not matches: raise SystemExit(f'Required simulator unavailable: {token}')
+              selected.append(matches[0]['udid'])
+          open('build/capture-devices.txt','w').write('\n'.join(selected)+'\n')
+          PY
+          index=0
+          while read -r device; do
+            index=$((index+1))
+            xcrun simctl boot "$device"
+            xcrun simctl bootstatus "$device" -b
+            xcrun simctl status_bar "$device" override --time '9:41' --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
+            flutter run --debug --no-pub -d "$device" -t tool/store_preview.dart --dart-define=STORE_PREVIEW=true > "build/capture-$index.log" 2>&1 &
+            runner=$!
+            for page in 0 1 2 3; do
+              found=false
+              for attempt in $(seq 1 180); do
+                if grep -q "STORE_CAPTURE_READY_$page" "build/capture-$index.log"; then found=true; break; fi
+                kill -0 "$runner" || { cat "build/capture-$index.log"; exit 1; }
+                sleep 1
+              done
+              test "$found" = true || { cat "build/capture-$index.log"; exit 1; }
+              xcrun simctl io "$device" screenshot "build/apple-store-screenshots/device-$index-screen-$page.png"
+            done
+            kill "$runner" || true
+            xcrun simctl shutdown "$device"
+          done < build/capture-devices.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: apple-store-screenshots
+          path: build/apple-store-screenshots/*.png
+          if-no-files-found: error
+      - name: Simulator capture diagnostics
+        if: failure()
+        run: cat build/capture-*.log 2>/dev/null || true

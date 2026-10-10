@@ -203,6 +203,19 @@ class AuthRepository {
           idToken: idToken,
           nonce: rawNonce,
         );
+        try {
+          await _client.functions.invoke('apple-account', body: {
+            'action': 'retain',
+            'code': credential.authorizationCode,
+          });
+        } catch (_) {
+          // Never leave an Apple session active without the provider token
+          // needed to support deletion from either Android or iOS later.
+          await _client.auth.signOut(scope: SignOutScope.local);
+          throw const AuthException(
+            'Could not complete Apple sign-in. Please try again.',
+          );
+        }
         debugPrint('✅ [AuthRepository.signInWithApple] signed in');
       });
 

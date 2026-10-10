@@ -77,6 +77,9 @@ jobs:
       - name: Verify private and platform-specific push payloads
         run: node --test supabase/functions/push-fcm/payload.test.ts
 
+      - name: Verify Apple account deletion and token isolation
+        run: node --test supabase/functions/apple-account/handler.test.ts
+
       - name: Run Unit & Widget Tests
         run: flutter test --exclude-tags=golden
 

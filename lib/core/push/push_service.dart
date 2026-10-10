@@ -7,7 +7,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 // Prefixed: the package exports a PushMessage of its own, and ours has
 // to keep the name because it is what the rest of the app speaks.
-import 'package:unifiedpush/unifiedpush.dart' as up;
+import 'package:unifiedpush_platform_interface/unifiedpush_platform_interface.dart';
 
 import '../config/supabase_config.dart';
 import 'push_message.dart';
@@ -252,8 +252,9 @@ class PushService {
   // ── UnifiedPush ──────────────────────────────────────────────────
 
   Future<void> _initUnifiedPush() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
     try {
-      await up.UnifiedPush.initialize(
+      await UnifiedPushPlatform.instance.initializeCallback(
         onNewEndpoint: (endpoint, instance) {
           _register('unifiedpush', endpoint.url);
         },
@@ -275,21 +276,23 @@ class PushService {
           }
         },
       );
+      await UnifiedPushPlatform.instance.initializeOnTempUnavailable(null);
 
       // Zwei Schritte, und der zweite ist der entscheidende:
       // tryUseCurrentOrDefaultDistributor() WAEHLT nur einen Verteiler
       // aus und sagt, ob ueberhaupt einer da ist. Erst register()
       // fordert einen Endpunkt an - und muss laut Paket bei JEDEM
       // App-Start erneut aufgerufen werden, nicht nur beim ersten.
-      final hasDistributor =
-          await up.UnifiedPush.tryUseCurrentOrDefaultDistributor();
+      final hasDistributor = await UnifiedPushPlatform.instance
+          .tryUseCurrentOrDefaultDistributor();
       if (!hasDistributor) {
         // Normalfall auf Geraeten ohne ntfy: kein Verteiler installiert.
         // Firebase traegt dann allein.
         debugPrint('ℹ [PushService] no UnifiedPush distributor installed');
         return;
       }
-      await up.UnifiedPush.register();
+      await UnifiedPushPlatform.instance
+          .register('default', const [], null, null);
       debugPrint('✅ [PushService] UnifiedPush endpoint requested');
     } catch (error) {
       debugPrint('⚠ [PushService] UnifiedPush unavailable: $error');
@@ -433,10 +436,11 @@ class PushService {
       await _register('unifiedpush', _lastUnifiedPushEndpoint!);
     } else {
       try {
-        final hasDistributor =
-            await up.UnifiedPush.tryUseCurrentOrDefaultDistributor();
+        final hasDistributor = await UnifiedPushPlatform.instance
+            .tryUseCurrentOrDefaultDistributor();
         if (hasDistributor) {
-          await up.UnifiedPush.register();
+          await UnifiedPushPlatform.instance
+              .register('default', const [], null, null);
         }
       } catch (error) {
         debugPrint('⚠ [PushService] refresh UnifiedPush failed: $error');
