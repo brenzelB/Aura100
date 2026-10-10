@@ -1,6 +1,7 @@
 // Isolated screenshot entrypoint. Release workflows use lib/main.dart.
 // These illustrative, local fixtures never authenticate or write to the NAS.
-import 'dart:async';
+import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:aura_quest/core/theme/app_colors.dart';
 import 'package:aura_quest/core/theme/app_theme.dart';
 import 'package:aura_quest/core/widgets/app_theme_background.dart';
@@ -100,8 +101,6 @@ class _Preview extends ConsumerStatefulWidget {
 
 class _PreviewState extends ConsumerState<_Preview> {
   late final GoRouter router;
-  Timer? timer;
-  int page = 0;
   @override
   void initState() {
     super.initState();
@@ -131,24 +130,29 @@ class _PreviewState extends ConsumerState<_Preview> {
         ],
       ),
     ]);
-    timer = Timer.periodic(const Duration(seconds: 25), (_) {
-      if (page >= 3) return;
-      page++;
+    // The capture host selects a page only after Flutter has connected.
+    // Startup timing must not change which screen a filename represents.
+    developer.registerExtension('ext.auraquest.storeCapture',
+        (_, parameters) async {
+      final page = int.tryParse(parameters['page'] ?? '');
+      if (page == null || page < 0 || page > 3 || !mounted) {
+        return developer.ServiceExtensionResponse.error(
+            -32602, 'Invalid capture page');
+      }
       final theme = ref.read(themeProvider.notifier);
-      if (page >= 2) theme.setTheme(AppThemeType.editorial);
-      if (page == 3) theme.setMode(AppThemeMode.dark);
-      router.go(page == 3 ? '/home' : '/challenges');
-      ready();
+      theme.setTheme(
+          page >= 2 ? AppThemeType.editorial : AppThemeType.neoBrutalist);
+      theme.setMode(page == 3 ? AppThemeMode.dark : AppThemeMode.light);
+      router.go(page == 0 || page == 3 ? '/home' : '/challenges');
+      await WidgetsBinding.instance.endOfFrame;
+      await Future<void>.delayed(const Duration(seconds: 5));
+      return developer.ServiceExtensionResponse.result(
+          jsonEncode({'page': page}));
     });
-    ready();
   }
 
-  void ready() => Future<void>.delayed(const Duration(seconds: 5), () {
-        if (mounted) debugPrint('STORE_CAPTURE_READY_$page');
-      });
   @override
   void dispose() {
-    timer?.cancel();
     router.dispose();
     super.dispose();
   }

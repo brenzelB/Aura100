@@ -52,25 +52,17 @@ jobs:
             xcrun simctl status_bar "$device" override --time '9:41' --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
             # Flutter connects the Dart log stream and supplies simulator
             # debug launch arguments. The prebuilt bundle skips Xcode rebuilds.
-            flutter run --no-pub --use-application-binary "$(pwd)/build/ios/iphonesimulator/Runner.app" -d "$device" -t tool/store_preview.dart --dart-define=STORE_PREVIEW=true > "build/capture-$index.log" 2>&1 &
+            flutter run --no-pub --use-application-binary "$(pwd)/build/ios/iphonesimulator/Runner.app" -d "$device" -t tool/store_preview.dart --dart-define=STORE_PREVIEW=true < /dev/null > "build/capture-$index.log" 2>&1 &
             runner=$!
-            for page in 0 1 2 3; do
-              found=false
-              for attempt in $(seq 1 360); do
-                if grep -q "STORE_CAPTURE_READY_$page" "build/capture-$index.log"; then found=true; break; fi
-                kill -0 "$runner" || { cat "build/capture-$index.log"; exit 1; }
-                sleep 1
-              done
-              if test "$found" != true; then
-                xcrun simctl io "$device" screenshot "build/capture-failure-$index.png" || true
-                cat "build/capture-$index.log"
-                exit 1
-              fi
-              xcrun simctl io "$device" screenshot "build/apple-store-screenshots/device-$index-screen-$page.png"
-            done
+            if ! dart run tool/capture_store_preview.dart "build/capture-$index.log" "$device" "$index"; then
+              xcrun simctl io "$device" screenshot "build/capture-failure-$index.png" || true
+              cat "build/capture-$index.log"
+              exit 1
+            fi
             kill "$runner" || true
             xcrun simctl shutdown "$device"
           done < build/capture-devices.txt
+          test "$(find build/apple-store-screenshots -name '*.png' | wc -l | tr -d ' ')" = 8
       - uses: actions/upload-artifact@v7
         with:
           name: apple-store-screenshots
