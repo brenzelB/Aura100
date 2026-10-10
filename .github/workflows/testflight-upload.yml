@@ -1,0 +1,111 @@
+name: Upload verified iOS build to TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: 'Successful Release Builds run containing the signed IPA'
+        required: true
+        type: string
+      build_number:
+        description: 'Exact build number in that signed artifact'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: auraquest-testflight-upload
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download successful signed release artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          set -eu
+          [[ "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]] && [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > "$RUNNER_TEMP/source-run.json"
+          python3 - <<'PY'
+          import json, os, pathlib
+          run = json.loads((pathlib.Path(os.environ['RUNNER_TEMP']) / 'source-run.json').read_text())
+          assert run['status'] == 'completed' and run['conclusion'] == 'success', 'Source release must have passed all checks'
+          assert run['path'] == '.github/workflows/release.yml', 'Unexpected source workflow'
+          assert run['head_branch'] == 'main' and run['event'] == 'workflow_dispatch', 'Expected a manual main-branch release'
+          with open(os.environ['GITHUB_ENV'], 'a') as stream:
+              stream.write(f"EXPECTED_SOURCE_SHA={run['head_sha']}\n")
+          PY
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "ios-app-store-ipa-$BUILD_NUMBER" --dir build/testflight-upload
+
+      - name: Verify exact app, build provenance and production signing
+        env:
+          BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          set -eu
+          python3 - <<'PY'
+          import os, pathlib, plistlib, runpy, zipfile
+          root = pathlib.Path('build/testflight-upload')
+          files = list(root.rglob('*.ipa'))
+          provenance = list(root.rglob('build-info.txt'))
+          assert len(files) == 1 and len(provenance) == 1, 'Expected one IPA and one provenance record'
+          info = dict(line.split('=', 1) for line in provenance[0].read_text().splitlines())
+          assert info == {'commit': os.environ['EXPECTED_SOURCE_SHA'], 'build': os.environ['BUILD_NUMBER'], 'signing': 'true'}, 'Artifact provenance mismatch'
+          with zipfile.ZipFile(files[0]) as archive:
+              app = plistlib.loads(archive.read('Payload/Runner.app/Info.plist'))
+              assert app['CFBundleIdentifier'] == 'com.auraquest.auraQuest', 'Wrong app'
+              assert app['CFBundleVersion'] == os.environ['BUILD_NUMBER'], 'Wrong build number'
+              firebase = plistlib.loads(archive.read('Payload/Runner.app/GoogleService-Info.plist'))
+              runpy.run_path('scripts/prepare-ios-release.py')['validate_firebase'](firebase)
+          with open(os.environ['GITHUB_ENV'], 'a') as stream:
+              stream.write(f'IPA_PATH={files[0]}\n')
+          (pathlib.Path(os.environ['RUNNER_TEMP']) / 'ipa-path.txt').write_text(str(files[0]))
+          print('Verified app identity, Firebase, build number and successful-release provenance.')
+          PY
+          IPA_PATH=$(cat "$RUNNER_TEMP/ipa-path.txt")
+          unzip -q "$IPA_PATH" -d "$RUNNER_TEMP/aura-upload-verify"
+          codesign --verify --deep --strict "$RUNNER_TEMP/aura-upload-verify/Payload/Runner.app"
+          security cms -D -i "$RUNNER_TEMP/aura-upload-verify/Payload/Runner.app/embedded.mobileprovision" > "$RUNNER_TEMP/upload-profile.plist"
+          python3 - <<'PY'
+          import os, pathlib, plistlib, runpy
+          profile = plistlib.loads((pathlib.Path(os.environ['RUNNER_TEMP']) / 'upload-profile.plist').read_bytes())
+          runpy.run_path('scripts/prepare-ios-release.py')['validate_profile'](profile)
+          print('Verified production App Store profile for the exact Apple team and app.')
+          PY
+
+      - name: Upload the verified IPA to TestFlight
+        env:
+          APPLE_API_KEY_BASE64: ${{ secrets.APPLE_API_KEY_BASE64 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          set -eu
+          umask 077
+          python3 - <<'PY'
+          import base64, os, pathlib, re
+          key_id = os.environ['APPLE_API_KEY_ID']
+          assert re.fullmatch('[A-Z0-9]{10}', key_id), 'Invalid API key ID'
+          assert re.fullmatch('[a-fA-F0-9-]{36}', os.environ['APPLE_API_ISSUER_ID']), 'Invalid issuer ID'
+          root = pathlib.Path.home() / '.appstoreconnect/private_keys'
+          root.mkdir(parents=True, exist_ok=True)
+          (root / f'AuthKey_{key_id}.p8').write_bytes(base64.b64decode(os.environ['APPLE_API_KEY_BASE64'], validate=True))
+          PY
+          shasum -a 256 "$IPA_PATH"
+          xcrun altool --upload-app -f "$IPA_PATH" -t ios --apiKey "$APPLE_API_KEY_ID" --apiIssuer "$APPLE_API_ISSUER_ID"
+
+      - name: Remove temporary API key
+        if: always()
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+        run: |
+          if [[ "$APPLE_API_KEY_ID" =~ ^[A-Z0-9]{10}$ ]]; then
+            rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_$APPLE_API_KEY_ID.p8"
+          fi
