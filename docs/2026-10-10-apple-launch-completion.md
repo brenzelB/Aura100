@@ -1,6 +1,7 @@
 # Public Apple launch preparation — 10 October 2026
 
-Candidate: **1.0.2+10**. This is not evidence of public release or device acceptance.
+Candidate: **1.0.2+11**. Build 10 is superseded by a visual regression found during
+the screenshot inspection. This is not evidence of public release or device acceptance.
 
 ## Implemented
 
@@ -24,7 +25,8 @@ Candidate: **1.0.2+10**. This is not evidence of public release or device accept
 
 ## Evidence and open boundaries
 
-- Existing 375 Flutter tests, including eight exact theme goldens: passed.
+- All 376 Flutter tests, including eight unchanged exact theme goldens and a new
+  regression for Activity fill after changing Light/Dark mode: passed locally.
 - Flutter analyzer: passed.
 - Apple backend isolation/encryption/deletion regression tests: passed.
 - All eight SQL regression suites passed after restoring a fresh live NAS backup
@@ -55,7 +57,14 @@ Candidate: **1.0.2+10**. This is not evidence of public release or device accept
   page changes are local drafts, not yet deployed. The automatic approval review
   rejected saving the new Apple key and the privacy declaration without explicit
   confirmation; neither rejection was bypassed.
-- Screenshot capture is in progress in workflow 38056278657 on `66f53ce`.
+- Screenshot workflow 38056278657 completed on `66f53ce`, with four 1206 x 2622
+  iPhone 17 Pro and four 2064 x 2752 iPad Pro 13-inch (M5) renders.
+  Visual inspection of all eight found a stale light Activity panel with pale text
+  in Editorial Dark after changing theme. The const inbox widget did not observe
+  theme changes when its data stayed identical. It now watches the theme provider;
+  the regression test exercises Light -> Dark -> Light with unchanged inbox data.
+  No theme palette, layout or gameplay behavior changed. These pictures were not
+  uploaded; corrected screenshots and a newly signed build 11 are required.
   Earlier runs found an unavailable old simulator name, a redundant-build timeout
   and a missing Dart log stream with a direct simulator launch. Run 38055174368
   produced four iPhone files, but inspection found a shifted page, one duplicate
@@ -65,7 +74,7 @@ Candidate: **1.0.2+10**. This is not evidence of public release or device accept
   detached, dimensions/duplicates are checked, and all eight images are required.
   The controller's dev dependency was already present at the same version as a
   transitive dependency; no runtime dependency or normal release entrypoint changed.
-  Analyzer passed after the controller update. The new images will be visually
+  Analyzer passed after the controller update. Replacement images will be visually
   checked before uploading.
 - Worldwide encryption/export compliance remains open. Removing webcrypto does
   not prove OS-only encryption: the exported Flutter engine still contains TLS

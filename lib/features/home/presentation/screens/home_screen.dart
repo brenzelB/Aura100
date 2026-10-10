@@ -253,6 +253,9 @@ class _ActivitySection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // This const child must rebuild its panel when the palette changes,
+    // even when its inbox data stays identical.
+    ref.watch(themeProvider);
     final invites = ref.watch(myInvitesProvider);
     final requests = ref.watch(friendRequestsProvider);
     final duels = ref.watch(incomingDuelsProvider);

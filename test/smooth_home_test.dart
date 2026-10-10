@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:aura_quest/core/offline/offline_check_in_queue.dart';
 import 'package:aura_quest/core/offline/pending_check_in.dart';
 import 'package:aura_quest/core/widgets/action_feedback.dart';
+import 'package:aura_quest/core/theme/app_colors.dart';
+import 'package:aura_quest/core/theme/app_theme.dart';
 import 'package:aura_quest/features/auth/application/auth_providers.dart';
 import 'package:aura_quest/features/challenges/application/challenge_providers.dart';
 import 'package:aura_quest/features/challenges/data/challenge_repository.dart';
@@ -186,6 +188,51 @@ void main() {
     expect(progressPresets(0.01), [0.01]);
     expect(progressPresets(0), isEmpty);
     expect(progressPresets(double.nan), isEmpty);
+  });
+
+  testWidgets('Activity panel follows a theme change with unchanged inbox data',
+      (tester) async {
+    tester.view.physicalSize = const Size(1032, 1376);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final container = ProviderContainer(overrides: _overrides(_Repository()));
+    addTearDown(container.dispose);
+    addTearDown(
+        () => AppColors.apply(AppThemeType.neoBrutalist, AppThemeMode.light));
+    final notifier = container.read(themeProvider.notifier);
+    // Let the notifier finish reading preferences before selecting the theme.
+    await tester.runAsync(() async {
+      await SharedPreferences.getInstance();
+    });
+    notifier.setTheme(AppThemeType.editorial);
+    notifier.setMode(AppThemeMode.light);
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: Consumer(builder: (context, ref, _) {
+        final settings = ref.watch(themeProvider);
+        return MaterialApp(
+            theme: AppTheme.build(settings.type, settings.mode),
+            home: const HomeScreen());
+      }),
+    ));
+    await tester.pumpAndSettle();
+    for (final mode in [
+      AppThemeMode.light,
+      AppThemeMode.dark,
+      AppThemeMode.light
+    ]) {
+      notifier.setMode(mode);
+      await tester.pumpAndSettle();
+      final panel = tester.widget<Container>(find
+          .ancestor(
+              of: find.byType(ExpansionTile), matching: find.byType(Container))
+          .first);
+      expect((panel.decoration! as BoxDecoration).color,
+          paletteFor(AppThemeType.editorial, mode).surface,
+          reason: 'The const Activity panel must not keep the previous fill');
+      expect(tester.takeException(), isNull);
+    }
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('quick action locks all buttons and only shows the server reward',

@@ -6,8 +6,11 @@ wurde noch nicht zur App Review eingereicht.
 ## Bereits vorbereitet
 
 - Apple-Entwicklerteam, App-ID, Signierung und automatischer Upload sind eingerichtet.
-- Build **1.0.2 (10)** wurde als signierte iOS-IPA und Android-AAB erstellt.
-  Die Release-Prüfungen und alle 375 Flutter-Tests waren erfolgreich.
+- Build **1.0.2 (10)** wurde erfolgreich signiert. Die sichtbare Screenshot-Prüfung
+  fand danach einen Kontrastfehler der Activity-Karte beim Wechsel ins dunkle Theme.
+  Er ist korrigiert; alle **376 Flutter-Tests** einschließlich der unveränderten
+  Theme-Goldens sind erfolgreich. Ein neuer signierter Build **1.0.2 (11)** und
+  passende Aufnahmen werden vorbereitet.
 - Der Store-Eintrag enthält deutsche und englische Texte, das Copyright,
   die Datenschutz-URL, den kostenlosen Preis und 175 Länder für den späteren Start.
 - Die Kontolöschung mit vorherigem Apple-Widerruf ist implementiert. Ihre
