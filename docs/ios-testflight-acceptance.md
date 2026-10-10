@@ -1,14 +1,14 @@
 # Aura Quest: erster Test mit TestFlight
 
-Stand: 10. Oktober 2026. Kandidat: **1.0.2 (9)**. Apple hat den Build verarbeitet, aber die Testfreigabe wartet noch auf die Export-Compliance-Angabe. Dieser Plan beschreibt noch offene Gerätetests; er ist kein Nachweis, dass sie bestanden wurden.
+Stand: 10. Oktober 2026. Kandidat: **1.0.2 (9)**. Apple zeigt den Build in der internen Gruppe als **Im Test** und das freigegebene Konto als **Eingeladen**. Dieser Plan beschreibt noch offene Gerätetests; er ist kein Nachweis, dass sie bestanden wurden.
 
 ## Installieren
 
-1. Apples TestFlight-App auf dem iPhone installieren. Die folgenden Schritte sind erst nach der bestätigten Build-Freigabe möglich.
+1. Apples TestFlight-App auf dem iPhone installieren.
 2. Die Einladung an das freigegebene Apple-Konto öffnen und annehmen. Falls TestFlight eine Anmeldung verlangt, das eingeladene Apple-Konto verwenden.
 3. Aura Quest installieren. In TestFlight muss Version **1.0.2 (9)** angezeigt werden.
 
-Die Gruppe **Aura Quest iOS intern** ist ein interner Test. Eine öffentliche Veröffentlichung im App Store ist dafür nicht erforderlich. Neue Builds werden dieser Gruppe derzeit manuell zugeordnet.
+Die Gruppe **Aura Quest iOS intern** ist ein interner Test. Eine öffentliche Veröffentlichung im App Store ist dafür nicht erforderlich. Neue Builds werden dieser Gruppe derzeit manuell zugeordnet. Dieser Build ist ausdrücklich nur für den internen Test außerhalb Frankreichs freigegeben; die weltweite Store-Veröffentlichung wird separat vorbereitet.
 
 ## Mit zwei Testkonten prüfen
 
