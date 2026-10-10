@@ -78,9 +78,14 @@ fs.mkdirSync('${backup}',{mode:0o700});
 fs.copyFileSync(root+'/.env','${backup}/env');fs.chmodSync('${backup}/env',0o600);
 fs.copyFileSync(root+'/docker-compose.yaml','${backup}/docker-compose.yaml');
 fs.writeFileSync('${backup}/worker-existed',String(existed),{mode:0o600});
-if(!existed)fs.mkdirSync(target,{mode:0o755});
 for(const file of files){
   if(fs.existsSync(target+'/'+file.name))fs.copyFileSync(target+'/'+file.name,'${backup}/'+file.name);
+}
+// Complete every backup before the first live write. Preparation failures must
+// use the same rollback path as restart or probe failures.
+fs.writeFileSync('${backup}/ready','ready',{flag:'wx',mode:0o600});
+if(!existed)fs.mkdirSync(target,{mode:0o755});
+for(const file of files){
   const temp=target+'/'+file.name+'.${stamp}';
   fs.writeFileSync(temp,Buffer.from(file.data,'base64'),{flag:'wx',mode:0o644});fs.renameSync(temp,target+'/'+file.name);
 }
@@ -88,9 +93,9 @@ for(const [path,data,mode] of [[root+'/.env',env,0o600],[root+'/docker-compose.y
   const temp=path+'.${stamp}';fs.writeFileSync(temp,data,{flag:'wx',mode});fs.renameSync(temp,path);
 }
 console.log('Apple worker and protected NAS environment prepared.');`;
-console.log(remote(container, script));
 const restart = `cd '${base}' && /usr/bin/docker compose -f docker-compose.yaml up -d --no-deps --force-recreate functions`;
 try {
+  console.log(remote(container, script));
   remote(restart);
   // Use the existing anonymous JWT only inside the NAS network. GET reaches
   // the new handler (405); POST cannot impersonate an authenticated user (401).
@@ -110,17 +115,38 @@ async function main(){
   throw Error('Apple worker load/authentication probes failed');
 }main().catch(()=>{process.exitCode=1;});`;
   console.log(remote(`/usr/bin/docker run --rm -i --network auraquest_default --user 1000:10 -v '${base}:/stack:ro' node:20-alpine node`, probes));
+  // Restarting the shared runtime must preserve the existing push worker's
+  // secret guard. These empty bodies never send device notifications.
+  const probeIds = remote(`/usr/bin/docker exec -i auraquest-db psql -XAt -U postgres -d postgres -v ON_ERROR_STOP=1`,
+    `select net.http_post(url:=fcm_function_url,headers:=jsonb_build_object('Content-Type','application/json','x-push-secret',fcm_shared_secret),body:='{}'::jsonb,timeout_milliseconds:=10000) from public.push_config where id;
+select net.http_post(url:='http://functions:9000/push-fcm',headers:='{"Content-Type":"application/json"}'::jsonb,body:='{}'::jsonb,timeout_milliseconds:=10000);`).split('\n');
+  if (probeIds.length !== 2 || !probeIds.every(id => /^\d+$/.test(id))) throw Error('Unexpected push probe IDs');
+  let outcomes = '';
+  for (let attempt = 0; attempt < 20; attempt++) {
+    outcomes = remote(`/usr/bin/docker exec -i auraquest-db psql -XAt -U postgres -d postgres -v ON_ERROR_STOP=1`,
+      `select id||':'||status_code from net._http_response where id in (${probeIds.join(',')}) order by id;`);
+    if (outcomes.split('\n').length === 2) break;
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  if (outcomes !== probeIds[0] + ':400\n' + probeIds[1] + ':403') throw Error('Existing push guard verification failed');
+  console.log('Existing push worker preserved: authorized empty body 400, missing secret 403.');
   console.log('Protected rollback backup: ' + backup.replace('/stack', base));
 } catch (error) {
   const rollback = `const fs=require('fs');const root='/stack',backup='${backup}',target=root+'/volumes/functions/apple-account';
+if(!fs.existsSync(backup+'/ready')){console.log('NOT_CHANGED');process.exit(0);}
 fs.copyFileSync(backup+'/env',root+'/.env');fs.chmodSync(root+'/.env',0o600);
 fs.copyFileSync(backup+'/docker-compose.yaml',root+'/docker-compose.yaml');
 for(const name of ['index.ts','handler.ts']){
   if(fs.existsSync(backup+'/'+name))fs.copyFileSync(backup+'/'+name,target+'/'+name);
   else if(fs.existsSync(target+'/'+name))fs.unlinkSync(target+'/'+name);
+  const temp=target+'/'+name+'.${stamp}';if(fs.existsSync(temp))fs.unlinkSync(temp);
 }
-if(fs.readFileSync(backup+'/worker-existed','utf8')==='false'&&fs.readdirSync(target).length===0)fs.rmdirSync(target);`;
-  remote(container, rollback);
-  remote(restart);
-  throw Error('Apple worker verification failed; prior environment and files restored.', { cause: error });
+for(const path of [root+'/.env.${stamp}',root+'/docker-compose.yaml.${stamp}']){if(fs.existsSync(path))fs.unlinkSync(path);}
+if(fs.readFileSync(backup+'/worker-existed','utf8')==='false'&&fs.existsSync(target)&&fs.readdirSync(target).length===0)fs.rmdirSync(target);
+console.log('RESTORED');`;
+  const restored = remote(container, rollback) === 'RESTORED';
+  if (restored) remote(restart);
+  throw Error(restored
+    ? 'Apple worker deployment failed; prior environment and files restored.'
+    : 'Apple worker preparation failed before any live files changed.', { cause: error });
 }

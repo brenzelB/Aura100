@@ -50,10 +50,9 @@ jobs:
             xcrun simctl boot "$device"
             xcrun simctl bootstatus "$device" -b
             xcrun simctl status_bar "$device" override --time '9:41' --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
-            # Install the already built simulator app. flutter run would
-            # rebuild it once per device and can outlive the capture deadline.
-            xcrun simctl install "$device" build/ios/iphonesimulator/Runner.app
-            xcrun simctl launch --console "$device" com.auraquest.auraQuest > "build/capture-$index.log" 2>&1 &
+            # Flutter connects the Dart log stream and supplies simulator
+            # debug launch arguments. The prebuilt bundle skips Xcode rebuilds.
+            flutter run --no-pub --use-application-binary "$(pwd)/build/ios/iphonesimulator/Runner.app" -d "$device" -t tool/store_preview.dart --dart-define=STORE_PREVIEW=true > "build/capture-$index.log" 2>&1 &
             runner=$!
             for page in 0 1 2 3; do
               found=false
@@ -62,7 +61,11 @@ jobs:
                 kill -0 "$runner" || { cat "build/capture-$index.log"; exit 1; }
                 sleep 1
               done
-              test "$found" = true || { cat "build/capture-$index.log"; exit 1; }
+              if test "$found" != true; then
+                xcrun simctl io "$device" screenshot "build/capture-failure-$index.png" || true
+                cat "build/capture-$index.log"
+                exit 1
+              fi
               xcrun simctl io "$device" screenshot "build/apple-store-screenshots/device-$index-screen-$page.png"
             done
             kill "$runner" || true
@@ -83,4 +86,5 @@ jobs:
           path: |
             build/simulators.json
             build/capture-*.log
+            build/capture-failure-*.png
           if-no-files-found: ignore
