@@ -6,11 +6,11 @@ Dieser Leitfaden führt dich Schritt für Schritt durch die Veröffentlichung vo
 
 ## 1. Übersicht der vorbereiteten Store-Artefakte
 
-Vorbereitete Dateien und Entwürfe liegen im Ordner `deploy/store/`. Den aktuellen, noch nicht einreichbaren Apple-Stand beschreibt [der Fortschrittsbericht](../../docs/2026-10-09-apple-launch-readiness.md).
+Vorbereitete Dateien und Entwürfe liegen im Ordner `deploy/store/`. Den aktuellen, noch nicht einreichbaren Apple-Stand beschreibt [der Fortschrittsbericht vom 10. Oktober](../../docs/2026-10-10-apple-launch-completion.md). Die [nächsten Schritte](../../docs/apple-launch-naechste-schritte.md) erklären die noch offenen Bestätigungen.
 
 | Dateipfad | Zweck |
 |---|---|
-| Aktueller CI-Build | Das vorhandene AAB wurde am 30.09.2026 gebaut und ist älter als die aktuellen Änderungen. Vor einem Test oder Upload muss ein neuer signierter Build aus dem finalen Commit erstellt werden. |
+| [Signierter CI-Build 10](https://github.com/brenzelB/Aura100/actions/runs/38052895628) | Version 1.0.2 (10), Quellstand `f8590f6`: signierte Android-AAB und iOS-IPA, alle Release-Prüfungen bestanden. Beide heruntergeladen, noch nicht hochgeladen. Das alte September-AAB nicht verwenden. |
 | [`deploy/store/assets/icon_512.png`](assets/icon_512.png) | **Google Play App Icon** (512 × 512 px, 32-bit PNG) |
 | [`deploy/store/assets/feature_graphic_1024x500_v2.png`](assets/feature_graphic_1024x500_v2.png) | **Google Play Feature Graphic** (1024 × 500 px Banner, neues Aura-Quest-Design) |
 | [`deploy/store/assets/screenshots/`](assets/screenshots/) | **Reale Screenshots** aus dem Android-Emulator (Dashboard, Quests, Quest-Editor und Perks) |
@@ -42,7 +42,7 @@ Gehe im linken Menü auf **App-Inhalte** und fülle die Pflichtformulare aus:
 - **Werbung:** *Nein, meine App enthält keine Werbung*.
 - **Zielgruppe & Inhalte:** 13+ bzw. 16+ Jahre auswählen.
 - **Finanz-Apps / Behörden-Apps / COVID-19:** Jeweils *Nein*.
-- **Datensicherheit:** Öffne [`deploy/store/DATA_SAFETY_GOOGLE.md`](DATA_SAFETY_GOOGLE.md) und übernimm die dort aufgelisteten Antworten (Name, E-Mail, App-Aktivität, Push-Token; keine Datenweitergabe an Dritte).
+- **Datensicherheit:** [`DATA_SAFETY_GOOGLE.md`](DATA_SAFETY_GOOGLE.md) ist als unvollständiger historischer Entwurf markiert. Vor einem neuen Android-Upload die tatsächlichen App-/Provider-Datenflüsse gegen Googles Formular prüfen; die alten Antworten nicht unverändert übernehmen.
 
 ### Schritt 2.4: Store-Eintrag gestalten
 Unter **Haupt-Store-Eintrag**:
@@ -63,7 +63,7 @@ Unter **Haupt-Store-Eintrag**:
 > Neue private Entwicklerkonten müssen vor der Freigabe für die Produktion einen **geschlossenen Test mit mindestens 12 Testern über 14 Tage** durchführen.
 1. Gehe zu **Testen → Geschlossener Test**.
 2. Erstelle nach erfolgreicher CI-Prüfung einen neuen Release und lade das signierte AAB des aktuellen Commits aus dem GitHub-Actions-Artefakt hoch. Das lokale AAB vom 30.09.2026 nicht verwenden.
-3. Versionsname: `1.0.2`, Versionscode: `7` (nur verwenden, wenn 7 in der Play Console noch frei ist).
+3. Aktueller signierter Kandidat: Versionsname `1.0.2`, Versionscode `10`. Vor dem Upload in Play Console den belegten Versionscode prüfen. Für später geänderte App-Binaries eine höhere freie gemeinsame Build-Nummer verwenden.
 4. Release-Hinweise aus [`RELEASE_NOTES_1.0.2.md`](RELEASE_NOTES_1.0.2.md) einfügen.
 5. Testerliste (E-Mails von Freunden / Familie) hinterlegen und Testlink teilen.
 6. Nach Ablauf der 14 Tage geschlossenen Tests den Antrag auf Produktionszugriff stellen.
@@ -83,16 +83,16 @@ Du hast inzwischen ein Apple Developer Konto. Prüfe in [App Store Connect](http
 
 ### Schritt 3.2: Backend und Anmeldung
 
-- Der native Apple Provider ist auf dem NAS für `com.auraquest.auraQuest` aktiviert. Für den nativen ID-Token-Austausch ist keine Browser-Service-ID nötig. Apple-Token-Widerruf bei Kontolöschung braucht dagegen noch eine Signaturkonfiguration und Umsetzung; ein erfolgreicher Login-Build bestätigt diesen Lebenszyklus nicht.
-- Die Firebase-iOS-App ist registriert, Plist sicher heruntergeladen, Team-ID zugeordnet. Noch offen: konkrete GitHub-Secret-Freigabe, APNs-Key und echter Push-Test. Schlüssel und Plist nicht ins Repository committen.
+- Der native Apple Provider ist auf dem NAS für `com.auraquest.auraQuest` aktiviert. Für den nativen ID-Token-Austausch ist keine Browser-Service-ID nötig. Apple-Token-Widerruf bei Kontolöschung ist implementiert und isoliert geprüft; der dedizierte Schlüssel und die Aktivierung auf dem aktiven NAS warten noch auf Bestätigung. Ein erfolgreicher Login-Build bestätigt diesen Lebenszyklus nicht.
+- Die Firebase-iOS-App, das genehmigte GitHub-Plist-Secret und der produktive APNs-Key sind eingerichtet. Noch offen: echter Push-Test auf dem iPhone. Schlüssel und Plist nicht ins Repository committen.
 - Moderationsmigration und öffentliche Community-Seite sind nach Sicherung/Regressionstests auf dem NAS bereitgestellt. Noch praktisch durchspielen: problematische Texte werden abgewiesen, normale Texte gespeichert, Meldungen vom Betreiber bearbeitet.
 - Push, Anmeldung, Account-Löschung und Report/Block mit echten Testkonten auf einem iPhone durchspielen.
 
 ### Schritt 3.3: Signierter iOS-Build
 
-Windows kann kein iOS-IPA erzeugen. Die GitHub-Action baut standardmäßig ein **unsigniertes** Archiv; der neue Modus `ios_signing=app-store` ist für eine signierte IPA vorbereitet. Dafür fehlen noch Zertifikat/Profil und die freigegebene Secret-Übertragung. `upload_testflight=true` ist eine zusätzliche ausdrückliche Upload-Option und setzt App-Store-Connect-API-Zugang voraus. Sie reicht die App nicht zur Review ein. Details: [Build-Anleitung](README.md).
+Windows kann kein iOS-IPA erzeugen. Die GitHub-Action baut standardmäßig ein **unsigniertes** Archiv; `ios_signing=app-store` erstellt die signierte IPA. Zertifikat, Profil und die genehmigten Secrets sind eingerichtet und der signierte Export ist erfolgreich geprüft. Der gesonderte Apple-Upload von Build 9 wurde verarbeitet und intern freigegeben. `upload_testflight=true` reicht die App nicht zur Review ein. Details: [Build-Anleitung](README.md).
 
-Die Version ist aktuell `1.0.2`, Build `7`. Verwende Build 7 nur, wenn er in App Store Connect noch frei ist; andernfalls erhöhe die gemeinsame Android-/iOS-Build-Nummer. Version und Build-Nummer müssen zum App-Store-Connect-Datensatz passen.
+Die Version ist aktuell `1.0.2`, signierter Kandidat `10`. Dieser Build ist noch nicht zu Apple hochgeladen. Der tatsächlich freigegebene interne Test ist Build `9`. Für eine spätere neue App-Binary eine höhere freie gemeinsame Android-/iOS-Build-Nummer verwenden.
 
 ### Schritt 3.4: Listing und Prüfung
 
@@ -100,9 +100,9 @@ Die Version ist aktuell `1.0.2`, Build `7`. Verwende Build 7 nur, wenn er in App
 - Datenschutz-URL: `https://legal.brenzel.uk/aura-quest/`. Community-Regeln und aktuelle Provider-Angaben sind veröffentlicht und per HTTPS geprüft.
 - Datenschutzangaben mit [`APP_PRIVACY_APPLE.md`](APP_PRIVACY_APPLE.md) und dem endgültigen SDK-/Datenfluss abgleichen.
 - Apple verlangt mindestens einen iPhone-Screenshot für ein iPhone mit Dynamic Island in mittlerer Displaygröße. Weil das Projekt iPad unterstützt, wird zusätzlich ein iPad-13-Zoll-Screenshot benötigt. Die vorhandenen Store-Bilder stammen nur von Android und sind dafür kein Ersatz.
-- Den aktuellen Altersfreigabe-Fragebogen selbst vollständig beantworten. Dabei Aura Heist, Zufallschancen und ausschließlich virtuelle Aura-Einsätze wahrheitsgemäß angeben; die alte pauschale Angabe „4+“ nicht übernehmen.
+- Den vorbereiteten [Alters- und Inhaltsrechte-Fragebogen](APPLE_AGE_AND_CONTENT_DECLARATIONS.md) bestätigen und Apples tatsächliche Einstufung prüfen. Würfelduelle mit virtuellen Aura-Einsätzen als simuliertes Glücksspiel angeben; die alte pauschale Angabe „4+“ nicht übernehmen.
 - App Review Zugangsdaten für ein funktionierendes Demo-Konto bereitstellen und sicherstellen, dass Backend und Testzugang während der Prüfung erreichbar sind.
-- Export-Compliance, App-Privacy, Supportkontakt, Lizenztexte und finale Datenschutzseite vor dem Einreichen abhaken.
+- Export-Compliance gemäß [technischem Entwurf](APPLE_EXPORT_TECHNICAL_DRAFT.md), App-Privacy, Supportkontakt, Lizenztexte und finale Datenschutzseite vor dem Einreichen abhaken. Kostenloser Preis, Copyright, deutsche/englische Texte und 175 Länder für den künftigen Start sind bereits als Entwurf gespeichert.
 
 ### Schritt 3.5: Einreichen
 

@@ -19,7 +19,7 @@ GitHub Actions requires encrypted repository secrets:
 Never commit signing credentials. With Play App Signing, a lost upload key
 can be reset through Play Console; it differs from Google's app signing key.
 
-Build: flutter build appbundle --release --build-name=1.0.2 --build-number=7
+Build: flutter build appbundle --release --build-name=1.0.2 --build-number=NEXT_UNUSED_NUMBER
 The existing local AAB was built on 30 September 2026, before the current
 changes. Do not upload it. Build a fresh AAB from the final, tested commit
 through the release workflow, then verify it with keytool -printcert -jarfile.
@@ -43,19 +43,23 @@ it does not submit it for App Review or release the app. Leave this option false
 until the credentials and upload have been specifically authorized.
 
 The project now contains Sign in with Apple and Push Notifications capability
-settings. Store export still needs the active Apple team, distribution
-certificate, provisioning profile for `com.auraquest.auraQuest`, export
-options, and matching Firebase/APNs credentials. Firebase iOS registration and
-native NAS Apple configuration are complete; credential transfer/signing,
-Apple token revocation on deletion and real-device acceptance remain open.
-The signed path has not run yet. Certificate requests are prepared with
-`scripts/prepare-ios-csr.ps1`; ignored files stay in `build/apple-private/`.
+settings. The active team, distribution certificate/profile, Firebase plist,
+production APNs configuration and seven iOS signing/upload Actions secrets are
+configured. The signed export and Apple upload path succeeded for build 9.
+The new signed build 10 passed all release jobs with Apple upload disabled.
+Apple token revocation is implemented and tested against an isolated restored
+NAS backup; its dedicated key and live NAS deployment still await confirmation.
+Real-device acceptance and the public Store declarations remain open.
+Private local files stay in ignored `build/apple-private/`.
 
 No store upload or review submission happens automatically.
-See [the current readiness report](../../docs/2026-10-09-apple-launch-readiness.md)
+See [the current readiness report](../../docs/2026-10-10-apple-launch-completion.md)
 for remaining blockers. The September report is historical.
 
-Current release candidate: version 1.0.2, build 7. Confirm build 7 is unused
-in both stores before building. Launch the release workflow with an explicit
-`build_number=7` so Android and iOS share the same build number.
+Current signed candidate: **1.0.2 (10)**, source `f8590f6`,
+[release run 38052895628](https://github.com/brenzelB/Aura100/actions/runs/38052895628).
+Its `ios-app-store-ipa-10` and `android-release-bundle-10` artifacts are already
+downloaded under ignored `build/store/`; neither build 10 artifact is uploaded.
+Apple's active internal test remains build 9. For a new binary after build 10,
+check both stores and use a greater unused shared build number.
 See RELEASE_NOTES_1.0.2.md for the current store notes.

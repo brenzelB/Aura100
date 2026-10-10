@@ -1,5 +1,9 @@
 # Aura Quest — Apple App Store launch readiness
 
+**Historical build-9 checkpoint.** For the new signed build 10, current code,
+Store preparation and pending confirmations, read
+[the 10 October completion checkpoint](2026-10-10-apple-launch-completion.md).
+
 **Updated:** 10 October 2026
 **Scope:** Repository, App Store Connect, Firebase and NAS deployment. Signed iOS build `1.0.2 (9)` has been uploaded to Apple; no App Review submission or public release has occurred. The verified moderation migration, legal page and native Apple provider configuration are deployed on the NAS.
 

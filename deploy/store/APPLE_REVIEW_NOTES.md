@@ -1,9 +1,12 @@
 # App Review notes — draft
 
-Do not submit yet. Distribution signing, APNs credentials, Apple token revocation
-on account deletion, real iPhone/iPad testing, iOS screenshots and App Store
-Connect privacy/age/export forms remain open. Reviewer credentials have been
-prepared locally but not shared with Apple. See the current readiness report.
+Do not submit yet. Distribution signing and production APNs configuration are
+complete. Candidate **1.0.2 (10)** is signed and passed CI, but is not uploaded
+to Apple. Apple revocation code and its isolated NAS database tests are complete;
+the dedicated signing key and live deployment await confirmation. Real device
+acceptance, screenshots and App Store privacy/age/export forms remain open.
+Reviewer credentials have been prepared locally but not shared with Apple.
+See [the current checkpoint](../../docs/2026-10-10-apple-launch-completion.md).
 
 ## Proposed review notes (after acceptance checks)
 

@@ -1,5 +1,15 @@
 # Google Play Datensicherheitsformular (Data Safety Form)
 
+**Historischer, unvollständiger Entwurf. Nicht unverändert einreichen.**
+Der Apple-Abgleich vom 10. Oktober hat weitere tatsächliche Datenflüsse belegt:
+manuell eingegebene Fitnessziele, Freundschaftsgraph, freie Nutzerinhalte,
+Moderations-/Supportmeldungen, virtuelle Perk-Käufe und Auth-/Diagnoseprotokolle.
+Diese sowie die technische Metadatenerfassung des Firebase-SDK müssen vor einem
+neuen Android-Store-Upload gegen das tatsächliche APK/AAB und Googles eigene
+Datentypen/Weitergabe-Ausnahmen geprüft werden. Apples 13 Datentypen dürfen
+nicht einfach als Google-Antworten kopiert werden. Es wurden in diesem Durchlauf
+keine Google-Datenschutzerklärungen gespeichert.
+
 Leitfaden zum Ausfüllen des Formulars **"Datensicherheit" (Data Safety)** in der Google Play Console für **Aura Quest**.
 
 ---
@@ -48,7 +58,7 @@ Leitfaden zum Ausfüllen des Formulars **"Datensicherheit" (Data Safety)** in de
 ### C. App-Aktivitäten (App Activity)
 
 1. **App-Interaktionen (App interactions)**
-   - *Erhoben:* **Ja** (Gewohnheits-Check-ins, Quests, Duelle, Shop-Käufe)
+   - *Erhoben:* **Ja** (Gewohnheits-Check-ins, Quests, Duelle, Perk-Käufe)
    - *Geteilt mit Dritten:* **Nein**
    - *Erforderlich:* **Ja**
    - *Zweck:* **App-Funktionalität** (Spiellogik, Fortschritt, Ranglisten unter befreundeten Nutzern)

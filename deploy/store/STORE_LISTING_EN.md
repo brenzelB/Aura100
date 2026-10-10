@@ -5,48 +5,44 @@
 | Field | Draft | Note |
 |---|---|---|
 | App name | `Aura Quest: Gamified Habits` | Under the 30-character limit |
-| iOS subtitle | `Habits, Duels & Aura` | Under the 30-character limit |
+| iOS subtitle | `Habits, duels & more Aura` | Saved in App Store Connect on 10 October 2026 |
 | Google Play short description | `Turn habits into quests. Earn Aura and play with friends.` | Under the 80-character limit |
 | Category | Productivity | Select the closest available category in App Store Connect |
-| Age rating | Not assigned | Complete the current App Store Connect questionnaire. Aura Heist uses chance and virtual Aura stakes; it has no real-money wagering. |
+| Age rating | Not assigned | Confirm the prepared questionnaire, including optional dice duels with virtual Aura stakes; there is no real-money wagering. |
+
+## iOS promotional text
+
+```text
+Your goals are tired of “tomorrow”. Start quests, earn Aura and stay on track with friends – with duels, Perks and roasts that keep it real.
+```
 
 ## Full description
 
 ```text
-⚡ Turn your habits into an adventure.
+Turn your habits into an adventure. Aura Quest brings daily routines, shared quests and visible progress together with a little RPG energy.
 
-Aura Quest pairs everyday routines with shared quests, visible progress, and a little RPG spirit. Start a quest, invite friends, and use quick check-ins to keep each other moving.
+YOUR GOALS. YOUR QUESTS.
+Create a reading goal, a training routine or your own challenge. Choose Chill, Classic or Chaos, then check in when you complete a planned session. Track streaks, progress and personal stats.
 
-⚔️ QUEST TOGETHER
-• Create goals for anything from reading to training.
-• Invite friends and make progress side by side.
-• Follow check-ins, streaks, and quest progress.
+BETTER WITH FRIENDS
+Invite friends to a quest, see their activity and send a nudge when they need a push. Android and iPhone players share the same quests.
 
-🎲 DUELS AND GAMEPLAY
-• Challenge friends to dice duels.
-• Put earned Aura at stake and choose how risky to play.
-• Use quest perks such as Streak Shield and Aura Ward.
-• Try an Aura Heist with clearly shown odds and virtual stakes.
+AURA, XP AND PERKS
+Earn Aura for your next move and build permanent XP for personal progress. Spend virtual Aura on quest Perks, challenge friends to dice duels or try an Aura Heist with a clearly displayed chance. All stakes are virtual: no cash rewards, withdrawals or real-money purchases.
 
-👥 KEEP EACH OTHER GOING
-• See who has checked in on a shared quest.
-• Send a nudge when a friend needs a reminder.
-• Report or block users in the app.
+A LITTLE ATTITUDE
+Celebrate your wins. Get an honest roast when you quit. Pick your look with three themes and light or dark mode.
 
-🌱 YOUR PROGRESS
-• Build routines one step at a time.
-• Keep an eye on streaks and personal stats.
-• Choose from distinct themes and light or dark mode.
+YOU STAY IN CONTROL
+Notifications are optional. Report or block users in the app. Fitness goals are entered manually; Aura Quest does not access HealthKit, fitness sensors or your phone's address book. You can delete your account directly in the app.
 
-You can delete your account directly in the app. Aura Quest has no real-money wagers or purchases.
-
-Start a quest and take the next step, however small.
+Start a quest. Your next check-in beats another “tomorrow”.
 ```
 
 ## Keywords (iOS; 100 characters maximum, no spaces after commas)
 
 ```text
-habits,routine,habit tracker,streak,goals,fitness,duels,friends,rpg,productivity
+habits,habit tracker,routine,streak,goals,fitness,productivity,duels,friends,rpg
 ```
 
 ## Version notes

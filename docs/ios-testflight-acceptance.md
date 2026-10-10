@@ -2,6 +2,11 @@
 
 Stand: 10. Oktober 2026. Kandidat: **1.0.2 (9)**. Apple zeigt den Build in der internen Gruppe als **Im Test** und das freigegebene Konto als **Eingeladen**. Dieser Plan beschreibt noch offene Gerätetests; er ist kein Nachweis, dass sie bestanden wurden.
 
+Der neue Store-Kandidat **1.0.2 (10)** ist inzwischen signiert erstellt, aber noch
+nicht zu Apple hochgeladen. Die folgenden Installationsschritte beziehen sich
+weiterhin auf den tatsächlich freigegebenen Build 9. Die finale Abnahme muss
+nach Aktivierung des Apple-Widerrufs auf dem NAS mit Build 10 erfolgen.
+
 ## Installieren
 
 1. Apples TestFlight-App auf dem iPhone installieren.
@@ -31,7 +36,14 @@ iOS und Android verwenden denselben Backend-Dienst unter `https://api.brenzel.uk
 
 ## Noch gesperrte Abnahme
 
-**Apple-Konto löschen:** Die lokale Kontolöschung ist vorhanden, aber Apples Token-Widerruf fehlt noch. Dieser Punkt bleibt ein Hindernis für die öffentliche Einreichung. Eine erfolgreiche lokale Löschung allein würde diese Anforderung nicht erfüllen. Einen vollständigen Löschtest erst nach der Korrektur mit einem ausdrücklich dafür vorgesehenen, entbehrlichen Testkonto durchführen.
+**Apple-Konto löschen:** Der Widerruf ist implementiert und in isolierten Backend-
+und Datenbanktests geprüft. Schlüssel und Aktivierung auf dem aktiven NAS sind
+noch offen. Erst danach mit dem finalen Build und einem ausdrücklich entbehrlichen
+Testkonto prüfen: neu anmelden, Konto löschen, vollständige Entfernung der Daten
+und widerrufene Apple-Autorisierung kontrollieren. Ein Abbruch der Apple-Abfrage
+oder ein Netzfehler muss das Konto erhalten. Für ältere Apple-Testkonten außerdem
+die einmalige erneute Apple-Bestätigung testen; auf Android muss die App dafür
+den verständlichen Hinweis auf eine vorherige iPhone-Anmeldung zeigen.
 
 ## Fehler festhalten
 

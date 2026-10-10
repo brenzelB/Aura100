@@ -8,7 +8,13 @@
 | Untertitel (iOS) | `Gewohnheiten, Duelle & Aura` | Unter dem Limit von 30 Zeichen |
 | Kurzbeschreibung (Google Play) | `Gewohnheiten werden Quests: Sammle Aura, spiele mit Freunden.` | 61 Zeichen; unter dem Limit von 80 |
 | Kategorie | Produktivität | In App Store Connect anhand der verfügbaren Kategorien auswählen |
-| Alterseinstufung | Noch nicht festgelegt | Den aktuellen Fragebogen in App Store Connect beantworten. Aura Heist enthält Zufallschancen und virtuelle Aura-Einsätze; keine Echtgeld-Wetten. |
+| Alterseinstufung | Noch nicht festgelegt | Den vorbereiteten Fragebogen bestätigen, einschließlich optionaler Würfelduelle mit virtuellen Aura-Einsätzen; keine Echtgeld-Wetten. |
+
+## Werbetext (iOS)
+
+```text
+Deine Ziele brauchen kein weiteres Morgen. Starte Quests, sammle Aura und bleib mit Freunden dran – mit Duellen, Perks und ehrlichen Roasts.
+```
 
 ## Vollständige Beschreibung
 
