@@ -17,7 +17,7 @@ In Supabase Studio's SQL Editor, use an administrator session and inspect the ol
 ```sql
 select id, created_at, reporter_id, reported_id, reason, details, challenge_id
 from public.user_reports
-where moderation_status = 'new'
+where moderation_status in ('new', 'reviewed')
 order by created_at asc;
 ```
 
@@ -32,7 +32,7 @@ set moderation_status = 'action_taken',
     moderation_action = 'username_reset; account suspended',
     moderation_notes = 'Short factual outcome; omit unnecessary personal data.'
 where id = 'REPORT-UUID-HERE'
-  and moderation_status = 'new';
+  and moderation_status in ('new', 'reviewed');
 ```
 
 For a report that does not need action, use `moderation_status = 'no_action'` and state the reason briefly. If it is reviewed but requires follow-up, use `reviewed` and keep it on the daily queue until resolved. The permitted states are `new`, `reviewed`, `action_taken`, and `no_action`.

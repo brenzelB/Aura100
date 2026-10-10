@@ -51,7 +51,7 @@
 5. Finish Apple distribution certificate/profile and securely supply them to the macOS runner. The signed workflow is prepared but has not run. GitHub collaborators with workflow rights can use repository secrets, so each credential transfer needs specific approval.
 6. Check the store build history, build/upload a signed IPA and test sign-in, deletion, push, report/block and all major flows through TestFlight on real iPhone/iPad devices.
 7. Capture real app screenshots at Apple's required iPhone Dynamic Island medium size and iPad 13-inch size; current store screenshots are Android captures.
-8. Complete the App Store Connect privacy form, age-rating questionnaire (including chance-based Aura Heist with virtual-only stakes), export-compliance questions, support details, and App Review demo credentials. Check that the final backend is reachable for review.
+8. Complete the App Store Connect privacy form, age-rating questionnaire (including chance-based Aura Heist with virtual-only stakes), export compliance, free pricing/territory availability, support contact and approved App Review credentials. Public review-account sign-in is verified; the final build/device flows still need acceptance.
 
 Apple's current screenshot rules require an iPhone Dynamic Island medium screenshot and, because this project supports iPad, an iPad 13-inch screenshot. Its review rules for user-generated content require filtering, reporting with timely responses, blocking, and published contact details. See the [screenshot requirements](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/) and [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/).
 
