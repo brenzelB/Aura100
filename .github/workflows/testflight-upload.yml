@@ -61,8 +61,7 @@ jobs:
           assert info == {'commit': os.environ['EXPECTED_SOURCE_SHA'], 'build': os.environ['BUILD_NUMBER'], 'signing': 'true'}, 'Artifact provenance mismatch'
           with zipfile.ZipFile(files[0]) as archive:
               app = plistlib.loads(archive.read('Payload/Runner.app/Info.plist'))
-              assert app['CFBundleIdentifier'] == 'com.auraquest.auraQuest', 'Wrong app'
-              assert app['CFBundleVersion'] == os.environ['BUILD_NUMBER'], 'Wrong build number'
+              runpy.run_path('scripts/prepare-ios-release.py')['validate_app_info'](app, os.environ['BUILD_NUMBER'])
               firebase = plistlib.loads(archive.read('Payload/Runner.app/GoogleService-Info.plist'))
               runpy.run_path('scripts/prepare-ios-release.py')['validate_firebase'](firebase)
           with open(os.environ['GITHUB_ENV'], 'a') as stream:

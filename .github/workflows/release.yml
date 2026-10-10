@@ -259,15 +259,17 @@ jobs:
 
       - name: Verify signed iOS bundle
         if: inputs.ios_signing == 'app-store'
+        env:
+          BUILD_NUMBER: ${{ needs.validate.outputs.build_number }}
         run: |
           codesign --verify --deep --strict build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app
           python3 - <<'PY'
-          import pathlib, plistlib, zipfile
+          import os, pathlib, plistlib, runpy, zipfile
           paths = list(pathlib.Path('build/ios/ipa').glob('*.ipa'))
           assert len(paths) == 1, 'Expected exactly one exported IPA'
           with zipfile.ZipFile(paths[0]) as archive:
               info = plistlib.loads(archive.read('Payload/Runner.app/Info.plist'))
-              assert info['CFBundleIdentifier'] == 'com.auraquest.auraQuest'
+              runpy.run_path('scripts/prepare-ios-release.py')['validate_app_info'](info, os.environ['BUILD_NUMBER'])
               assert 'Payload/Runner.app/embedded.mobileprovision' in archive.namelist()
               assert 'Payload/Runner.app/GoogleService-Info.plist' in archive.namelist()
           PY

@@ -50,6 +50,20 @@ def validate_firebase(config):
         raise ValueError("Unexpected Firebase analytics/ads configuration")
 
 
+def validate_app_info(info, build_number=None):
+    if info.get("CFBundleIdentifier") != BUNDLE_ID:
+        raise ValueError("Exported IPA belongs to another app")
+    if build_number is not None and info.get("CFBundleVersion") != str(build_number):
+        raise ValueError("Exported IPA has the wrong build number")
+    if 2 in info.get("UIDeviceFamily", []) and not info.get("UIRequiresFullScreen", False):
+        required = {"UIInterfaceOrientationPortrait", "UIInterfaceOrientationPortraitUpsideDown",
+                    "UIInterfaceOrientationLandscapeLeft", "UIInterfaceOrientationLandscapeRight"}
+        orientations = set(info.get("UISupportedInterfaceOrientations", []))
+        ipad_orientations = set(info.get("UISupportedInterfaceOrientations~ipad", orientations))
+        if not required.issubset(orientations) or not required.issubset(ipad_orientations):
+            raise ValueError("iPad multitasking requires all four interface orientations")
+
+
 def patch_project(source, profile_name):
     count = 0
 

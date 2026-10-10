@@ -54,6 +54,20 @@ class SigningGuards(unittest.TestCase):
             with self.subTest(key=key), self.assertRaises(ValueError):
                 release.validate_firebase(dict(config, **{key: value}))
 
+    def test_reject_store_bundle_that_cannot_support_ipad_multitasking(self):
+        orientations = ["UIInterfaceOrientationPortrait", "UIInterfaceOrientationPortraitUpsideDown",
+                        "UIInterfaceOrientationLandscapeLeft", "UIInterfaceOrientationLandscapeRight"]
+        info = {"CFBundleIdentifier": release.BUNDLE_ID, "CFBundleVersion": "9",
+                "UIDeviceFamily": [1, 2], "UISupportedInterfaceOrientations": orientations}
+        release.validate_app_info(info, "9")
+        for change in [{"CFBundleIdentifier": "wrong.app"}, {"CFBundleVersion": "8"},
+                       {"UISupportedInterfaceOrientations": orientations[:1] + orientations[2:]},
+                       {"UISupportedInterfaceOrientations~ipad": orientations[:1]}]:
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                release.validate_app_info(dict(info, **change), "9")
+        release.validate_app_info(dict(info, UIDeviceFamily=[1], UISupportedInterfaceOrientations=orientations[:1]), "9")
+        release.validate_app_info(dict(info, UIRequiresFullScreen=True, UISupportedInterfaceOrientations=orientations[:1]), "9")
+
     def test_only_runner_settings_change_and_patch_is_idempotent(self):
         project = Path(__file__).parents[2] / "ios/Runner.xcodeproj/project.pbxproj"
         original = project.read_text(encoding="utf-8")
