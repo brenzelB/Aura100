@@ -5,7 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
+import 'package:supabase_flutter/supabase_flutter.dart'
+    show AuthException, PostgrestException;
 import '../../../../core/widgets/theme_components.dart';
 
 import '../../../../core/config/supabase_config.dart';
@@ -321,10 +322,15 @@ class ProfileScreen extends ConsumerWidget {
         await ref.read(profileControllerProvider.notifier).deleteAccount();
     if (!context.mounted) return;
 
+    final error = ref.read(profileControllerProvider).error;
+    final failureMessage = error is AuthException
+        ? error.message
+        : 'Could not delete the account - try again.';
+
     messenger.showSnackBar(AppSnackBar(
       content: Text(ok
           ? 'Your account was deleted. Farewell, @${profile.username}.'
-          : 'Could not delete the account - try again.'),
+          : failureMessage),
       backgroundColor: ok ? AppColors.surfaceLight : AppColors.danger,
     ));
     // On success the session is gone and the router sends us to /login.

@@ -43,6 +43,13 @@ Wähle: **Ja, wir erfassen Daten aus dieser App.**
 - **Fitness:** manuell gespeicherte Trainingsziele und Fortschritt, beispielsweise Wiederholungen oder Kilometer. Kein HealthKit-/Bewegungssensor-Zugriff. Konto-verknüpft, App-Funktionalität, kein Tracking.
 - **Kaufverlauf:** mit virtueller Aura erworbene Perks (`benefit_purchases`). Keine Zahlungen, Kreditkarten oder Echtgeldkäufe. Konto-verknüpft, App-Funktionalität, kein Tracking.
 
+### E. Nutzung und technische Protokolle
+
+- **Produktinteraktion:** Auth-Audit-Ereignisse wie Anmeldungen und Kontoaktionen mit Zeitstempel und Konto-ID. Konto-verknüpft, ausschließlich App-Funktionalität/Sicherheit, keine Verhaltensanalyse oder Werbung.
+- **Andere Diagnosedaten:** technische Verbindungs- und Auth-Protokolle einschließlich IP-Adresse. Konto-verknüpft, App-Funktionalität/Betrieb und Missbrauchsabwehr, kein Tracking. Keine Standortbestimmung aus IP-Adressen.
+
+Die aktive NAS-Instanz besitzt `auth.audit_log_entries` mit `created_at`, `ip_address` und dem Payload-Feld `actor_id`. Diese Daten dürfen bei den Store-Angaben nicht fehlen, auch wenn kein Analyse- oder Crash-SDK eingebaut ist.
+
 ---
 
 ## 3. Datenverwendung & Tracking
@@ -61,6 +68,7 @@ Wähle: **Ja, wir erfassen Daten aus dieser App.**
 Die Datei unter [`ios/Runner/PrivacyInfo.xcprivacy`](../../ios/Runner/PrivacyInfo.xcprivacy) ist im Xcode-Projekt registriert und nennt:
 - `NSPrivacyAccessedAPITypeUserDefaults`: Begründung `CA92.1` (Zugriff auf lokale Einstellungen für Theme & Audio)
 - Name, E-Mail, User ID, Device ID, Contacts, Fitness, Gameplay Content, Other User Content, Customer Support und Purchase History als mit dem Konto verknüpft, nicht für Tracking, zur App-Funktionalität.
+- Product Interaction und Other Diagnostic Data für konto-bezogene Sicherheits- und Verbindungsprotokolle, ebenfalls App-Funktionalität ohne Tracking.
 - Keine Tracking-Domains; `NSPrivacyTracking` ist `false`.
 
 Diese Deklaration muss vor dem Upload gegen den finalen iOS-Build und alle eingebundenen SDKs abgeglichen werden. Die Push-Angaben setzen voraus, dass FCM/APNs tatsächlich für iOS aktiviert wird. Die Store-Privacy-Antworten müssen auch die Datenverarbeitung durch die verwendeten Dienste berücksichtigen; ein Privacy Manifest ersetzt das App-Privacy-Formular nicht.

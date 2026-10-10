@@ -101,7 +101,8 @@ class ProfileRepository {
     }
   }
 
-  /// Deletes the account for good via `delete_my_account`: owned
+  /// Revokes Apple authorization through the worker, then calls the
+  /// transactional `delete_my_account` RPC: owned
   /// quests are handed to the longest-standing member (or removed if
   /// nobody else is in them), then every trace of the user goes.
   Future<void> deleteAccount() async {

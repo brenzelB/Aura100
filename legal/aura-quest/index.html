@@ -121,16 +121,17 @@ Aura Quest verwendet keine Analyse-, Werbe- oder Absturzberichtsdienste.</p>
   <tr><td>Cloudflare</td><td>Erreichbarkeit und TLS-Verschlüsselung; verarbeitet Verbindungsdaten inkl. IP</td><td>Art. 6 I f</td></tr>
   <tr><td>Resend (via AWS SES, Irland)</td><td>Bestätigungs- und Passwort-Mails</td><td>Art. 6 I b</td></tr>
   <tr><td>Google Sign-In</td><td>Optionale Anmeldung; Google verarbeitet die Anmeldung und gibt ein Identitätstoken sowie, falls verfügbar, die E-Mail-Adresse an Aura Quest weiter</td><td>Art. 6 I a</td></tr>
-  <tr><td>Sign in with Apple</td><td>Optionale Anmeldung; Apple verarbeitet die Anmeldung. Du kannst deine E-Mail-Adresse verbergen und eine Relay-Adresse verwenden</td><td>Art. 6 I a</td></tr>
-  <tr><td>Google Firebase</td><td>Optionale Push-Zustellung; Google erhält Geräte-Token und Zustellzeitpunkt. iOS-Push wird erst nach separater Firebase-/APNs-Konfiguration aktiviert</td><td>Art. 6 I a</td></tr>
+  <tr><td>Sign in with Apple</td><td>Optionale Anmeldung; Apple verarbeitet die Anmeldung. Du kannst deine E-Mail-Adresse verbergen und eine Relay-Adresse verwenden. Zur sicheren Kontolöschung bewahrt der Server einen verschlüsselten, an dein Konto gebundenen Apple-Anmeldetoken auf und widerruft damit vor der Löschung deine Apple-Autorisierung</td><td>Art. 6 I a</td></tr>
+  <tr><td>Google Firebase und Apple APNs</td><td>Optionale Push-Zustellung; die Dienste erhalten Geräte-Token, Kategorie, technische Referenzkennung und Zustellzeitpunkt. Auf iOS wird zusätzlich ein fester, allgemeiner Hinweis auf neue Quest-Aktivität übermittelt</td><td>Art. 6 I a</td></tr>
   <tr><td>ntfy (selbst betrieben)</td><td>Push-Zustellung ohne Dritte</td><td>Art. 6 I a</td></tr>
 </table>
-<p><strong>Zu Firebase:</strong> Google erfährt Geräte-Kennung und
-Zeitpunkt, <strong>nicht aber den Inhalt</strong>. Die App überträgt
-bewusst nur ein inhaltsleeres Wecksignal — eine Kategorie und eine
-Kennung. Den lesbaren Text holt die App anschließend direkt von diesem
-Server. Namen von Mitspielern, Quest-Titel oder Nachrichtentexte
-erreichen Google nicht. Dabei kann eine Übermittlung in die USA
+<p><strong>Zu Push-Nachrichten:</strong> Firebase und auf iOS zusätzlich
+Apple erhalten technische Zustelldaten. Android verwendet ein
+Wecksignal; iOS zeigt einen festen allgemeinen Text über neue Aktivität.
+Den persönlichen Nachrichtentext holt die App direkt von unserem
+Server. Namen von Mitspielern, Quest-Titel oder persönliche
+Nachrichtentexte werden nicht an die Push-Dienste übermittelt.
+Dabei kann eine Übermittlung in die USA
 erfolgen; Google LLC ist unter dem EU-US Data Privacy Framework
 zertifiziert. Die Einwilligung ist in den App-Einstellungen jederzeit
 widerrufbar.</p>
@@ -141,6 +142,7 @@ ruft Google Fonts daher nicht zur Laufzeit ab.</p>
 <table>
   <tr><th>Daten</th><th>Dauer</th></tr>
   <tr><td>Konto- und Spieldaten</td><td>bis zur Löschung des Kontos</td></tr>
+  <tr><td>Verschlüsselter Apple-Anmeldetoken</td><td>bis zum Widerruf und zur Löschung des Kontos; nur der Server hat Zugriff</td></tr>
   <tr><td>Benachrichtigungs-Warteschlange</td><td>14 Tage</td></tr>
   <tr><td>Datenbank-Sicherungen</td><td>14 Tage, danach automatisch gelöscht</td></tr>
   <tr><td>Geräte-Kennungen für Push</td><td>bis Abmeldung oder Deinstallation</td></tr>
