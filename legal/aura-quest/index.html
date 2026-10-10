@@ -78,8 +78,9 @@ Voraussetzungen des Art. 37 DSGVO liegen nicht vor.</p>
 <p>Aura Quest ist ein privat betriebener Gewohnheits-Tracker mit
 Mehrspieler-Funktionen. Er läuft <strong>auf eigener Hardware in
 Deutschland</strong>. Es gibt keinen Cloud-Anbieter, der die Datenbank
-hält, keine Werbung, keine Analyse- oder Tracking-Werkzeuge und kein
-Profiling zu Werbezwecken.</p>
+hält, keine Werbung, keine Analyse des persönlichen Spielverhaltens und kein
+Profiling zu Werbezwecken. Die Push-Dienste verarbeiten zusätzlich technische
+SDK-Metadaten, wie unten erläutert.</p>
 <p>Die App ist nicht für Kinder unter 16 Jahren bestimmt.</p>
 
 <h3>3. Welche Daten verarbeitet werden</h3>
@@ -115,7 +116,8 @@ Betrieb und Missbrauchsabwehr.</p>
 
 <h3>4. Empfänger und Drittanbieter</h3>
 <p>Diese Dienste verarbeiten Daten, wenn du die jeweilige Funktion nutzt.
-Aura Quest verwendet keine Analyse-, Werbe- oder Absturzberichtsdienste.</p>
+Aura Quest verwendet keine Werbe-, Absturzberichts- oder Analyse-SDKs für das
+persönliche Spielverhalten.</p>
 <table>
   <tr><th>Dienst</th><th>Wofür</th><th>Grundlage</th></tr>
   <tr><td>Cloudflare</td><td>Erreichbarkeit und TLS-Verschlüsselung; verarbeitet Verbindungsdaten inkl. IP</td><td>Art. 6 I f</td></tr>
@@ -135,6 +137,12 @@ Dabei kann eine Übermittlung in die USA
 erfolgen; Google LLC ist unter dem EU-US Data Privacy Framework
 zertifiziert. Die Einwilligung ist in den App-Einstellungen jederzeit
 widerrufbar.</p>
+<p>Das Firebase-SDK kann außerdem technische Angaben über Geräte-/OS-Modell,
+Sprache, Zeitzone sowie App-/SDK-Version übermitteln. Firebase verwendet
+nicht an eine Nutzer- oder Gerätekennung gebundene User-Agent-Metadaten zur
+technischen Statistik über unterstützte Plattformen und Versionen. Diese
+Anbieterstatistik ist kein Werbe-Tracking und enthält keine Quest-Texte oder
+persönlichen Spielverläufe.</p>
 <p>Die verwendeten Schriftdateien werden mit der App ausgeliefert. Die App
 ruft Google Fonts daher nicht zur Laufzeit ab.</p>
 

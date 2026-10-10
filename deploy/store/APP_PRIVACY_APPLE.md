@@ -50,6 +50,11 @@ Wähle: **Ja, wir erfassen Daten aus dieser App.**
 
 Die aktive NAS-Instanz besitzt `auth.audit_log_entries` mit `created_at`, `ip_address` und dem Payload-Feld `actor_id`. Diese Daten dürfen bei den Store-Angaben nicht fehlen, auch wenn kein Analyse- oder Crash-SDK eingebaut ist.
 
+### F. Technische Metadaten des Firebase-SDK
+
+- **Andere Datentypen:** Firebase-User-Agent mit SDK-/Plattform-/OS- und App-Versionsinformationen. **Nicht mit dem Nutzer verknüpft**, **kein Tracking**, Zweck **Analysen** zur technischen Plattform-/Versionsverbreitung des SDK-Anbieters. Das ist zusätzlich zu den zwölf konto-verknüpften App-Funktionalitätsangaben zu deklarieren.
+- Der exportierte Build 10 enthält im `Firebase_FirebaseMessaging.bundle` eine eigene Privacy-Datei mit `OtherDataTypes`, nicht verknüpft, nicht für Tracking, Zweck Analytics. Laut [Firebase-Datenerfassungsdokumentation](https://firebase.google.com/docs/ios/app-store-data-collection) werden Firebase-User-Agent-Daten standardmäßig gesammelt und vom Firebase-Team für technische Produktentscheidungen genutzt. Kein Firebase-Analytics-, Crashlytics-, Performance- oder Werbe-SDK ist eingebaut; daraus folgt trotzdem keine vollständige Abwesenheit technischer Anbieterstatistiken.
+
 ---
 
 ## 3. Datenverwendung & Tracking
@@ -81,3 +86,5 @@ Diese Deklaration muss vor dem Upload gegen den finalen iOS-Build und alle einge
 - Keine Tracking-Aussage bestätigen, bevor die finalen SDKs und deren Konfiguration geprüft wurden.
 
 Abgleich am 10.10.2026: Firebase-iOS-Konfiguration hat Analytics und Ads deaktiviert. Das App-Privacy-Formular in App Store Connect ist noch offen. Maßgeblich sind [Apples Datentypen und Freitext-Hinweise](https://developer.apple.com/app-store/app-privacy-details/); das finale Xcode-Privacy-Report muss vor der Einreichung gegen diese Angaben geprüft werden.
+
+Exportprüfung des tatsächlichen IPA 1.0.2 (10): 22 eingebettete Privacy-Dateien, 13 deklarierte Datentypen in der Vereinigung, kein Tracking. Die zwölf eigenen App-Datentypen stehen im Runner-Manifest; die zusätzliche technische Firebase-Deklaration steht im SDK-Manifest. Prüfdatei: ignoriert `build/audit/ios-build-10-privacy-report.json`. Diese eigene Archivprüfung ist kein von Xcode erzeugter Privacy Report und ersetzt keinen Gerätetest.
