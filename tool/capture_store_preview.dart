@@ -63,7 +63,7 @@ Future<void> main(List<String> arguments) async {
         'ext.auraquest.storeCapture',
         isolateId: isolateId,
         args: {'page': '$page'},
-      ).timeout(const Duration(seconds: 30));
+      ).timeout(const Duration(seconds: 90));
       if (result.json?['page'] != page) throw StateError('Wrong capture page');
       final path =
           'build/apple-store-screenshots/device-$index-screen-$page.png';

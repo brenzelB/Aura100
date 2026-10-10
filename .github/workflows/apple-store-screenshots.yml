@@ -64,10 +64,11 @@ jobs:
           done < build/capture-devices.txt
           test "$(find build/apple-store-screenshots -name '*.png' | wc -l | tr -d ' ')" = 8
       - uses: actions/upload-artifact@v7
+        if: always()
         with:
           name: apple-store-screenshots
           path: build/apple-store-screenshots/*.png
-          if-no-files-found: error
+          if-no-files-found: warn
       - name: Simulator capture diagnostics
         if: failure()
         run: cat build/capture-*.log 2>/dev/null || true

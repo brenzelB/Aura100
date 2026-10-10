@@ -144,7 +144,10 @@ class _PreviewState extends ConsumerState<_Preview> {
           page >= 2 ? AppThemeType.editorial : AppThemeType.neoBrutalist);
       theme.setMode(page == 3 ? AppThemeMode.dark : AppThemeMode.light);
       router.go(page == 0 || page == 3 ? '/home' : '/challenges');
-      await WidgetsBinding.instance.endOfFrame;
+      // A VM extension can run when no later frame is queued. Request rendering,
+      // then let the event loop settle without waiting on a frame callback that
+      // can be suspended during the simulator's initial lifecycle transitions.
+      WidgetsBinding.instance.scheduleFrame();
       await Future<void>.delayed(const Duration(seconds: 5));
       return developer.ServiceExtensionResponse.result(
           jsonEncode({'page': page}));
