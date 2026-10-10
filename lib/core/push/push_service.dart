@@ -20,8 +20,9 @@ import 'push_account_gate.dart';
 ///  * **UnifiedPush** — our own server with a content-free ping. Needs
 ///    a distributor app (ntfy) installed, so it cannot be the only route.
 ///  * **Firebase** — works on any phone with Play Services and is the
-///    only way iOS will ever be reachable. Carries a content-free ping;
-///    the text is fetched from our server before it is shown.
+///    only way iOS will ever be reachable. Android carries a content-free
+///    ping; iOS can display a fixed generic alert while suspended. Private
+///    text is fetched from our server when the app handles/opens it.
 ///
 /// A device may be registered on both. The server sends to every token
 /// it has, and [_seenOutboxIds] keeps the player from seeing the same
@@ -231,7 +232,7 @@ class PushService {
 
       FirebaseMessaging.onMessageOpenedApp.listen((remote) {
         final message = PushMessage.tryParse(remote.data);
-        if (message != null) onOpened?.call(message);
+        if (message != null) _openAuthorized(message);
       });
 
       // The app may have been launched by tapping a notification while
@@ -239,7 +240,7 @@ class PushService {
       final initial = await messaging.getInitialMessage();
       if (initial != null) {
         final message = PushMessage.tryParse(initial.data);
-        if (message != null) onOpened?.call(message);
+        if (message != null) await _openAuthorized(message);
       }
     } catch (error) {
       // A missing google-services.json or a phone without Play Services
@@ -335,8 +336,16 @@ class PushService {
           settings.authorizationStatus == AuthorizationStatus.authorized ||
               settings.authorizationStatus == AuthorizationStatus.provisional;
       if (granted) {
-        final token = await FirebaseMessaging.instance.getToken();
-        if (token != null) await _register('fcm', token);
+        // On iOS the APNs token may arrive after permission was granted.
+        // A pending token must not turn a successful permission into failure;
+        // onTokenRefresh will register it when Firebase is ready.
+        try {
+          final token = await FirebaseMessaging.instance.getToken();
+          if (token != null) await _register('fcm', token);
+        } catch (error) {
+          debugPrint(
+              '⚠ [PushService] permission granted; token pending: $error');
+        }
       }
       return granted;
     } catch (error) {
@@ -443,6 +452,12 @@ class PushService {
 /// be set up from scratch. Failed authorization suppresses display here too.
 @pragma('vm:entry-point')
 Future<void> firebaseBackgroundHandler(RemoteMessage remote) async {
+  // APNs already presents iOS alerts. Do not create a second notification
+  // or fetch private text for an alert shown while the app is suspended.
+  if (defaultTargetPlatform == TargetPlatform.iOS &&
+      remote.notification != null) {
+    return;
+  }
   final message = PushMessage.tryParse(remote.data);
   if (message == null) return;
 

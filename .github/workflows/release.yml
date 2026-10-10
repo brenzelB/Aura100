@@ -10,6 +10,15 @@ on:
         description: 'Build Number (optional override)'
         required: false
         default: ''
+      ios_signing:
+        description: 'iOS artifact: unsigned archive or signed App Store IPA'
+        type: choice
+        options: [unsigned, app-store]
+        default: unsigned
+      upload_testflight:
+        description: 'Upload the signed IPA to TestFlight (does not submit/release the app)'
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -56,6 +65,17 @@ jobs:
 
       - name: Analyze Code
         run: flutter analyze
+
+      - name: Verify iOS signing guards
+        run: python3 -m unittest discover -s scripts/tests -p 'test_ios_release.py'
+
+      - name: Setup Node for push payload regression checks
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Verify private and platform-specific push payloads
+        run: node --test supabase/functions/push-fcm/payload.test.ts
 
       - name: Run Unit & Widget Tests
         run: flutter test --exclude-tags=golden
@@ -143,7 +163,7 @@ jobs:
           if-no-files-found: error
 
   build-ios:
-    name: Build iOS archive (unsigned, not for submission)
+    name: Build iOS (${{ inputs.ios_signing == 'app-store' && 'signed IPA' || 'unsigned archive' }})
     needs: [validate, validate-goldens]
     runs-on: macos-26
     steps:
@@ -166,24 +186,149 @@ jobs:
           SDK=$(xcrun --sdk iphoneos --show-sdk-version)
           test "${SDK%%.*}" -ge 26
 
+      - name: Inject iOS Firebase configuration
+        env:
+          FIREBASE_PLIST: ${{ secrets.IOS_FIREBASE_PLIST_BASE64 }}
+          SIGNED_BUILD: ${{ inputs.ios_signing == 'app-store' }}
+        run: |
+          python3 - <<'PY'
+          import base64, os, pathlib, plistlib, runpy
+          value = os.environ.get('FIREBASE_PLIST', '')
+          if not value:
+              if os.environ['SIGNED_BUILD'] == 'true':
+                  raise SystemExit('IOS_FIREBASE_PLIST_BASE64 is required for a signed build.')
+              print('No Firebase configuration supplied; unsigned archive only.')
+          else:
+              data = base64.b64decode(value, validate=True)
+              runpy.run_path('scripts/prepare-ios-release.py')['validate_firebase'](plistlib.loads(data))
+              pathlib.Path('ios/Runner/GoogleService-Info.plist').write_bytes(data)
+          PY
+
+      - name: Install distribution identity in temporary keychain
+        if: inputs.ios_signing == 'app-store'
+        env:
+          P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_P12_PASSWORD }}
+          PROFILE_BASE64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
+        run: |
+          set -eu
+          umask 077
+          test -n "$P12_BASE64" && test -n "$P12_PASSWORD" && test -n "$PROFILE_BASE64" || {
+            echo 'iOS certificate, password and profile secrets are required.'; exit 1;
+          }
+          python3 - <<'PY'
+          import base64, os, pathlib
+          root = pathlib.Path(os.environ['RUNNER_TEMP'])
+          for env, name in [('P12_BASE64', 'distribution.p12'), ('PROFILE_BASE64', 'profile.mobileprovision')]:
+              (root / name).write_bytes(base64.b64decode(os.environ[env], validate=True))
+          PY
+          KEYCHAIN="$RUNNER_TEMP/aura-release.keychain-db"
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          echo "::add-mask::$KEYCHAIN_PASSWORD"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/distribution.p12" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" > /dev/null
+          security list-keychains -d user -s "$KEYCHAIN" "$HOME/Library/Keychains/login.keychain-db"
+          security cms -D -i "$RUNNER_TEMP/profile.mobileprovision" > "$RUNNER_TEMP/profile.plist"
+          python3 scripts/prepare-ios-release.py --profile "$RUNNER_TEMP/profile.plist" --firebase ios/Runner/GoogleService-Info.plist
+
+      - name: Install validated App Store profile
+        if: inputs.ios_signing == 'app-store'
+        run: |
+          mkdir -p "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+          cp "$RUNNER_TEMP/profile.mobileprovision" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/$IOS_PROFILE_UUID.mobileprovision"
+
       - name: Build iOS Archive
         env:
           BUILD_NUMBER: ${{ needs.validate.outputs.build_number }}
+          SIGNED_BUILD: ${{ inputs.ios_signing == 'app-store' }}
         run: |
-          BUILD_ARGS=(--release --no-codesign)
+          BUILD_ARGS=(--release)
+          if [ "$SIGNED_BUILD" = true ]; then
+            BUILD_ARGS+=(--export-options-plist=build/apple-signing/ExportOptions.plist)
+          else
+            BUILD_ARGS+=(--no-codesign)
+          fi
           if [ -n "$BUILD_NUMBER" ]; then
             [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]] || exit 1
             BUILD_ARGS+=("--build-number=$BUILD_NUMBER")
           fi
           flutter build ipa "${BUILD_ARGS[@]}"
 
-      - name: Record archive provenance
+      - name: Verify signed iOS bundle
+        if: inputs.ios_signing == 'app-store'
         run: |
-          printf 'commit=%s\nbuild=%s\nsigning=unsigned\n' "$GITHUB_SHA" '${{ needs.validate.outputs.build_number }}' > build/ios/archive/build-info.txt
+          codesign --verify --deep --strict build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app
+          python3 - <<'PY'
+          import pathlib, plistlib, zipfile
+          paths = list(pathlib.Path('build/ios/ipa').glob('*.ipa'))
+          assert len(paths) == 1, 'Expected exactly one exported IPA'
+          with zipfile.ZipFile(paths[0]) as archive:
+              info = plistlib.loads(archive.read('Payload/Runner.app/Info.plist'))
+              assert info['CFBundleIdentifier'] == 'com.auraquest.auraQuest'
+              assert 'Payload/Runner.app/embedded.mobileprovision' in archive.namelist()
+              assert 'Payload/Runner.app/GoogleService-Info.plist' in archive.namelist()
+          PY
+
+      - name: Record archive provenance
+        env:
+          SIGNED_BUILD: ${{ inputs.ios_signing == 'app-store' }}
+        run: |
+          printf 'commit=%s\nbuild=%s\nsigning=%s\n' "$GITHUB_SHA" '${{ needs.validate.outputs.build_number }}' "$SIGNED_BUILD" > build/ios/archive/build-info.txt
 
       - name: Upload iOS Archive Artifact
+        if: inputs.ios_signing != 'app-store'
         uses: actions/upload-artifact@v7
         with:
           name: ios-unsigned-archive-${{ needs.validate.outputs.build_number }}
           path: build/ios/archive/
           if-no-files-found: error
+
+      - name: Upload signed IPA artifact
+        if: inputs.ios_signing == 'app-store'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-app-store-ipa-${{ needs.validate.outputs.build_number }}
+          path: |
+            build/ios/ipa/*.ipa
+            build/ios/archive/build-info.txt
+          if-no-files-found: error
+
+      - name: Upload signed IPA to TestFlight
+        if: inputs.ios_signing == 'app-store' && inputs.upload_testflight
+        env:
+          APPLE_API_KEY_BASE64: ${{ secrets.APPLE_API_KEY_BASE64 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          set -eu
+          umask 077
+          test -n "$APPLE_API_KEY_BASE64" && test -n "$APPLE_API_KEY_ID" && test -n "$APPLE_API_ISSUER_ID" || {
+            echo 'App Store Connect API credentials are required for TestFlight upload.'; exit 1;
+          }
+          python3 - <<'PY'
+          import base64, os, pathlib, re
+          key_id = os.environ['APPLE_API_KEY_ID']
+          assert re.fullmatch('[A-Z0-9]{10}', key_id), 'Invalid API key identifier'
+          root = pathlib.Path.home() / '.appstoreconnect/private_keys'
+          root.mkdir(parents=True, exist_ok=True)
+          (root / f'AuthKey_{key_id}.p8').write_bytes(base64.b64decode(os.environ['APPLE_API_KEY_BASE64'], validate=True))
+          PY
+          IPA=(build/ios/ipa/*.ipa)
+          xcrun altool --upload-app -f "${IPA[0]}" -t ios --apiKey "$APPLE_API_KEY_ID" --apiIssuer "$APPLE_API_ISSUER_ID"
+
+      - name: Remove temporary signing material
+        if: always()
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+        run: |
+          security delete-keychain "$RUNNER_TEMP/aura-release.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/distribution.p12" "$RUNNER_TEMP/profile.mobileprovision" "$RUNNER_TEMP/profile.plist"
+          if [ -n "${IOS_PROFILE_UUID:-}" ]; then
+            rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/$IOS_PROFILE_UUID.mobileprovision"
+          fi
+          if [[ "$APPLE_API_KEY_ID" =~ ^[A-Z0-9]{10}$ ]]; then
+            rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_$APPLE_API_KEY_ID.p8"
+          fi

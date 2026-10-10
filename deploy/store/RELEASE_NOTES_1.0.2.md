@@ -1,6 +1,6 @@
-# Aura Quest 1.0.2 — Build 6
+# Aura Quest 1.0.2 — Build 7 candidate
 
-Vor dem Verwenden prüfen, dass Build 6 im jeweiligen Store noch frei ist und die Hinweise zum tatsächlich erzeugten Release-Build passen.
+Vor dem Verwenden prüfen, dass Build 7 im jeweiligen Store noch frei ist und die Hinweise zum tatsächlich erzeugten Release-Build passen. Build 6 war der vorherige CI-Kandidat; ein signierter iOS-Upload ist weiterhin offen.
 
 ## Google Play — Deutsch und Englisch
 

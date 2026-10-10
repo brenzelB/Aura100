@@ -10,11 +10,13 @@
 //  schickt nur Kategorie und eine ID. Genau das geht weiter an Google.
 //  Den Text holt sich die App anschliessend vom eigenen Server.
 //
-//  DESHALB IST ES EINE DATENNACHRICHT (data-only) und keine
-//  notification-Nachricht: Bei letzterer wuerde Android den Text selbst
-//  anzeigen - es gaebe also einen Text, den Google gesehen haette.
-//  So weckt die Nachricht nur die App, die den Rest selbst erledigt.
+//  Android bekommt weiter eine Datennachricht. iOS braucht einen
+//  sichtbaren APNs-Alert: Ein stiller Ping weckt eine suspendierte App
+//  nicht zuverlaessig. Dessen Text ist fest und enthaelt keine privaten
+//  Namen/Inhalte. Den eigentlichen Inhalt holt die App vom eigenen Server.
 // =================================================================
+
+import { buildFcmMessage } from "./payload.ts";
 
 const FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging";
 
@@ -152,25 +154,7 @@ Deno.serve(async (request) => {
     const sa = loadAccount();
     const accessToken = await getAccessToken();
 
-    const message: Record<string, unknown> = {
-      token: payload.token,
-      // Nur Daten, kein 'notification'-Block - siehe Kopf der Datei.
-      data: {
-        category: payload.category,
-        refId: payload.refId ?? "",
-        id: String(payload.id ?? ""),
-      },
-      android: {
-        // Ohne 'high' laesst Android die Nachricht im Doze-Modus
-        // liegen, bis das Geraet ohnehin aufwacht - womit die
-        // Benachrichtigung ihren Zweck verloren haette.
-        priority: "high",
-      },
-      apns: {
-        headers: { "apns-priority": "5", "apns-push-type": "background" },
-        payload: { aps: { "content-available": 1 } },
-      },
-    };
+    const message = buildFcmMessage({ ...payload, token: payload.token, category: payload.category });
 
     const response = await fetch(
       `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`,

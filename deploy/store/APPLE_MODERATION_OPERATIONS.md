@@ -4,8 +4,8 @@ This is the operator procedure for user reports and filtered public quest text. 
 
 ## Before the public build
 
-1. Apply `supabase/migrations/20261009120000_app_store_moderation.sql` to the NAS database through the verified NAS database deployment path. First create and validate a backup, and run the database regression suite in the isolated NAS test container. The migration has passed that isolated test, but it has **not** been applied to the app database.
-2. Publish `legal/aura-quest/index.html` to `https://legal.brenzel.uk/aura-quest/` after the migration is deployed. Confirm the Community Guidelines section and contact address load from a logged-out browser.
+1. **Deployed on 9 October 2026:** `20261009120000_app_store_moderation.sql` is now the twelfth NAS migration. `scripts/nas-apply-moderation.mjs --apply` made backup `backups/apple-moderation-before-20261009213815.dump`, restored it into an isolated empty database and passed all seven SQL regression suites before changing the app database.
+2. **Published and verified on 9 October 2026:** the public legal/Community Guidelines page at `https://legal.brenzel.uk/aura-quest/` serves the updated sections. `scripts/nas-deploy-legal.mjs` checks the exact origin hash and public HTTPS markers; Cloudflare's email obfuscation means the public HTML has different bytes. Latest rollback copy: `backups/legal-before-20261009214051.html`.
 3. Confirm report and block flows from two test accounts, and confirm the operator can see and act on a new report.
 
 Do not use Windows Docker or edit the PostgreSQL data files over SMB. The project's database containers run on NAS-BRA; use the checked NAS/PostgreSQL tooling in `scripts/README.md`.

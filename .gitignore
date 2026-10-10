@@ -50,6 +50,13 @@ supabase/.env
 android/key.properties
 *.jks
 
+# Apple signing and per-project configuration (injected by CI)
+*.p8
+*.p12
+*.mobileprovision
+*.csr
+ios/Runner/GoogleService-Info.plist
+
 # Standalone built binaries
 dist/
 *.apk

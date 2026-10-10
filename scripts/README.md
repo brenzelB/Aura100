@@ -107,3 +107,26 @@ beim Prüflauf werden keine alten Dumps rotiert.
 Ergebnisse und APK-Sicherungen liegen in `build/audit/`, das nicht in Git
 aufgenommen wird. Der neue Android-Build liegt in
 `build/app/outputs/flutter-apk/app-debug.apk`.
+
+## Apple launch preparation (October 2026)
+
+All NAS operations below use SSH and NAS Docker only. Each deployment saves an
+on-NAS rollback copy; none edits PostgreSQL files over SMB.
+
+- `nas-apply-moderation.mjs --apply`: exact 11-to-12 migration path, fresh dump,
+  isolated empty-database restore, seven SQL suites, then atomic app migration.
+- `nas-deploy-legal.mjs --apply`: deploy public legal/community HTML, verify
+  exact origin hash and public sections through Cloudflare.
+- `nas-configure-apple-native.mjs --apply`: enable native Apple ID-token auth
+  for the exact bundle audience; browser OAuth/revocation keys are separate.
+- `nas-fix-pooler-port.mjs --apply`: fix the inspected NAS loopback port conflict
+  by binding the pooler session port to the NAS LAN IP only.
+- `nas-deploy-ios-push.mjs --apply`: exact inspected worker baseline, backup,
+  iOS generic APNs alert, authenticated/unauthenticated load probes, rollback.
+- `prepare-ios-csr.ps1`: create encrypted local distribution key and public CSR;
+  password is Windows-DPAPI protected. Does not issue an Apple certificate.
+- `prepare-ios-release.py`: CI-only profile/Firebase guards and signing export
+  configuration; it does not read or print private keys/passwords.
+
+See `deploy/store/README.md` for required GitHub secrets and the explicit
+TestFlight upload option. Never commit the ignored signing/Firebase files.

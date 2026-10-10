@@ -19,7 +19,7 @@ GitHub Actions requires encrypted repository secrets:
 Never commit signing credentials. With Play App Signing, a lost upload key
 can be reset through Play Console; it differs from Google's app signing key.
 
-Build: flutter build appbundle --release --build-name=1.0.2 --build-number=6
+Build: flutter build appbundle --release --build-name=1.0.2 --build-number=7
 The existing local AAB was built on 30 September 2026, before the current
 changes. Do not upload it. Build a fresh AAB from the final, tested commit
 through the release workflow, then verify it with keytool -printcert -jarfile.
@@ -27,22 +27,35 @@ The certificate must not identify Android Debug.
 
 ## Apple
 
-The workflow produces an **unsigned xcarchive**, not a distributable IPA.
-Its artifact name says ios-unsigned-archive. It checks iOS SDK >=26 on macOS 26
-and fails if the archive is missing.
+The default workflow produces an **unsigned xcarchive** for validation.
+Choose `ios_signing=app-store` to export a signed App Store IPA on macOS 26.
+That path checks the profile's team, bundle, expiration, Apple login and
+production APNs entitlements before signing. It needs these repository secrets:
+
+- `IOS_FIREBASE_PLIST_BASE64`: matching GoogleService-Info.plist.
+- `IOS_DISTRIBUTION_P12_BASE64`: Apple Distribution certificate/private key.
+- `IOS_DISTRIBUTION_P12_PASSWORD`: its export password.
+- `IOS_PROVISION_PROFILE_BASE64`: App Store profile for this exact App ID.
+
+`upload_testflight=true` additionally requires `APPLE_API_KEY_BASE64`,
+`APPLE_API_KEY_ID` and `APPLE_API_ISSUER_ID`. It uploads the IPA for processing;
+it does not submit it for App Review or release the app. Leave this option false
+until the credentials and upload have been specifically authorized.
 
 The project now contains Sign in with Apple and Push Notifications capability
 settings. Store export still needs the active Apple team, distribution
 certificate, provisioning profile for `com.auraquest.auraQuest`, export
-options, and the matching iOS Firebase/APNs configuration. The current job
-still creates an unsigned archive, not an IPA. TestFlight and real-device
-acceptance have not been completed.
+options, and matching Firebase/APNs credentials. Firebase iOS registration and
+native NAS Apple configuration are complete; credential transfer/signing,
+Apple token revocation on deletion and real-device acceptance remain open.
+The signed path has not run yet. Certificate requests are prepared with
+`scripts/prepare-ios-csr.ps1`; ignored files stay in `build/apple-private/`.
 
 No store upload or review submission happens automatically.
 See [the current readiness report](../../docs/2026-10-09-apple-launch-readiness.md)
 for remaining blockers. The September report is historical.
 
-Current release candidate: version 1.0.2, build 6. Confirm build 6 is unused
+Current release candidate: version 1.0.2, build 7. Confirm build 7 is unused
 in both stores before building. Launch the release workflow with an explicit
-`build_number=6` so Android and iOS share the same build number.
+`build_number=7` so Android and iOS share the same build number.
 See RELEASE_NOTES_1.0.2.md for the current store notes.

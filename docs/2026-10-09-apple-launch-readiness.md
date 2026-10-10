@@ -1,21 +1,26 @@
 # Aura Quest — Apple App Store launch readiness
 
-**Checked:** 9 October 2026
-**Scope:** Repository, App Store Connect setup, GitHub release build and read-only NAS inspection. Launch-preparation changes are pushed to `main` through `bc22b26`. No build was uploaded to either store, no app was submitted, and the app database was not changed.
+**Updated:** 10 October 2026
+**Scope:** Repository, App Store Connect, Firebase and NAS deployment. No build has been uploaded to either store and no app has been submitted. The verified moderation migration, legal page and native Apple provider configuration are now deployed on the NAS.
 
 ## Work completed in this pass
 
-- Added native Sign in with Apple to the iOS sign-in screen, including nonce hashing/exchange, the Xcode capability, and the entitlement. Supabase's Apple provider still needs account-side configuration and a real-device test.
-- Enabled the iOS Push Notifications project capability and `remote-notification` background mode. Firebase's iOS plist and APNs key are absent, so this does not make iOS push operational yet.
-- Added a local pre-check and server-side filter for common profanities in usernames and quest text, plus report queue status fields and an operator procedure. The migration was replayed and tested in the isolated NAS test container; it has **not** been applied to the app database.
-- Added the Community Guidelines page section and an in-app link to it. The local legal page source has changed; the public page has not been redeployed.
+- Native Sign in with Apple, including nonce hashing/exchange and entitlement, is implemented. NAS Auth is now healthy with `GOTRUE_EXTERNAL_APPLE_ENABLED=true` and the exact bundle ID as audience. Pure native ID-token verification needs no browser-OAuth service ID/client secret. First-time/returning sign-in still needs a real iPhone test. **Apple token revocation during account deletion is not yet implemented and remains a submission blocker.**
+- Firebase iOS app `1:330587668877:ios:ddb659e809f680f774fdc4` is registered in project `auraquest-fa2a1`, with the exact bundle and App Store ID. Its downloaded plist is held in ignored `build/apple-private/`, with Analytics/Ads disabled. GitHub secret transfer awaits specific user approval; the APNs key is still missing.
+- Moderation migration `20261009120000_app_store_moderation.sql` was applied after a fresh dump was restored into an isolated empty NAS database and all seven SQL suites passed. The migration ledger now has 12 entries. Backup: `backups/apple-moderation-before-20261009213815.dump`. Deployment proof: ignored `build/audit/apple-moderation-deployment.txt`.
+- Community Guidelines/privacy page was published and verified at the public HTTPS URL. Origin bytes match the repository file; public checks account for Cloudflare email obfuscation. The obsolete EU ODR-platform link was removed. Backup: `backups/legal-before-20261009214051.html`.
+- Fixed iOS push delivery: APNs now gets a generic visible alert rather than only a silent background ping, without private quest/user/report text. Android retains its data-only high-priority payload. The client suppresses duplicate iOS background display, authorizes tap-throughs and keeps a successful permission result when the APNs token is still pending. The worker is deployed on NAS; its authenticated validation (400) and unauthenticated rejection (403) both passed. APNs credentials and real-device delivery are still unverified.
+- Restored the NAS pooler. Port 5433 was occupied on NAS loopback; the pooler now binds the same port only to `192.168.178.123`, preserving the existing NAS-local service. It is healthy. Backup: `backups/compose-before-pooler-20261010060254.yaml`.
 - Added exact-hash Hanken Grotesk and Inter font files with their OFL licenses. The app disables Google Fonts runtime fetches, keeping the existing theme font bytes offline and avoiding the external font request.
 - Updated the App Store description drafts, removed obsolete `Half Damage` claims, shortened both Play descriptions to fit, and removed the unsupported hard-coded `4+` age-rating claim.
-- Advanced the release candidate to version `1.0.2+6`. Build 6 has now been built and signed in CI, but has not been uploaded to either store. Play Console showed version code 6 was unused before the build; check App Store Connect's build history again before producing the signed iOS upload. The local Android AAB dated 30 September still predates this work and must not be uploaded.
+- Current repository candidate is `1.0.2+7`. Earlier build 6 produced a signed Android AAB and an unsigned iOS archive; neither was uploaded. Build 7 includes the newer Apple/push/signing changes and needs a fresh CI build and store build-number check. The local Android AAB dated 30 September predates this work and must not be uploaded.
 - Added localized 1.0.2 release notes and corrected the store checklist to point to a fresh CI artifact instead of the stale local AAB.
-- Expanded the Apple privacy manifest to cover the app's account, push identifier, gameplay data, and in-game purchase history. Reconcile it once the final iOS SDK set is configured.
+- Aligned the Apple privacy manifest and privacy draft with account/provider names, email, IDs, friend graph, manually logged fitness, gameplay, free text, support reports and virtual perk purchase history. No tracking/analytics/advertising is declared. Reconcile the final Xcode privacy report and SDK set before submission; App Store Connect's privacy form is still open.
+- Prepared the release workflow for a signed App Store IPA: validated exact-team production profile, private ephemeral macOS keychain, matching Firebase plist, signing/export checks and cleanup. TestFlight upload is a separate explicit option; no App Review submission is automatic. Five signing-guard/integration checks pass locally. The signed path has not run without its credentials.
+- Prepared a verified RSA-2048/SHA-256 certificate signing request. The private key is encrypted and its random password is protected with Windows DPAPI. The Apple Distribution wizard is ready to issue the certificate after action-time confirmation; no certificate has been created yet.
 - Registered the Apple App ID `com.auraquest.auraQuest` and enabled **Sign in with Apple** and **Push Notifications**.
 - Created the App Store Connect record **Aura Quest: Gamified Habits** (Apple ID `6821149239`, SKU `auraquest-ios`) for that bundle ID. Set the German subtitle, description, keywords, support URL, Productivity category, and version `1.0.2`; the version is configured for manual release. This is saved draft metadata, not a submission.
+- Saved the account holder's declared **Non-Trader** status in App Store Connect. Apple now shows the Digital Services Act requirements as fulfilled and the compliance status as **Active** (9 October 2026).
 - Started and completed GitHub Actions release run [#7](https://github.com/brenzelB/Aura100/actions/runs/37990086735) on commit `bc22b26` with build number `6`. Tests, all theme goldens, the signed Android AAB build and the unsigned iOS archive build passed. The run produced `android-release-bundle-6` (SHA-256 `e45d34ad926e303b894375bd7dfc8ffc3764e1005177bd02fdb44cc4fc339063`) and `ios-unsigned-archive-6` (SHA-256 `346a2262caff19004849863f16f22d2aec1c25b32896a3a253ca56cef0233759`). The iOS archive is still explicitly unsigned and cannot be uploaded to TestFlight.
 
 ## Verification
@@ -26,7 +31,8 @@
 - `flutter build apk --debug`: passed (Android regression check only; it is not an iOS build).
 - GitHub Actions run #7: all four jobs passed; Android signing verification rejected debug signing; the iOS job produced only an unsigned archive.
 - NAS isolated test container: full migration replay and `plpgsql_check` passed; nine moderation/filter assertions and the existing balance, audit, push, lifecycle, duel, and privilege SQL regression suites passed.
-- NAS app database read-only inspection: 11 existing migrations, scheduled jobs succeeded in the inspected window, no pending notification deliveries. No database write was performed.
+- Current checks: `flutter analyze --no-pub` passed; all 375 Flutter tests (including theme goldens) passed; five Python signing checks and two Node push-payload regression checks passed. These do not prove real iPhone acceptance.
+- Live moderation: 12 migrations, zero open reports, normal text allowed, obfuscated profanity rejected, zero cron failures in the inspected hour. The migration preserved player counts and Aura.
 
 ## Google Play status
 
@@ -36,16 +42,15 @@
 
 ## Still required before submission
 
-1. Confirm the App Store Connect app record details and finish the EU Digital Services Act trader-status setup. Apple currently blocks EU distribution until the account holder provides the truthful trader status.
-2. Enable/configure Apple in Supabase Auth. Configure Sign in with Apple services and test first-time and returning users on an iPhone.
-3. Create the matching iOS Firebase app, provide `GoogleService-Info.plist` securely to the build, add the APNs authentication key in Firebase, and verify permission, foreground, background, and tap-through push on a real iPhone.
-4. Apply the moderation migration to the NAS app database through its verified backup-and-PostgreSQL deployment path. Do not use a Windows Docker container or write PostgreSQL files over SMB. Confirm reports reach the operator and set up daily review.
-5. Publish the updated legal page and verify its privacy, Community Guidelines, and contact sections at the public URL. The current live page has contact details but does not yet show the new Community Guidelines section.
-6. Configure Apple distribution signing on the macOS runner (team, distribution certificate, App Store provisioning profile and export options). The repository workflow currently creates an unsigned artifact and cannot create an uploadable IPA from this Windows PC.
-7. Check the App Store Connect build-number history before using build 6, produce a signed IPA on macOS, upload it to TestFlight, and test sign-in, account deletion, push, report/block, and all major flows on real iPhone/iPad devices.
-8. Capture real app screenshots at Apple's required iPhone Dynamic Island medium size and iPad 13-inch size; current store screenshots are Android captures.
-9. Complete the App Store Connect privacy form, age-rating questionnaire (including chance-based Aura Heist with virtual-only stakes), export-compliance questions, support details, and App Review demo credentials. Check that the final backend is reachable for review.
+1. Confirm the remaining App Store Connect app record details. The EU Digital Services Act status is complete with the account holder's declared Non-Trader status.
+2. Implement/test Apple's REST token revocation for account deletion, using a dedicated Sign in with Apple signing key on the backend; configure Apple server notifications as required. The current `delete_my_account` RPC deletes local account data only. See [Apple account-deletion guidance](https://developer.apple.com/help/app-review/guideline-reference/5-1-1-account-deletion).
+3. Approve secure Firebase plist transfer to the named GitHub repository secret, add an APNs key in Firebase, and verify permission, foreground/background, suspended-state display and tap-through push on a real iPhone.
+4. Confirm report/block flows with two test accounts, and the operator's daily moderation procedure. The migration and public page are already live.
+5. Finish Apple distribution certificate/profile and securely supply them to the macOS runner. The signed workflow is prepared but has not run. GitHub collaborators with workflow rights can use repository secrets, so each credential transfer needs specific approval.
+6. Check the store build history, build/upload a signed IPA and test sign-in, deletion, push, report/block and all major flows through TestFlight on real iPhone/iPad devices.
+7. Capture real app screenshots at Apple's required iPhone Dynamic Island medium size and iPad 13-inch size; current store screenshots are Android captures.
+8. Complete the App Store Connect privacy form, age-rating questionnaire (including chance-based Aura Heist with virtual-only stakes), export-compliance questions, support details, and App Review demo credentials. Check that the final backend is reachable for review.
 
 Apple's current screenshot rules require an iPhone Dynamic Island medium screenshot and, because this project supports iPad, an iPad 13-inch screenshot. Its review rules for user-generated content require filtering, reporting with timely responses, blocking, and published contact details. See the [screenshot requirements](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/) and [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/).
 
-The launch is **not submission-ready yet**: signing, provider/Firebase setup, the live database migration, live legal-page update, real-device/TestFlight acceptance, screenshots, age rating, App Privacy, export compliance, review contact/demo access, and the EU trader-status determination remain outstanding. The App Store Connect record and basic German listing metadata are now in place as drafts.
+The launch is **not submission-ready yet**: Apple credentials, account-deletion token revocation, signed build/TestFlight, real-device acceptance, iOS screenshots, age rating, App Privacy, export compliance and reviewer access remain open. Backend moderation, the legal page, native Apple provider configuration, Firebase app registration and EU Non-Trader declaration are complete. Apple's browser session expired; the user needs to sign in again to finish App Store Connect.

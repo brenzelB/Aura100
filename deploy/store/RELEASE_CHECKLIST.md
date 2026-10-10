@@ -6,7 +6,7 @@ Dieser Leitfaden führt dich Schritt für Schritt durch die Veröffentlichung vo
 
 ## 1. Übersicht der vorbereiteten Store-Artefakte
 
-Alle Dateien liegen einsatzbereit im Ordner `deploy/store/`:
+Vorbereitete Dateien und Entwürfe liegen im Ordner `deploy/store/`. Den aktuellen, noch nicht einreichbaren Apple-Stand beschreibt [der Fortschrittsbericht](../../docs/2026-10-09-apple-launch-readiness.md).
 
 | Dateipfad | Zweck |
 |---|---|
@@ -16,8 +16,8 @@ Alle Dateien liegen einsatzbereit im Ordner `deploy/store/`:
 | [`deploy/store/assets/screenshots/`](assets/screenshots/) | **Reale Screenshots** aus dem Android-Emulator (Dashboard, Quests, Quest-Editor und Perks) |
 | [`deploy/store/STORE_LISTING_DE.md`](STORE_LISTING_DE.md) | App-Titel, Untertitel, Kurzbeschreibung & Langtext (Deutsch) |
 | [`deploy/store/STORE_LISTING_EN.md`](STORE_LISTING_EN.md) | App-Titel, Subtitle, Short Description & Full Text (Englisch) |
-| [`deploy/store/DATA_SAFETY_GOOGLE.md`](DATA_SAFETY_GOOGLE.md) | Exakte Antworten für das **Google Play Datensicherheitsformular** |
-| [`deploy/store/APP_PRIVACY_APPLE.md`](APP_PRIVACY_APPLE.md) | Exakte Antworten für **App Store Connect App-Datenschutz** |
+| [`deploy/store/DATA_SAFETY_GOOGLE.md`](DATA_SAFETY_GOOGLE.md) | Entwurf für das **Google Play Datensicherheitsformular**, vor Einreichen gegen finale Dienste prüfen |
+| [`deploy/store/APP_PRIVACY_APPLE.md`](APP_PRIVACY_APPLE.md) | Geprüfter Datenfluss-Entwurf für **App Store Connect App-Datenschutz**, finalen SDK-Bericht abgleichen |
 | [`.github/workflows/release.yml`](../../.github/workflows/release.yml) | GitHub Actions CI/CD-Pipeline für automatisierte iOS- und Android-Builds |
 
 ---
@@ -38,7 +38,7 @@ Alle Dateien liegen einsatzbereit im Ordner `deploy/store/`:
 ### Schritt 2.3: App-Inhalte & Richtlinien (Dashboard-Aufgaben)
 Gehe im linken Menü auf **App-Inhalte** und fülle die Pflichtformulare aus:
 - **Datenschutzerklärung:** URL `https://legal.brenzel.uk/aura-quest/`
-- **App-Zugriff:** *Alle Funktionen sind ohne besondere Einschränkungen verfügbar* (oder Test-Account `testuser@auraquest.local` / `Passwort` bereitstellen).
+- **App-Zugriff:** Anmeldung ist erforderlich. Ein tatsächlich funktionierendes Review-Konto mit passenden Zugangsdaten bereitstellen; die bisherigen Platzhalter sind kein gültiger Zugang.
 - **Werbung:** *Nein, meine App enthält keine Werbung*.
 - **Zielgruppe & Inhalte:** 13+ bzw. 16+ Jahre auswählen.
 - **Finanz-Apps / Behörden-Apps / COVID-19:** Jeweils *Nein*.
@@ -63,7 +63,7 @@ Unter **Haupt-Store-Eintrag**:
 > Neue private Entwicklerkonten müssen vor der Freigabe für die Produktion einen **geschlossenen Test mit mindestens 12 Testern über 14 Tage** durchführen.
 1. Gehe zu **Testen → Geschlossener Test**.
 2. Erstelle nach erfolgreicher CI-Prüfung einen neuen Release und lade das signierte AAB des aktuellen Commits aus dem GitHub-Actions-Artefakt hoch. Das lokale AAB vom 30.09.2026 nicht verwenden.
-3. Versionsname: `1.0.2`, Versionscode: `6` (nur verwenden, wenn 6 in der Play Console noch frei ist).
+3. Versionsname: `1.0.2`, Versionscode: `7` (nur verwenden, wenn 7 in der Play Console noch frei ist).
 4. Release-Hinweise aus [`RELEASE_NOTES_1.0.2.md`](RELEASE_NOTES_1.0.2.md) einfügen.
 5. Testerliste (E-Mails von Freunden / Familie) hinterlegen und Testlink teilen.
 6. Nach Ablauf der 14 Tage geschlossenen Tests den Antrag auf Produktionszugriff stellen.
@@ -83,21 +83,21 @@ Du hast inzwischen ein Apple Developer Konto. Prüfe in [App Store Connect](http
 
 ### Schritt 3.2: Backend und Anmeldung
 
-- Apple Provider in Supabase aktivieren und die Service-ID/Schlüsselwerte im Supabase Auth-Dashboard konfigurieren. Apple-Anmeldung ist im iOS-Client eingebaut; ein erfolgreicher Build allein bestätigt den Provider noch nicht.
-- Für iOS Push `GoogleService-Info.plist` zur Firebase-App mit Bundle-ID `com.auraquest.auraQuest` erzeugen, einen APNs-Auth-Key in Firebase hinterlegen und die Konfiguration sicher in den Build geben. Schlüssel und Plist nicht ins Repository committen.
-- Die neue Moderationsmigration `20261009120000_app_store_moderation.sql` muss nach Backup und Regressionstest auf dem NAS angewendet werden. Danach Test durchführen: problematische Profil-/Quest-Texte werden abgewiesen, normale Texte gespeichert, Meldungen in der Moderationswarteschlange sichtbar.
+- Der native Apple Provider ist auf dem NAS für `com.auraquest.auraQuest` aktiviert. Für den nativen ID-Token-Austausch ist keine Browser-Service-ID nötig. Apple-Token-Widerruf bei Kontolöschung braucht dagegen noch eine Signaturkonfiguration und Umsetzung; ein erfolgreicher Login-Build bestätigt diesen Lebenszyklus nicht.
+- Die Firebase-iOS-App ist registriert, Plist sicher heruntergeladen, Team-ID zugeordnet. Noch offen: konkrete GitHub-Secret-Freigabe, APNs-Key und echter Push-Test. Schlüssel und Plist nicht ins Repository committen.
+- Moderationsmigration und öffentliche Community-Seite sind nach Sicherung/Regressionstests auf dem NAS bereitgestellt. Noch praktisch durchspielen: problematische Texte werden abgewiesen, normale Texte gespeichert, Meldungen vom Betreiber bearbeitet.
 - Push, Anmeldung, Account-Löschung und Report/Block mit echten Testkonten auf einem iPhone durchspielen.
 
 ### Schritt 3.3: Signierter iOS-Build
 
-Windows kann kein iOS-IPA erzeugen. Die GitHub-Action baut derzeit nur ein **unsigniertes** Archiv. Für eine einreichbare IPA braucht der macOS-Runner eine Apple-Distribution-Signatur, ein App-Store-Provisioning-Profil und die Export-Optionen für das Team. Firebase-Konfiguration muss ebenfalls sicher eingebunden sein. Die bestehende Pipeline lädt nichts hoch.
+Windows kann kein iOS-IPA erzeugen. Die GitHub-Action baut standardmäßig ein **unsigniertes** Archiv; der neue Modus `ios_signing=app-store` ist für eine signierte IPA vorbereitet. Dafür fehlen noch Zertifikat/Profil und die freigegebene Secret-Übertragung. `upload_testflight=true` ist eine zusätzliche ausdrückliche Upload-Option und setzt App-Store-Connect-API-Zugang voraus. Sie reicht die App nicht zur Review ein. Details: [Build-Anleitung](README.md).
 
-Die Version ist aktuell `1.0.2`, Build `6`. Verwende Build 6 nur, wenn er in App Store Connect noch frei ist; andernfalls erhöhe die gemeinsame Android-/iOS-Build-Nummer. Version und Build-Nummer müssen zum App-Store-Connect-Datensatz passen.
+Die Version ist aktuell `1.0.2`, Build `7`. Verwende Build 7 nur, wenn er in App Store Connect noch frei ist; andernfalls erhöhe die gemeinsame Android-/iOS-Build-Nummer. Version und Build-Nummer müssen zum App-Store-Connect-Datensatz passen.
 
 ### Schritt 3.4: Listing und Prüfung
 
 - Beschreibung und Keywords aus [`STORE_LISTING_DE.md`](STORE_LISTING_DE.md) übernehmen und im finalen Build verifizierte Aussagen verwenden.
-- Datenschutz-URL: `https://legal.brenzel.uk/aura-quest/`. Die lokale Website enthält jetzt Community-Regeln; sie muss nach dem Datenbank- und Build-Update veröffentlicht und live geprüft werden.
+- Datenschutz-URL: `https://legal.brenzel.uk/aura-quest/`. Community-Regeln und aktuelle Provider-Angaben sind veröffentlicht und per HTTPS geprüft.
 - Datenschutzangaben mit [`APP_PRIVACY_APPLE.md`](APP_PRIVACY_APPLE.md) und dem endgültigen SDK-/Datenfluss abgleichen.
 - Apple verlangt mindestens einen iPhone-Screenshot für ein iPhone mit Dynamic Island in mittlerer Displaygröße. Weil das Projekt iPad unterstützt, wird zusätzlich ein iPad-13-Zoll-Screenshot benötigt. Die vorhandenen Store-Bilder stammen nur von Android und sind dafür kein Ersatz.
 - Den aktuellen Altersfreigabe-Fragebogen selbst vollständig beantworten. Dabei Aura Heist, Zufallschancen und ausschließlich virtuelle Aura-Einsätze wahrheitsgemäß angeben; die alte pauschale Angabe „4+“ nicht übernehmen.
