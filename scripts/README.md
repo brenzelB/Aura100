@@ -127,6 +127,11 @@ on-NAS rollback copy; none edits PostgreSQL files over SMB.
   password is Windows-DPAPI protected. Does not issue an Apple certificate.
 - `prepare-ios-release.py`: CI-only profile/Firebase guards and signing export
   configuration; it does not read or print private keys/passwords.
+- `prepare-apple-review-account.mjs --apply`: Windows PowerShell 7/DPAPI-backed
+  normal test account, three solo review quests, internal/public HTTPS login
+  verification. No email/invitations; no credentials uploaded to Apple/GitHub.
+  Refresh demo content before submission and approve reviewer credential sharing
+  separately. This is test data, not a privileged operator account.
 
 See `deploy/store/README.md` for required GitHub secrets and the explicit
 TestFlight upload option. Never commit the ignored signing/Firebase files.
