@@ -26,16 +26,16 @@ jobs:
           mkdir -p build/apple-store-screenshots
           xcrun simctl list devices available --json > build/simulators.json
           python3 - <<'PY'
-          import json
+          import json, re
           devices = [d for ds in json.load(open('build/simulators.json'))['devices'].values() for d in ds]
           selected = []
-          phones = [d for d in devices if d['name'].startswith('iPhone')]
+          phones = [d for d in devices if re.fullmatch(r'iPhone \d+(?: Pro)?', d['name'])]
           tablets = [d for d in devices if 'iPad Pro' in d['name'] and '13-inch' in d['name']]
           if not phones or not tablets:
               raise SystemExit('Required device family unavailable: '+str([d['name'] for d in devices]))
-          # Hosted macOS images change device generations. Prefer the largest
-          # current iPhone rather than requiring an obsolete simulator name.
-          phones.sort(key=lambda d: ('Pro Max' not in d['name'], d['name']))
+          # Apple's current required medium Dynamic Island slot accepts
+          # 1179x2556 / 1206x2622. Use a current standard/Pro iPhone, not Max.
+          phones.sort(key=lambda d: ('Pro' not in d['name'], d['name']))
           for device in [phones[0], tablets[0]]:
               print('Capture device: '+device['name'])
               selected.append(device['udid'])
