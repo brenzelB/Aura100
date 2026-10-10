@@ -11,6 +11,7 @@ Vorbereitete Dateien und Entwürfe liegen im Ordner `deploy/store/`. Den aktuell
 | Dateipfad | Zweck |
 |---|---|
 | [Signierter CI-Build 10](https://github.com/brenzelB/Aura100/actions/runs/38052895628) | Version 1.0.2 (10), Quellstand `f8590f6`: signierte Android-AAB und iOS-IPA, alle Release-Prüfungen bestanden. Beide heruntergeladen, noch nicht hochgeladen. Das alte September-AAB nicht verwenden. |
+| [Finaler Kandidat Build 11](https://github.com/brenzelB/Aura100/actions/runs/38075183018) | Version 1.0.2 (11), Quellstand `423dad4`: Activity-Karte aktualisiert ihre Farbe beim Theme-Wechsel. Alle vier CI-Jobs bestanden; signierte IPA/AAB heruntergeladen und noch nicht hochgeladen. 376 lokale Tests und Analyse bestanden. Build 10 dadurch überholt. |
 | [`deploy/store/assets/icon_512.png`](assets/icon_512.png) | **Google Play App Icon** (512 × 512 px, 32-bit PNG) |
 | [`deploy/store/assets/feature_graphic_1024x500_v2.png`](assets/feature_graphic_1024x500_v2.png) | **Google Play Feature Graphic** (1024 × 500 px Banner, neues Aura-Quest-Design) |
 | [`deploy/store/assets/screenshots/`](assets/screenshots/) | **Reale Screenshots** aus dem Android-Emulator (Dashboard, Quests, Quest-Editor und Perks) |
@@ -63,7 +64,7 @@ Unter **Haupt-Store-Eintrag**:
 > Neue private Entwicklerkonten müssen vor der Freigabe für die Produktion einen **geschlossenen Test mit mindestens 12 Testern über 14 Tage** durchführen.
 1. Gehe zu **Testen → Geschlossener Test**.
 2. Erstelle nach erfolgreicher CI-Prüfung einen neuen Release und lade das signierte AAB des aktuellen Commits aus dem GitHub-Actions-Artefakt hoch. Das lokale AAB vom 30.09.2026 nicht verwenden.
-3. Aktueller signierter Kandidat: Versionsname `1.0.2`, Versionscode `10`. Vor dem Upload in Play Console den belegten Versionscode prüfen. Für später geänderte App-Binaries eine höhere freie gemeinsame Build-Nummer verwenden.
+3. Aktueller Kandidat: Versionsname `1.0.2`, Versionscode `11`; erfolgreiche Signierung vor Upload prüfen. Vor dem Upload in Play Console den belegten Versionscode prüfen. Für später geänderte App-Binaries eine höhere freie gemeinsame Build-Nummer verwenden.
 4. Release-Hinweise aus [`RELEASE_NOTES_1.0.2.md`](RELEASE_NOTES_1.0.2.md) einfügen.
 5. Testerliste (E-Mails von Freunden / Familie) hinterlegen und Testlink teilen.
 6. Nach Ablauf der 14 Tage geschlossenen Tests den Antrag auf Produktionszugriff stellen.

@@ -46,7 +46,11 @@ The project now contains Sign in with Apple and Push Notifications capability
 settings. The active team, distribution certificate/profile, Firebase plist,
 production APNs configuration and seven iOS signing/upload Actions secrets are
 configured. The signed export and Apple upload path succeeded for build 9.
-The new signed build 10 passed all release jobs with Apple upload disabled.
+Build 10 passed all release jobs with Apple upload disabled. It was then
+superseded by build 11, which fixes the Activity panel keeping its light fill
+after a theme change. Build 11 passed all four release jobs; all 376 tests and
+analysis have passed locally, with the eight exact theme baselines unchanged.
+The IPA was inspected again and all 22 privacy manifests match build 10.
 Apple token revocation is implemented and tested against an isolated restored
 NAS backup; its dedicated key and live NAS deployment still await confirmation.
 Real-device acceptance and the public Store declarations remain open.

@@ -44,10 +44,27 @@ the screenshot inspection. This is not evidence of public release or device acce
   Bundle ID, build number and iPad orientation guards passed. SDK is iphoneos26.5,
   minimum iOS 15.0. The unused webcrypto framework and screenshot-only fixtures
   are absent. Android artifact 11670037752 is downloaded and not sent to Google Play.
+- Final [release run 38075183018](https://github.com/brenzelB/Aura100/actions/runs/38075183018)
+  passed all four jobs on `423dad4`, producing signed build 11 with Apple upload
+  disabled. All 376 Flutter tests passed locally; CI verified the non-golden
+  tests on Linux and the eight unchanged goldens on Windows.
+  Downloaded IPA: `build/store/ios-1.0.2-11/ipa/Aura Quest.ipa`, SHA256
+  `ad07dccbd697fcfda5439edeea0e4086ee929f9a4ae5c4283ac7650fbc33cca5`.
+  Artifact 11677964939, ZIP digest
+  `1bee7ebbcf75d830c6a259bd757aa5957bf41e19137a9760f0fd4563867fc6ab`.
+  Android artifact 11677719591 was also downloaded; AAB SHA256
+  `38641ce748a333791a4a1d726c5f449dd39c26d0aa4d7e96271b37a20468fdbc`.
+  Local keytool inspection identifies the existing Denis Brandt / AuraQuest /
+  Brenzel release certificate, not Android Debug (certificate SHA256
+  `56:66:F2:DF:01:59:70:58:13:6F:0E:DB:26:A6:D5:2A:49:BC:07:EB:B3:7D:9C:8F:C2:CB:4C:95:73:A7:1A:4F`).
+  Neither candidate was uploaded to either Store. Build 9 remains the released
+  internal TestFlight build.
 - IPA privacy inspection found 22 SDK/app manifests and 13 data types, with no
   declared tracking. The FCM manifest additionally discloses unlinked technical
   SDK metadata for the provider's analytics; the Store/privacy draft reflects it.
   This archive inspection is not an Xcode-generated report or real-device test.
+  Build 11's bundle/version/build, 22 manifests and 13 types were inspected again;
+  all manifests exactly match build 10. Store fixtures and webcrypto remain absent.
 - Saved Store preparation: copyright 2026 Denis Brandt; free pricing with Germany
   as base and 175 price regions; all 175 countries configured as available upon
   app release. German promotional copy and an English-US description, keywords
@@ -64,7 +81,15 @@ the screenshot inspection. This is not evidence of public release or device acce
   theme changes when its data stayed identical. It now watches the theme provider;
   the regression test exercises Light -> Dark -> Light with unchanged inbox data.
   No theme palette, layout or gameplay behavior changed. These pictures were not
-  uploaded; corrected screenshots and a newly signed build 11 are required.
+  uploaded. Corrected screenshot run 38075185296 on `423dad4` captured all four
+  iPhone views but timed out waiting for the first iPad page's VM extension reply.
+  Its failure image shows a fully rendered Home view, with no Flutter UI error.
+  The capture entrypoint now explicitly schedules rendering and uses an event-loop
+  settling delay instead of awaiting a frame callback across startup lifecycle
+  transitions. The host allows 90 seconds for the first reply and retains partial
+  diagnostics/images if a capture fails. Full-set and duplicate guards still apply.
+  Replacement run 38076725703 uses `d36b61d`; its production lib/assets/iOS sources
+  are exactly identical to signed build 11's `423dad4`.
   Earlier runs found an unavailable old simulator name, a redundant-build timeout
   and a missing Dart log stream with a direct simulator launch. Run 38055174368
   produced four iPhone files, but inspection found a shifted page, one duplicate
@@ -85,7 +110,7 @@ the screenshot inspection. This is not evidence of public release or device acce
 - No App Review submission or public release has been performed.
 
 Current operational guides: `deploy/store/README.md` and `RELEASE_CHECKLIST.md`
-now identify build 10 and the actual signing/secret setup. The saved English
+now identify candidate build 11 and the actual signing/secret setup. The saved English
 listing/subtitle/keywords and both promotional texts are mirrored in the listing
 files. `docs/apple-launch-naechste-schritte.md` explains the pending decisions in
 German. The export draft and proposed age/content declarations are prepared,

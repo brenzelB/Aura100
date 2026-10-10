@@ -1,8 +1,10 @@
 # App Review notes — draft
 
 Do not submit yet. Distribution signing and production APNs configuration are
-complete. Candidate **1.0.2 (10)** is signed and passed CI, but is not uploaded
-to Apple. Apple revocation code and its isolated NAS database tests are complete;
+complete. Candidate **1.0.2 (11)** includes the Activity theme-switch fix found
+during screenshot inspection. Its signed release run passed all four jobs;
+build 10 is superseded and neither candidate has been uploaded to Apple.
+Apple revocation code and its isolated NAS database tests are complete;
 the dedicated signing key and live deployment await confirmation. Real device
 acceptance, screenshots and App Store privacy/age/export forms remain open.
 Reviewer credentials have been prepared locally but not shared with Apple.

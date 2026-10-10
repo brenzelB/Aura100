@@ -44,7 +44,7 @@ external news/video feed.
 
 ## Export compliance
 
-Build 10 no longer contains `webcrypto.framework`. This alone does **not** prove
+Build 11 no longer contains `webcrypto.framework`. This alone does **not** prove
 the entire Flutter/Dart networking stack uses only Apple's OS cryptography.
 The app uses HTTPS/TLS and a SHA-256 nonce for Apple authentication. The NAS
 worker's AES token storage is server-side and is not shipped in the IPA.

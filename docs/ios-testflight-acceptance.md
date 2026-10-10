@@ -2,10 +2,11 @@
 
 Stand: 10. Oktober 2026. Kandidat: **1.0.2 (9)**. Apple zeigt den Build in der internen Gruppe als **Im Test** und das freigegebene Konto als **Eingeladen**. Dieser Plan beschreibt noch offene Gerätetests; er ist kein Nachweis, dass sie bestanden wurden.
 
-Der neue Store-Kandidat **1.0.2 (10)** ist inzwischen signiert erstellt, aber noch
-nicht zu Apple hochgeladen. Die folgenden Installationsschritte beziehen sich
+Der neue Store-Kandidat **1.0.2 (11)** enthält die korrigierte Activity-Karte beim
+Theme-Wechsel und wurde erfolgreich signiert erstellt. Build 10 ist dadurch überholt;
+keiner dieser Builds ist zu Apple hochgeladen. Die Installationsschritte beziehen sich
 weiterhin auf den tatsächlich freigegebenen Build 9. Die finale Abnahme muss
-nach Aktivierung des Apple-Widerrufs auf dem NAS mit Build 10 erfolgen.
+nach Aktivierung des Apple-Widerrufs auf dem NAS mit Build 11 erfolgen.
 
 ## Installieren
 

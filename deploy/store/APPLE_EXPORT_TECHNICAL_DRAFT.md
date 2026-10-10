@@ -1,4 +1,4 @@
-# Apple encryption review — build 1.0.2 (10)
+# Apple encryption review — build 1.0.2 (11)
 
 Technical preparation only. No export declaration, exemption or French filing
 has been submitted. The app's operator must confirm the applicable declaration
@@ -7,8 +7,8 @@ before the public release.
 ## Verified package
 
 - Bundle: `com.auraquest.auraQuest`, team `W558BUSST2`.
-- Build: `1.0.2 (10)`, release source `f8590f6`.
-- IPA SHA256: `a9a92dd6ca06582575a874af5a0f1e3fb7a618734f8b3029ffbb6b4691b861ae`.
+- Build: `1.0.2 (11)`, release source `423dad4`.
+- IPA SHA256: `ad07dccbd697fcfda5439edeea0e4086ee929f9a4ae5c4283ac7650fbc33cca5`.
 - `ITSAppUsesNonExemptEncryption` is not declared in the exported app.
 - `webcrypto.framework` is absent. This does not establish that the remaining
   networking implementation uses only Apple's operating-system encryption.
