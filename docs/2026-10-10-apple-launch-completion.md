@@ -1,5 +1,8 @@
 # Public Apple launch preparation — 10 October 2026
 
+Historical checkpoint. The [14 October update](2026-10-14-apple-launch-completion.md)
+records accepted Apple terms, renewed NAS/review checks and the eighth Store image.
+
 Candidate: **1.0.2+11**. Build 10 is superseded by a visual regression found during
 the screenshot inspection. This is not evidence of public release or device acceptance.
 

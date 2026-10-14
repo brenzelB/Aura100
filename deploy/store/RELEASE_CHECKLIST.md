@@ -6,7 +6,7 @@ Dieser Leitfaden führt dich Schritt für Schritt durch die Veröffentlichung vo
 
 ## 1. Übersicht der vorbereiteten Store-Artefakte
 
-Vorbereitete Dateien und Entwürfe liegen im Ordner `deploy/store/`. Den aktuellen, noch nicht einreichbaren Apple-Stand beschreibt [der Fortschrittsbericht vom 10. Oktober](../../docs/2026-10-10-apple-launch-completion.md). Die [nächsten Schritte](../../docs/apple-launch-naechste-schritte.md) erklären die noch offenen Bestätigungen.
+Vorbereitete Dateien und Entwürfe liegen im Ordner `deploy/store/`. Den aktuellen, noch nicht einreichbaren Apple-Stand beschreibt [der Fortschrittsbericht vom 14. Oktober](../../docs/2026-10-14-apple-launch-completion.md). Die [nächsten Schritte](../../docs/apple-launch-naechste-schritte.md) erklären die noch offenen Bestätigungen.
 
 | Dateipfad | Zweck |
 |---|---|
@@ -100,7 +100,7 @@ Die Version ist aktuell `1.0.2`, signierter Kandidat `11`. Dieser Build ist noch
 - Beschreibung und Keywords aus [`STORE_LISTING_DE.md`](STORE_LISTING_DE.md) übernehmen und im finalen Build verifizierte Aussagen verwenden.
 - Datenschutz-URL: `https://legal.brenzel.uk/aura-quest/`. Community-Regeln und aktuelle Provider-Angaben sind veröffentlicht und per HTTPS geprüft.
 - Datenschutzangaben mit [`APP_PRIVACY_APPLE.md`](APP_PRIVACY_APPLE.md) und dem endgültigen SDK-/Datenfluss abgleichen.
-- Die geprüfte [Apple-Auswahl](assets/screenshots/apple/README.md) enthält drei iPhone-17-Pro-Bilder (1206 × 2622) und vier iPad-Pro-13-Zoll-Bilder (2064 × 2752). Die Aufnahmen zeigen Produktions-Widgets mit lokalen Beispielen. Das iPhone-Dark-Bild ist wegen unlesbarer Statussymbole im Simulator ausgeschlossen; die Statusleiste auf einem echten iPhone prüfen. Android-Bilder sind kein Ersatz für Apple-Aufnahmen.
+- Die geprüfte [Apple-Auswahl](assets/screenshots/apple/README.md) enthält vier iPhone-17-Pro-Bilder (1206 × 2622) und vier iPad-Pro-13-Zoll-Bilder (2064 × 2752), jeweils im deutschen und englischen Store-Entwurf gespeichert. Die neue iPhone-Dark-Aufnahme verwendet die echte App-Konfiguration und zeigt lesbare Statussymbole. Die reale Geräteabnahme bleibt offen. Android-Bilder sind kein Ersatz für Apple-Aufnahmen.
 - Den vorbereiteten [Alters- und Inhaltsrechte-Fragebogen](APPLE_AGE_AND_CONTENT_DECLARATIONS.md) bestätigen und Apples tatsächliche Einstufung prüfen. Würfelduelle mit virtuellen Aura-Einsätzen als simuliertes Glücksspiel angeben; die alte pauschale Angabe „4+“ nicht übernehmen.
 - App Review Zugangsdaten für ein funktionierendes Demo-Konto bereitstellen und sicherstellen, dass Backend und Testzugang während der Prüfung erreichbar sind.
 - Export-Compliance gemäß [technischem Entwurf](APPLE_EXPORT_TECHNICAL_DRAFT.md), App-Privacy, Supportkontakt, Lizenztexte und finale Datenschutzseite vor dem Einreichen abhaken. Kostenloser Preis, Copyright, deutsche/englische Texte und 175 Länder für den künftigen Start sind bereits als Entwurf gespeichert.

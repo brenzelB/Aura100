@@ -4,7 +4,7 @@
   "release_source_commit": "423dad440c9f1984648eb4c096a9231689dcb237",
   "release_version": "1.0.2 (11)",
   "illustrative_local_fixture": true,
-  "visual_review_date": "2026-10-10",
+  "visual_review_date": "2026-10-14",
   "store_selection": [
     {
       "file": "iphone_01_home_neo.png",
@@ -12,7 +12,10 @@
       "device": "iPhone 17 Pro",
       "width": 1206,
       "height": 2622,
-      "sha256": "e03fc85b1f24835370e2bb631a4ff3e0a40b78b5c2da058c5d48be7ce8be8a6e"
+      "sha256": "e03fc85b1f24835370e2bb631a4ff3e0a40b78b5c2da058c5d48be7ce8be8a6e",
+      "capture_run": "38076725703",
+      "capture_source_commit": "d36b61d060573ac179720b62b6ebe217607945ec",
+      "visual_review_date": "2026-10-10"
     },
     {
       "file": "iphone_02_quests_neo.png",
@@ -20,7 +23,10 @@
       "device": "iPhone 17 Pro",
       "width": 1206,
       "height": 2622,
-      "sha256": "a972b0882511f81e87b3a300d3ea430e7d19083428c4248245d1c2304343a6a2"
+      "sha256": "a972b0882511f81e87b3a300d3ea430e7d19083428c4248245d1c2304343a6a2",
+      "capture_run": "38076725703",
+      "capture_source_commit": "d36b61d060573ac179720b62b6ebe217607945ec",
+      "visual_review_date": "2026-10-10"
     },
     {
       "file": "iphone_03_quests_editorial_light.png",
@@ -28,7 +34,10 @@
       "device": "iPhone 17 Pro",
       "width": 1206,
       "height": 2622,
-      "sha256": "ddb0c742c4002094c8a1a3351dc17495fbe87c2c9f24cafe9390706f54f1df1a"
+      "sha256": "ddb0c742c4002094c8a1a3351dc17495fbe87c2c9f24cafe9390706f54f1df1a",
+      "capture_run": "38076725703",
+      "capture_source_commit": "d36b61d060573ac179720b62b6ebe217607945ec",
+      "visual_review_date": "2026-10-10"
     },
     {
       "file": "ipad_01_home_neo.png",
@@ -36,7 +45,10 @@
       "device": "iPad Pro 13-inch (M5)",
       "width": 2064,
       "height": 2752,
-      "sha256": "5301589f69ad1468e3b4e41e3d6dd8210d16ffc44558acceb65d44832c6e28eb"
+      "sha256": "5301589f69ad1468e3b4e41e3d6dd8210d16ffc44558acceb65d44832c6e28eb",
+      "capture_run": "38076725703",
+      "capture_source_commit": "d36b61d060573ac179720b62b6ebe217607945ec",
+      "visual_review_date": "2026-10-10"
     },
     {
       "file": "ipad_02_quests_neo.png",
@@ -44,7 +56,10 @@
       "device": "iPad Pro 13-inch (M5)",
       "width": 2064,
       "height": 2752,
-      "sha256": "e72d6e13d6407f7a75b3ab2e88eb1eeca7a9e6d6e8ed88cc51002799d2893337"
+      "sha256": "e72d6e13d6407f7a75b3ab2e88eb1eeca7a9e6d6e8ed88cc51002799d2893337",
+      "capture_run": "38076725703",
+      "capture_source_commit": "d36b61d060573ac179720b62b6ebe217607945ec",
+      "visual_review_date": "2026-10-10"
     },
     {
       "file": "ipad_03_quests_editorial_light.png",
@@ -52,7 +67,10 @@
       "device": "iPad Pro 13-inch (M5)",
       "width": 2064,
       "height": 2752,
-      "sha256": "86134532cff573b3633c0f19fbdfebd63d1b6118c25342a783e6293a1810b302"
+      "sha256": "86134532cff573b3633c0f19fbdfebd63d1b6118c25342a783e6293a1810b302",
+      "capture_run": "38076725703",
+      "capture_source_commit": "d36b61d060573ac179720b62b6ebe217607945ec",
+      "visual_review_date": "2026-10-10"
     },
     {
       "file": "ipad_04_home_editorial_dark.png",
@@ -60,13 +78,28 @@
       "device": "iPad Pro 13-inch (M5)",
       "width": 2064,
       "height": 2752,
-      "sha256": "bed682c486c1fbf92ecd14332693cbfdcc5852ce3edc3fe9c2eb5859fe4e7fdd"
+      "sha256": "bed682c486c1fbf92ecd14332693cbfdcc5852ce3edc3fe9c2eb5859fe4e7fdd",
+      "capture_run": "38076725703",
+      "capture_source_commit": "d36b61d060573ac179720b62b6ebe217607945ec",
+      "visual_review_date": "2026-10-10"
+    },
+    {
+      "file": "iphone_04_home_editorial_dark.png",
+      "source_file": "device-1-screen-3.png",
+      "device": "iPhone 17 Pro",
+      "width": 1206,
+      "height": 2622,
+      "sha256": "4301f20306c3ae10ddb042764c3e6a1e60844e258e03c5b1710a6d5548a083dc",
+      "capture_run": "38550563749",
+      "capture_source_commit": "9944a7637dec4352286c0175bd22b6eea59d1e59",
+      "visual_review_date": "2026-10-14"
     }
   ],
   "excluded": [
     {
       "source_file": "device-1-screen-3.png",
-      "reason": "iPhone simulator status-bar symbols remain dark over Editorial Dark. Excluded from Store selection; verify status-bar contrast on real iPhone."
+      "reason": "Historical excluded capture. The preview omitted the release root explicit themeMode/darkTheme. Replacement run 38550563749 matches release configuration and its iPhone Dark render has readable native status symbols. Real-device acceptance remains open.",
+      "capture_run": "38076725703"
     }
   ],
   "app_store_draft": {
@@ -76,9 +109,19 @@
       "de-DE",
       "en-US"
     ],
-    "iphone_count_per_localization": 3,
+    "iphone_count_per_localization": 4,
     "ipad_count_per_localization": 4,
     "verified_after_reload": true,
-    "submitted_for_review": false
-  }
+    "submitted_for_review": false,
+    "last_verified_date": "2026-10-14"
+  },
+  "additional_capture_runs": [
+    {
+      "run": "38550563749",
+      "source_commit": "9944a7637dec4352286c0175bd22b6eea59d1e59",
+      "selected_files": [
+        "iphone_04_home_editorial_dark.png"
+      ]
+    }
+  ]
 }

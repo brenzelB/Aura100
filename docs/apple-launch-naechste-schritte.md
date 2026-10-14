@@ -1,7 +1,13 @@
 # Aura Quest: Was vor dem öffentlichen Apple-Start noch fehlt
 
-Stand: 10. Oktober 2026. Die App ist noch nicht öffentlich veröffentlicht und
+Stand: 14. Oktober 2026. Die App ist noch nicht öffentlich veröffentlicht und
 wurde noch nicht zur App Review eingereicht.
+
+Die [erneute Prüfung vom 14. Oktober](2026-10-14-apple-launch-completion.md)
+bestätigt den NAS-Stand, die Backend-Tests und den normalen Review-Zugang.
+Neu ist die von Apple verlangte Lizenzvereinbarung **LYL260 vom 13. Oktober**.
+Sie wurde nach ausdrücklicher Freigabe am **14. Oktober angenommen** und die
+gespeicherte Annahme nach Neuladen bestätigt. Dieser Schritt ist erledigt.
 
 ## Bereits vorbereitet
 
@@ -11,10 +17,11 @@ wurde noch nicht zur App Review eingereicht.
   Er ist korrigiert; alle **376 Flutter-Tests** einschließlich der unveränderten
   Theme-Goldens sind erfolgreich. Der neue signierte Build **1.0.2 (11)** hat
   alle vier Release-Prüfungen bestanden.
-- Sieben geprüfte Apple-Simulatorbilder sind ausgewählt: drei für iPhone und
+- Acht geprüfte Apple-Simulatorbilder sind ausgewählt: vier für iPhone und
   vier für iPad, einschließlich Editorial Light/Dark. Sie zeigen Produktions-
-  Ansichten mit lokalen Beispielquests. Das iPhone-Dark-Bild ist wegen dunkler
-  Statussymbole ausgeschlossen; diese Darstellung muss am echten Gerät geprüft werden.
+  Ansichten mit lokalen Beispielquests. Die neue iPhone-Dark-Aufnahme hat eine
+  lesbare Statusleiste: Das Aufnahmeprogramm verwendet jetzt denselben expliziten
+  Modus wie die echte App. Die reale Geräteabnahme bleibt trotzdem erforderlich.
   Die Auswahl ist für Deutsch und Englisch (USA) im Store-Entwurf gespeichert
   und nach Neuladen geprüft.
   Die Dateien liegen auch auf dem Desktop unter `AuraQuest_Store_Bilder/Apple_iOS`.
@@ -29,8 +36,8 @@ wurde noch nicht zur App Review eingereicht.
 | Entscheidung | Wozu sie benötigt wird |
 | --- | --- |
 | Dedizierten Schlüssel „Aura Quest Account Revocation“ erstellen; ausschließlich Sign in with Apple für diese App | Damit der NAS bei einer Kontolöschung die Apple-Autorisierung widerrufen kann. Der private Schlüssel bleibt geschützt auf dem NAS. |
-| Das vorbereitete normale Testkonto samt Passwort ausschließlich in Apples App-Review-Zugangsfeldern hinterlegen | Damit Apple die App ohne Zugang zum Betreiberkonto prüfen kann. |
-| Kontakt für App Review bestätigen und eine erreichbare Telefonnummer nennen | Apple verlangt vollständige Kontaktdaten für Rückfragen. |
+| Das vorbereitete normale Testkonto auraquest-review@brenzel.uk samt Passwort ausschließlich in Apples App-Review-Zugangsfeldern hinterlegen | Damit Apple die App ohne Zugang zum Betreiberkonto prüfen kann. Der öffentliche und interne Login sind am 14. Oktober erneut bestätigt. |
+| Die vorhandenen Apple-Kontaktdaten für App Review bestätigen | Im Apple-Konto ist bereits eine Telefonnummer vorhanden. Ihre Verwendung für Rückfragen wartet noch auf Bestätigung. |
 | Datenschutzangaben und die aktualisierte öffentliche Datenschutzerklärung bestätigen | Die vollständige Zuordnung der 13 Datentypen liegt in `deploy/store/APP_PRIVACY_APPLE.md`. |
 | Altersfragebogen und Rechte an den dargestellten Inhalten bestätigen | Der Vorschlag liegt in `deploy/store/APPLE_AGE_AND_CONTENT_DECLARATIONS.md`; Apples tatsächliche Einstufung wird danach geprüft. |
 

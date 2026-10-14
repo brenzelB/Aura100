@@ -1,12 +1,15 @@
 # Apple Store screenshot provenance
 
-Capture completed successfully on 10 October 2026. All eight renders were
-visually inspected. Seven were selected for the Store: three iPhone images and
-four iPad images. The iPhone Editorial Dark render is excluded because the
-simulator retained dark status-bar symbols over the dark background. The app's
-AppBar already requests light symbols in dark mode; verify the actual iPhone
-behavior before device acceptance. Do not alter or retouch this capture to hide
-the issue. The iPad Editorial Dark render has readable status and Activity text.
+The Store selection contains eight unchanged simulator PNGs: four iPhone images
+and four iPad images. Seven remain from the visually checked 10 October capture.
+The eighth, `iphone_04_home_editorial_dark.png`, comes from the successful
+[14 October recheck](https://github.com/brenzelB/Aura100/actions/runs/38550563749),
+source `9944a76`. Its native status symbols are readable in Dark Mode.
+
+The historical iPhone Dark capture from 10 October remains excluded. The preview
+had omitted the release root's explicit `darkTheme` and `themeMode`. It now uses
+the same configuration as `AuraQuestApp`; no production app change or image
+retouching was required. The release sources remain identical to signed build 11.
 
 Do not upload previous run 38056278657: visual inspection found the Activity
 panel retaining a light fill after switching to Editorial Dark. Build 11 fixes it.
@@ -28,29 +31,31 @@ release entrypoint. No screenshot-only functionality is included in the release.
 
 Selected files are unchanged simulator PNGs. iPhone 17 Pro images are
 1206 x 2622; iPad Pro 13-inch (M5) images are 2064 x 2752. `manifest.json`
-records SHA256 hashes, dimensions, capture/release commits and the excluded file.
+records SHA256 hashes, dimensions and each selected file's capture/release origin.
 The unselected original remains in ignored `build/store/apple-screenshots-38076725703/`.
 
 Saved in App Store Connect version 1.0.2 for both German and English (USA):
-three medium-Dynamic-Island iPhone images and four iPad 13-inch images per
+four medium-Dynamic-Island iPhone images and four iPad 13-inch images per
 localization. Uploads are explicit for each language; all four counts were
 verified after reloading the page. Save is disabled because no unsaved metadata
 remains. This is an unpublished Store draft, not an App Review submission.
 
-Desktop delivery: `AuraQuest_Store_Bilder/Apple_iOS/` contains the seven selected
+Desktop delivery: `AuraQuest_Store_Bilder/Apple_iOS/` contains the eight selected
 PNGs, this README and the manifest; every copied PNG hash was verified.
 `Nicht_fuer_Store/` separately preserves the excluded iPhone Dark original
 with a warning. It was not uploaded to Apple or included in the approved selection.
+`Nachpruefung_2026-10-14/` separately archives all eight raw images from the recheck;
+only its iPhone Dark image was added to the existing Store selection.
 
 Views, in Store order:
 
 1. Home / Neo Brutalist Light: daily check-ins and countable reading progress.
 2. Quests / Neo Brutalist Light: progress, cooperative training, Aura and Perks.
 3. Quests / Editorial Growth Light: the optional editorial design.
-4. Home / Editorial Growth Dark: the independent dark design (iPad only).
+4. Home / Editorial Growth Dark: the independent dark design.
 
 The workflow checks supported dimensions, four different images per device and
 eight images in total. All guards passed, with no Flutter rendering exceptions
-in the capture logs. The seven selected images passed visual inspection.
+in the capture logs. All eight selected images passed visual inspection.
 Simulator rendering does not verify real-device sign-in, deletion, notifications,
 gameplay or animation performance. Those remain in the TestFlight acceptance plan.
