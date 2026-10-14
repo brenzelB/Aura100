@@ -163,9 +163,15 @@ class _PreviewState extends ConsumerState<_Preview> {
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
+    final data = AppTheme.build(theme.type, theme.mode);
     return MaterialApp.router(
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.build(theme.type, theme.mode),
+        // Match the release root's explicit mode, including its native iOS
+        // appearance. The simulator's system mode must not choose the preview.
+        theme: data,
+        darkTheme: data,
+        themeMode:
+            theme.mode == AppThemeMode.dark ? ThemeMode.dark : ThemeMode.light,
         routerConfig: router,
         builder: (_, child) =>
             AppThemeBackground(themeType: theme.type, child: child!));
