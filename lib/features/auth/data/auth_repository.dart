@@ -10,11 +10,10 @@ import 'package:flutter/foundation.dart'
         TargetPlatform;
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:url_launcher/url_launcher.dart' show closeInAppWebView;
 
 import '../../../core/config/supabase_config.dart';
 import '../../../core/push/push_service.dart';
-import 'oauth_browser_session.dart';
+import 'ios_google_sign_in.dart';
 
 /// Thin wrapper around Supabase Auth.
 ///
@@ -27,14 +26,10 @@ import 'oauth_browser_session.dart';
 /// failure is always visible in `flutter run` output / logcat. The
 /// rethrow keeps the AsyncValue error flow (SnackBars) working.
 class AuthRepository {
-  AuthRepository(this._client)
-      : _googleBrowser = OAuthBrowserSession(
-          authEvents: _client.auth.onAuthStateChange,
-          closeBrowser: closeInAppWebView,
-        );
+  AuthRepository(this._client) : _googleBrowser = IosGoogleSignIn(_client.auth);
 
   final SupabaseClient _client;
-  final OAuthBrowserSession _googleBrowser;
+  final IosGoogleSignIn _googleBrowser;
 
   void dispose() => _googleBrowser.cancel();
 
@@ -184,13 +179,14 @@ class AuthRepository {
   /// AndroidManifest / Info.plist setup. On web, Supabase redirects back
   /// to the site itself, so no redirectTo is needed.
   Future<void> signInWithGoogle() => _guarded('signInWithGoogle', () async {
-        Future<bool> openBrowser() => _client.auth.signInWithOAuth(
-              OAuthProvider.google,
-              redirectTo: kIsWeb ? null : SupabaseConfig.oauthRedirectUri,
-            );
-        final opened = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS
-            ? await _googleBrowser.launch(openBrowser)
-            : await openBrowser();
+        if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+          await _googleBrowser.signIn();
+          return;
+        }
+        final opened = await _client.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: kIsWeb ? null : SupabaseConfig.oauthRedirectUri,
+        );
         if (!opened) {
           throw const AuthException(
             'Could not open Google sign-in. Please try again.',

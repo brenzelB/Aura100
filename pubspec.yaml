@@ -50,6 +50,7 @@ dependencies:
   url_launcher: ^6.3.2
 
 dev_dependencies:
+  http: ^1.6.0 # Mock the real SDK's PKCE exchange in auth regression tests.
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
