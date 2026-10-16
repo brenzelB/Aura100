@@ -2,12 +2,19 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart'
-    show debugPrint, debugPrintStack, kIsWeb;
+    show
+        debugPrint,
+        debugPrintStack,
+        defaultTargetPlatform,
+        kIsWeb,
+        TargetPlatform;
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart' show closeInAppWebView;
 
 import '../../../core/config/supabase_config.dart';
 import '../../../core/push/push_service.dart';
+import 'oauth_browser_session.dart';
 
 /// Thin wrapper around Supabase Auth.
 ///
@@ -20,9 +27,16 @@ import '../../../core/push/push_service.dart';
 /// failure is always visible in `flutter run` output / logcat. The
 /// rethrow keeps the AsyncValue error flow (SnackBars) working.
 class AuthRepository {
-  AuthRepository(this._client);
+  AuthRepository(this._client)
+      : _googleBrowser = OAuthBrowserSession(
+          authEvents: _client.auth.onAuthStateChange,
+          closeBrowser: closeInAppWebView,
+        );
 
   final SupabaseClient _client;
+  final OAuthBrowserSession _googleBrowser;
+
+  void dispose() => _googleBrowser.cancel();
 
   /// The active session, or null when logged out.
   Session? get currentSession => _client.auth.currentSession;
@@ -39,6 +53,7 @@ class AuthRepository {
     required String password,
   }) =>
       _guarded('signInWithEmail', () async {
+        _googleBrowser.cancel();
         await _client.auth.signInWithPassword(email: email, password: password);
         debugPrint('✅ [AuthRepository.signInWithEmail] signed in as $email');
       });
@@ -64,6 +79,7 @@ class AuthRepository {
     required String username,
   }) =>
       _guarded('signUpWithEmail', () async {
+        _googleBrowser.cancel();
         final response = await _client.auth.signUp(
           email: email,
           password: password,
@@ -93,6 +109,7 @@ class AuthRepository {
     required String code,
   }) =>
       _guarded('confirmSignupWithCode', () async {
+        _googleBrowser.cancel();
         await _client.auth.verifyOTP(
           type: OtpType.signup,
           email: email,
@@ -144,6 +161,7 @@ class AuthRepository {
     required String code,
   }) =>
       _guarded('verifyRecoveryCode', () async {
+        _googleBrowser.cancel();
         await _client.auth.verifyOTP(
           type: OtpType.recovery,
           email: email,
@@ -166,10 +184,18 @@ class AuthRepository {
   /// AndroidManifest / Info.plist setup. On web, Supabase redirects back
   /// to the site itself, so no redirectTo is needed.
   Future<void> signInWithGoogle() => _guarded('signInWithGoogle', () async {
-        await _client.auth.signInWithOAuth(
-          OAuthProvider.google,
-          redirectTo: kIsWeb ? null : SupabaseConfig.oauthRedirectUri,
-        );
+        Future<bool> openBrowser() => _client.auth.signInWithOAuth(
+              OAuthProvider.google,
+              redirectTo: kIsWeb ? null : SupabaseConfig.oauthRedirectUri,
+            );
+        final opened = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS
+            ? await _googleBrowser.launch(openBrowser)
+            : await openBrowser();
+        if (!opened) {
+          throw const AuthException(
+            'Could not open Google sign-in. Please try again.',
+          );
+        }
         debugPrint('✅ [AuthRepository.signInWithGoogle] browser flow launched');
       });
 
@@ -177,6 +203,7 @@ class AuthRepository {
   /// token directly with Supabase. The raw nonce is verified by Supabase;
   /// Apple receives only its SHA-256 hash.
   Future<void> signInWithApple() => _guarded('signInWithApple', () async {
+        _googleBrowser.cancel();
         final rawNonce = generateNonce();
         final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
 
@@ -220,6 +247,7 @@ class AuthRepository {
       });
 
   Future<void> signOut() => _guarded('signOut', () async {
+        _googleBrowser.cancel();
         try {
           await PushService.instance.unregisterAll();
         } catch (e) {

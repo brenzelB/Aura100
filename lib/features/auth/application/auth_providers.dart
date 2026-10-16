@@ -12,7 +12,9 @@ import '../data/auth_repository.dart';
 /// is true — `Supabase.instance` throws if `Supabase.initialize` was
 /// skipped (offline skeleton mode).
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return AuthRepository(Supabase.instance.client);
+  final repository = AuthRepository(Supabase.instance.client);
+  ref.onDispose(repository.dispose);
+  return repository;
 });
 
 /// Stream of auth events (sign-in, sign-out, token refresh).
