@@ -30,6 +30,9 @@ Der Listener wird bei Erfolg, Fehler, abgelehntem Browserstart, Wiederholung,
 Wechsel des Anmeldewegs, Abmeldung, Provider-Abbau oder Ablauf beendet.
 Initiale Sitzungen und Token-Refreshs schließen keinen Browser.
 Ein Fehler beim nativen Schließen verwirft keine bereits gültige Sitzung.
+Das gilt auch für den belegten schnellen Rückruf vor Abschluss des Browserstarts:
+Ein bereits akzeptierter Login bleibt erfolgreich, wenn der Browserstart durch
+das rechtzeitige Schließen anschließend `false` oder einen nativen Fehler meldet.
 
 Android und Web behalten ihre bisherigen Startmodi; Apples nativer Login und
 die Kontolöschung ändern sich funktional nicht. Keine neue Abhängigkeit oder
@@ -37,13 +40,19 @@ Google-OAuth-Berechtigung ist erforderlich.
 
 ## Prüfung und Veröffentlichung
 
-Die sechs gezielten Regressionstests bestehen. Der Flutter-Analyzer meldet keine
-Probleme. Weitere gesamte App-Prüfungen und der Ersatz-TestFlight-Build werden
-im aktuellen Arbeitsablauf verifiziert. Der vollständige iPhone-Google-Login
+Die acht gezielten Regressionstests bestehen. Der Flutter-Analyzer meldet keine
+Probleme. Vor der zusätzlichen Absicherung bestanden außerdem 374 Unit-/Widget-
+Tests und alle acht exakten Theme-Goldens. Der Gegenbeweis für den schnellen
+Rückruf schlug zuvor erwartungsgemäß fehl (erwartet `true`, tatsächlich `false`),
+danach bestanden alle acht gezielten Tests. Der vollständige iPhone-Google-Login
 einschließlich automatischem Schließen muss mit dem Ersatzbuild bestätigt werden.
 
-Build 11 darf nicht ohne diese Geräteprüfung als behobene Version eingereicht
-werden. Der Apple-Übermittlungsentwurf ist noch nicht abgeschickt.
+Der erste Ersatzbuild 12 aus `22ba015` wird noch ohne die zusätzliche Absicherung
+erstellt. Sein Abbruch wurde von der automatischen Freigabeprüfung nicht erlaubt;
+er läuft deshalb zu Ende. Der vollständige Fix wird anschließend getrennt als
+Build 13 erstellt. Build 11 und der Zwischenbuild 12 dürfen nicht als vollständig
+abgenommene Fassung eingereicht werden. Der Apple-Übermittlungsentwurf ist noch
+nicht abgeschickt.
 
 Quellen:
 

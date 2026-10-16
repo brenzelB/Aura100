@@ -23,8 +23,10 @@ class OAuthBrowserSession {
 
   Future<bool> launch(Future<bool> Function() openBrowser) async {
     cancel();
+    var authenticated = false;
     _subscription = _authEvents.listen((state) {
       if (state.event == AuthChangeEvent.signedIn && state.session != null) {
+        authenticated = true;
         cancel();
         unawaited(_dismiss());
       }
@@ -37,9 +39,12 @@ class OAuthBrowserSession {
     try {
       final opened = await openBrowser();
       if (!opened) cancel();
-      return opened;
+      // Closing Safari before its initial page finishes can resolve the
+      // native launch as "dismissed", even though OAuth already succeeded.
+      return opened || authenticated;
     } catch (_) {
       cancel();
+      if (authenticated) return true;
       rethrow;
     }
   }

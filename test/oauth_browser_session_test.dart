@@ -67,6 +67,26 @@ void main() {
     expect(dismissals, 0);
   });
 
+  test(
+      'successful fast callbacks remain successful when Safari reports dismissal',
+      () async {
+    final opened = Completer<bool>();
+    final launching = browser.launch(() => opened.future);
+    events.add(AuthState(AuthChangeEvent.signedIn, session));
+    opened.complete(false);
+    expect(await launching, isTrue);
+    expect(dismissals, 1);
+  });
+
+  test('native dismissal errors do not undo an accepted sign-in', () async {
+    final opened = Completer<bool>();
+    final launching = browser.launch(() => opened.future);
+    events.add(AuthState(AuthChangeEvent.signedIn, session));
+    opened.completeError(StateError('native browser already closed'));
+    expect(await launching, isTrue);
+    expect(dismissals, 1);
+  });
+
   test('a retry replaces the previous listener and cancellation is safe',
       () async {
     await browser.launch(() async => true);
