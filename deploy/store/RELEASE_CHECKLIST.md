@@ -55,7 +55,7 @@ Unter **Haupt-Store-Eintrag**:
   - [`store_02_quests_overview.png`](assets/screenshots/store_02_quests_overview.png) — Quest-Übersicht mit Check-off, Fortschritt, Perks und neuem Quest
   - [`store_03_progress_detail.png`](assets/screenshots/store_03_progress_detail.png) — Fortschrittsziel mit Streak, Tagesziel und Gesamtstatistik
   - [`store_04_new_quest_modes.png`](assets/screenshots/store_04_new_quest_modes.png) — Quest-Editor mit Progress, Einheiten, Co-op und Freundeseinladung
-  - [`store_05_perks.png`](assets/screenshots/store_05_perks.png) — Perks mit Aura-Heist, Aura-Ward und Targeted Roast
+  - [`store_05_perks.png`](assets/screenshots/store_05_perks.png) — veraltet: zeigt noch Aura Heist/Ward; vor einer Google-Store-Aktualisierung durch die neue kostenlose Ego-Duell-Ansicht ersetzen.
 
   Die Aufnahmen stammen aus einem echten 1280 × 2856 Android-Testemulator. Die unveränderten Rohaufnahmen liegen zu Prüfzwecken unter [`assets/screenshots/raw/`](assets/screenshots/raw/).
 
@@ -101,7 +101,7 @@ Die Version ist aktuell `1.0.2`, signierter Kandidat `11`. Dieser Build ist noch
 - Datenschutz-URL: `https://legal.brenzel.uk/aura-quest/`. Community-Regeln und aktuelle Provider-Angaben sind veröffentlicht und per HTTPS geprüft.
 - Datenschutzangaben mit [`APP_PRIVACY_APPLE.md`](APP_PRIVACY_APPLE.md) und dem endgültigen SDK-/Datenfluss abgleichen.
 - Die geprüfte [Apple-Auswahl](assets/screenshots/apple/README.md) enthält vier iPhone-17-Pro-Bilder (1206 × 2622) und vier iPad-Pro-13-Zoll-Bilder (2064 × 2752), jeweils im deutschen und englischen Store-Entwurf gespeichert. Die neue iPhone-Dark-Aufnahme verwendet die echte App-Konfiguration und zeigt lesbare Statussymbole. Die reale Geräteabnahme bleibt offen. Android-Bilder sind kein Ersatz für Apple-Aufnahmen.
-- Den vorbereiteten [Alters- und Inhaltsrechte-Fragebogen](APPLE_AGE_AND_CONTENT_DECLARATIONS.md) bestätigen und Apples tatsächliche Einstufung prüfen. Würfelduelle mit virtuellen Aura-Einsätzen als simuliertes Glücksspiel angeben; die alte pauschale Angabe „4+“ nicht übernehmen.
+- Den aktualisierten [Alters- und Inhaltsrechte-Fragebogen](APPLE_AGE_AND_CONTENT_DECLARATIONS.md) für den Ersatzbuild prüfen. Build 14 enthält Aura-Wetten und darf nicht als glücksspielfrei umdeklariert werden. Der Ersatzbuild entfernt diese Mechanik; erst damit die neue Antwort zu simuliertem Glücksspiel speichern und Apples tatsächliche Einstufung prüfen. Die bestätigte Zielgruppe bleibt mindestens 16+.
 - App Review Zugangsdaten für ein funktionierendes Demo-Konto bereitstellen und sicherstellen, dass Backend und Testzugang während der Prüfung erreichbar sind.
 - Export-Compliance gemäß [technischem Entwurf](APPLE_EXPORT_TECHNICAL_DRAFT.md), App-Privacy, Supportkontakt, Lizenztexte und finale Datenschutzseite vor dem Einreichen abhaken. Kostenloser Preis, Copyright, deutsche/englische Texte und 175 Länder für den künftigen Start sind bereits als Entwurf gespeichert.
 

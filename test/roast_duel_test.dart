@@ -80,31 +80,33 @@ class _Repo implements ChallengeRepository {
 }
 
 Widget _app(_Repo repo,
-        {AppThemeType type = AppThemeType.neoBrutalist,
-        AppThemeMode mode = AppThemeMode.light,
-        double textScale = 1}) =>
-    ProviderScope(
-        overrides: [
-          currentUserProvider.overrideWithValue(_user),
-          authRepositoryProvider.overrideWithValue(_Auth()),
-          authStateChangesProvider
-              .overrideWith((ref) => const Stream<AuthState>.empty()),
-          challengeRepositoryProvider.overrideWithValue(repo)
-        ],
-        child: MaterialApp(
-            theme: AppTheme.build(type, mode),
-            home: MediaQuery(
-                data: MediaQueryData(
-                    textScaler: TextScaler.linear(textScale),
-                    disableAnimations: true),
-                child: Scaffold(
-                    body: DuelSheet(
-                        duel: IncomingDuel(
-                            id: 'game',
-                            questTitle: 'Read ten pages',
-                            challengerName: 'bob',
-                            challengerAvatar: null,
-                            createdAt: DateTime(2026)))))));
+    {AppThemeType type = AppThemeType.neoBrutalist,
+    AppThemeMode mode = AppThemeMode.light,
+    double textScale = 1}) {
+  AppColors.apply(type, mode);
+  return ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWithValue(_user),
+        authRepositoryProvider.overrideWithValue(_Auth()),
+        authStateChangesProvider
+            .overrideWith((ref) => const Stream<AuthState>.empty()),
+        challengeRepositoryProvider.overrideWithValue(repo)
+      ],
+      child: MaterialApp(
+          theme: AppTheme.build(type, mode),
+          home: MediaQuery(
+              data: MediaQueryData(
+                  textScaler: TextScaler.linear(textScale),
+                  disableAnimations: true),
+              child: Scaffold(
+                  body: DuelSheet(
+                      duel: IncomingDuel(
+                          id: 'game',
+                          questTitle: 'Read ten pages',
+                          challengerName: 'bob',
+                          challengerAvatar: null,
+                          createdAt: DateTime(2026)))))));
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
