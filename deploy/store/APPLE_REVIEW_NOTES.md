@@ -5,11 +5,13 @@ is incompatible with an individual developer submission. The replacement removes
 the wagering mechanics themselves. The following updated notes are a local draft;
 they have not yet been saved to Apple or used for a new submission.
 
-Replacement **1.0.2 (15)** has passed CI, signed-IPA inspection and Apple's upload
+Replacement **1.0.2 (16)** has passed CI, signed-IPA inspection and Apple's upload
 processing. Export answers are saved (standard encryption, no France). The
 existing **Aura Quest iOS intern** group shows it as **Testing / Im Test** with
 the existing single tester. A real-device game test is still required before
 updating the public age-rating answers and submitting the replacement for review.
+Build 16 corrects the unnecessary locale switch introduced in build 15: all
+Ego Duel roasts, like the rest of the app, are always in English.
 See [the replacement-build checkpoint](../../docs/2026-10-17-ego-duels.md).
 
 Candidate **1.0.2 (14)** was submitted to App Review on **16 October 2026 at
