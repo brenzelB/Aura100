@@ -115,8 +115,8 @@ class _PushPermissionCardState extends ConsumerState<PushPermissionCard> {
             ),
             const SizedBox(height: 10),
             Text(
-              'A blackout locks you out for two hours. A heist takes your '
-              'next check-in. A duel runs out after 48. Without '
+              'A blackout locks you out for two hours. A friend can challenge '
+              'you to a free Ego Duel. Invitations expire after 48 hours. Without '
               'notifications you find out when it is already over.',
               style: textTheme.bodyMedium
                   ?.copyWith(color: AppColors.textSecondary, height: 1.4),

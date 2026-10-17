@@ -8,7 +8,7 @@
 | Untertitel (iOS) | `Gewohnheiten, Duelle & Aura` | Unter dem Limit von 30 Zeichen |
 | Kurzbeschreibung (Google Play) | `Gewohnheiten werden Quests: Sammle Aura, spiele mit Freunden.` | 61 Zeichen; unter dem Limit von 80 |
 | Kategorie | Produktivität | In App Store Connect anhand der verfügbaren Kategorien auswählen |
-| Alterseinstufung | Noch nicht festgelegt | Den vorbereiteten Fragebogen bestätigen, einschließlich optionaler Würfelduelle mit virtuellen Aura-Einsätzen; keine Echtgeld-Wetten. |
+| Alterseinstufung | Noch nicht festgelegt | Nach Prüfung des neuen Builds neu berechnen: kostenlose Schere-Stein-Papier-Duelle ohne Einsätze oder Punktegewinne; kein simuliertes Glücksspiel in dieser Ersatzmechanik. |
 
 ## Werbetext (iOS)
 
@@ -29,10 +29,10 @@ Aura Quest verbindet tägliche Routinen mit gemeinsamen Quests, sichtbarem Forts
 • Verfolge Check-ins, Streaks und euren Quest-Fortschritt.
 
 🎲 DUELLE UND SPIELZÜGE
-• Fordere Freunde zu Würfelduellen heraus.
+• Fordere Freunde zu kostenlosen Ego Duellen heraus: Schere, Stein, Papier.
 • Setze erspielte Aura ein und entscheide mit, wie riskant ein Zug wird.
 • Nutze Quest-Perks wie Streak Shield und Aura Ward.
-• Wage einen Aura Heist mit klar angezeigter Chance und virtuellen Einsätzen.
+• Gewinne Angeberrechte. Verliere ein Duell und kassiere einen frechen Spruch – Aura und XP bleiben unverändert.
 
 👥 ZUSAMMEN DRANBLEIBEN
 • Sieh, wer in deiner Quest eingecheckt hat.

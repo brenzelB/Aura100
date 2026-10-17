@@ -1,23 +1,38 @@
-# App Review notes — draft
+# App Review notes — replacement draft, 17 October 2026
 
-Do not submit yet. Distribution signing and production APNs configuration are
-complete. Candidate **1.0.2 (11)** includes the Activity theme-switch fix found
-during screenshot inspection. Its signed release run passed all four jobs;
-build 10 is superseded and neither candidate has been uploaded to Apple.
-Apple revocation code and its isolated NAS database tests are complete;
-the dedicated signing key and live deployment await confirmation. Real device
-acceptance and App Store privacy/age/export forms remain open. Eight checked
-simulator images are selected; their provenance is recorded in
-`assets/screenshots/apple/manifest.json`. The rechecked iPhone Dark capture has
-readable status symbols; real-device acceptance remains open.
-Reviewer credentials have been prepared locally but not shared with Apple.
-See [the current checkpoint](../../docs/2026-10-14-apple-launch-completion.md).
+Apple stopped the build 14 review because its accurate simulated-gambling rating
+is incompatible with an individual developer submission. The replacement removes
+the wagering mechanics themselves. The following updated notes are a local draft;
+they have not yet been saved to Apple or used for a new submission.
 
-## Proposed review notes (after acceptance checks)
+Candidate **1.0.2 (14)** was submitted to App Review on **16 October 2026 at
+20:31 Europe/Berlin**. Apple confirms **Waiting for Review**, submission
+`eaa11e08-627f-4c8e-8e4c-3b67607eb19f`. The dedicated Apple
+revocation worker and database migration are active on the NAS; all eight SQL
+suites passed before deployment. With explicit user approval, the normal review
+credentials and existing contact details were saved only in Apple's App Review
+fields. Privacy, age rating and content-rights declarations are saved at Apple.
+The initial launch excludes France with explicit user approval; build 14's
+standard-encryption/no-France answers are saved and the build is testing in the
+existing internal group. The user confirmed the real-iPhone Google sign-in and
+automatic window closing with build 14. Account deletion was also confirmed from
+the user's perspective; its sign-in provider and server-side revocation details
+were not specified. Other device checks remain open. The version has not been
+approved or publicly released; release remains manual. Store images are recorded under
+`assets/campaign-2026-10-14/`.
+See [the current checkpoint](../../docs/2026-10-16-apple-launch-completion.md).
+
+## Review notes
 
 Aura Quest is a free social habit app. Aura and XP are virtual progress points.
 There are no paid purchases, cash rewards, withdrawals or real-money stakes.
-Randomized Heist/Dice outcomes affect virtual Aura only.
+Ego Duels are free rock-paper-scissors matches between consenting quest members.
+Both players choose in secret and the server reveals the choices together.
+First to three wins. The loser receives a curated, lighthearted roast; the winner
+gets a win in the duel statistics. Neither player stakes, gains, loses or transfers
+Aura or XP. There are no currency prizes, paid retries or random Aura payouts.
+Dice wagers and randomized Aura Heists have been retired, including their old
+server endpoints. Outstanding old escrow and pending Heist costs are refunded.
 
 Use the dedicated email/password supplied in the App Review sign-in fields.
 The account is confirmed and does not require an email code or Google/Apple login.
@@ -44,9 +59,11 @@ test access before further review.
 
 Public support/privacy/community URL: https://legal.brenzel.uk/aura-quest/
 
-## Internal pre-submission reminder
+## Remaining internal verification
 
-Test Apple authorization revocation on deletion before submitting an Apple-login
-build. Recheck the public demo login, refresh the demo quests, and add actual reviewer
-contact name/email/phone in App Store Connect. Never paste the DPAPI ciphertext
+Apple authorization revocation on a real-device deletion remains a separate open
+check; automated worker/database tests passed and the user reported successful
+account deletion without identifying the sign-in provider. The public demo login
+and all three quests were rechecked immediately before submission (18:30:39 UTC).
+The approved reviewer contact fields are filled in App Store Connect. Never paste the DPAPI ciphertext
 as a password; decrypt only locally for the specifically approved Apple form.

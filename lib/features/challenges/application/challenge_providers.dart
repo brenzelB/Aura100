@@ -95,7 +95,7 @@ final questDuelsProvider = FutureProvider.autoDispose
   return ref.watch(challengeRepositoryProvider).fetchQuestDuels(challengeId);
 });
 
-/// Dice duels waiting for the user's answer (Home inbox).
+/// Free duels waiting for the user's answer (Home inbox).
 final incomingDuelsProvider =
     FutureProvider.autoDispose<List<IncomingDuel>>((ref) {
   if (!SupabaseConfig.isConfigured) return const [];
@@ -103,12 +103,18 @@ final incomingDuelsProvider =
   return ref.watch(challengeRepositoryProvider).fetchIncomingDuels();
 });
 
-/// Creating and answering dice duels. One controller: the flows are
+/// Creating and answering free duels. One controller: the flows are
 /// modal, so a single busy state is enough.
 final duelControllerProvider =
     AsyncNotifierProvider.autoDispose<DuelController, void>(
   DuelController.new,
 );
+
+final duelStateProvider =
+    FutureProvider.autoDispose.family<DuelResult, String>((ref, id) {
+  ref.watch(authStateChangesProvider);
+  return ref.watch(challengeRepositoryProvider).fetchDuel(id);
+});
 
 class DuelController extends AutoDisposeAsyncNotifier<void> {
   @override
@@ -116,14 +122,15 @@ class DuelController extends AutoDisposeAsyncNotifier<void> {
     // Action-only notifier.
   }
 
-  void _refresh() {
-    // Aura balances moved (escrow/pot), the inbox changed, and every
-    // quest's duel history is potentially stale (invalidating the
-    // family clears all its instances).
-    ref.invalidate(myChallengesProvider);
+  void _refresh({bool finished = false}) {
+    // Refresh game state and social history; no currency is changed.
     ref.invalidate(incomingDuelsProvider);
-    ref.invalidate(settlementEventsProvider);
     ref.invalidate(questDuelsProvider);
+    ref.invalidate(duelStateProvider);
+    if (finished) {
+      ref.invalidate(settlementEventsProvider);
+      ref.invalidate(questActivityProvider);
+    }
   }
 
   // Sending a duel has no modal listener. Hold every request until its
@@ -147,33 +154,38 @@ class DuelController extends AutoDisposeAsyncNotifier<void> {
       }
       state = result.whenData<void>((_) {});
       if (result.hasError) return null;
-      _refresh();
+      final value = result.valueOrNull;
+      _refresh(finished: value is DuelResult && value.isFinished);
       return result;
     } finally {
       pending.close();
     }
   }
 
-  /// Returns true when the challenge went out (stake escrowed).
+  /// Returns true when the free invitation went out.
   Future<bool> create({
     required String challengeId,
     required String opponentId,
-    required int stake,
   }) async {
-    final result = await _run((repo) => repo.createDuel(
-        challengeId: challengeId, opponentId: opponentId, stake: stake));
+    final result = await _run((repo) =>
+        repo.createDuel(challengeId: challengeId, opponentId: opponentId));
     return result != null;
   }
 
-  /// Accepts and rolls. Returns the result, or null on failure
-  /// (error lands in `state`).
-  Future<DuelResult?> acceptAndRoll(String duelId) async {
+  /// Accepts the invitation; choices are submitted separately.
+  Future<DuelResult?> accept(String duelId) async {
     final result =
         await _run((repo) => repo.respondToDuel(duelId: duelId, accept: true));
     return result?.valueOrNull;
   }
 
-  /// Declines (challenger gets refunded). Returns true on success.
+  Future<DuelResult?> play(String duelId, int round, DuelMove move) async {
+    final result = await _run(
+        (repo) => repo.playDuel(duelId: duelId, round: round, move: move));
+    return result?.valueOrNull;
+  }
+
+  /// Declines the free invitation. Returns true on success.
   Future<bool> decline(String duelId) async {
     final result =
         await _run((repo) => repo.respondToDuel(duelId: duelId, accept: false));

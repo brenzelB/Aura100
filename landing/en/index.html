@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Aura Quest — Habits with consequences</title>
-<meta name="description" content="A habit tracker built as a competition: earn aura, challenge your friends — and let them sabotage you. Blackouts, aura heists, dice duels.">
+<meta name="description" content="A habit tracker built as a competition: earn aura, challenge your friends — and let them sabotage you. Blackouts, roasts and free Ego Duels.">
 <meta name="theme-color" content="#FBE9E1">
 
 <link rel="alternate" hreflang="de" href="/">
@@ -55,7 +55,7 @@
       <p class="lede reveal">
         Aura Quest is a habit tracker where the other players are allowed
         to sabotage you. They lock you out, steal your progress and roll
-        dice for your points. Sticking with it suddenly gets a lot more
+        challenge you to free Ego Duels. Sticking with it suddenly gets a lot more
         interesting.
       </p>
 
@@ -264,11 +264,7 @@
           </button>
         </li>
         <li>
-          <button class="attack" data-attack="heist" data-cost="150">
-            <span class="attack__name">Aura Heist</span>
-            <span class="attack__desc">Steals the aura from their next check-in. 150 = 25 %, 500 = 75 % odds.</span>
-            <span class="attack__cost">⚡ 150</span>
-          </button>
+          <button class="attack" data-attack="ego" data-cost="0"><span class="attack__name">Ego Duel</span><span class="attack__desc">Rock, paper, scissors. First to three wins. The loser gets a cheeky roast. Aura and XP stay unchanged.</span><span class="attack__cost">FREE</span></button>
         </li>
         <li>
           <button class="attack" data-attack="blackout" data-cost="250">
@@ -279,17 +275,10 @@
         </li>
       </ul>
 
-      <div class="phone phone--sabo">
-        <img src="/screens/shop.webp" width="560" height="1195" loading="lazy" decoding="async"
-             alt="The quest shop with the three attack items Targeted Roast, Aura Heist and Blackout, with prices.">
-      </div>
+      <div class="phone phone--sabo" style="padding:2rem;text-align:center"><p style="font-size:3rem">✊ ✋ ✌️</p><h3>EGO DUEL</h3><p>Rock, paper, scissors. First to three wins. The loser gets a cheeky roast. Aura and XP stay unchanged.</p></div>
     </div>
 
-    <p class="sabo__foot reveal">
-      Plus dice duels: stake aura, two dice, higher total takes the pot.
-      Never more than a quarter of your balance — so a single roll cannot
-      decide the whole quest.
-    </p>
+    <p class="sabo__foot reveal">Ego Duels are free: choose in secret, reveal together, first to three wins. No wagers or currency prizes. Just bragging rights and a roast.</p>
   </div>
 
   <div class="overlay" id="overlay" hidden aria-live="assertive"></div>
@@ -326,7 +315,7 @@
       <h3>And the part that matters:<br>you cannot cheat</h3>
       <p>
         Every rule lives in the database, not in the app. Check-ins,
-        dice, heist odds and settlements are all decided by the server.
+        moves and settlements are all checked by the server.
         A tampered phone cannot force anything the database does not
         allow.
       </p>

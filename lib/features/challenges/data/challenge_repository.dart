@@ -286,7 +286,7 @@ class ChallengeRepository {
       final results = await Future.wait([
         _client
             .from('settlement_events')
-            .select('user_id, kind, amount, created_at')
+            .select('user_id, kind, amount, game_roast_key, created_at')
             .eq('challenge_id', challengeId)
             .order('created_at', ascending: false)
             .limit(40),
@@ -345,6 +345,7 @@ class ChallengeRepository {
           isMe: uid == myId,
           amount: amount,
           detail: detail,
+          roastKey: (row['game_roast_key'] as num?)?.toInt(),
           createdAt: DateTime.parse(row['created_at'] as String),
         );
       }
@@ -760,138 +761,99 @@ class ChallengeRepository {
     }
   }
 
-  /// Challenges a quest-mate to a dice duel. The stake goes into
-  /// escrow immediately; guardrails (min 10, max 25% of aura, one
-  /// open duel per pair) are enforced server-side.
-  Future<void> createDuel({
-    required String challengeId,
-    required String opponentId,
-    required int stake,
-  }) async {
-    try {
-      await _client.rpc<String>('create_duel', params: {
-        'p_challenge_id': challengeId,
-        'p_opponent_id': opponentId,
-        'p_stake': stake,
-      });
-      debugPrint('✅ [ChallengeRepository.createDuel] '
-          'staked $stake vs $opponentId');
-    } on PostgrestException catch (e) {
-      _log('createDuel', e);
-      rethrow;
-    }
+  /// Free invitation. No balance or XP is transferred.
+  Future<void> createDuel(
+      {required String challengeId, required String opponentId}) async {
+    await _client.rpc<String>('create_roast_duel', params: {
+      'p_challenge_id': challengeId,
+      'p_opponent_id': opponentId,
+    });
   }
 
-  /// Duels waiting for the user's answer, newest first.
+  Future<DuelResult> fetchDuel(String duelId) async => DuelResult.fromJson(
+      await _client.rpc<Map<String, dynamic>>('get_roast_duel',
+          params: {'p_duel_id': duelId}));
+
   Future<List<IncomingDuel>> fetchIncomingDuels() async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return const [];
-
-    try {
-      final rows = await _readAll(() => _client
-          .from('duels')
-          .select('id, stake, created_at, challenges(title), '
-              'challenger:profiles!duels_challenger_id_fkey'
-              '(username, avatar_emoji)')
-          .eq('opponent_id', userId)
-          .eq('status', 'pending')
-          .gt('expires_at', DateTime.now().toUtc().toIso8601String())
-          .order('created_at', ascending: false)
-          .order('id'));
-
-      final duels = rows.map((row) {
-        final challenger = row['challenger'] as Map<String, dynamic>;
-        return IncomingDuel(
+    final rows = await _readAll(() => _client
+        .from('roast_duels')
+        .select(
+            'id, challenger_id, opponent_id, status, created_at, challenges(title), '
+            'challenger:profiles!roast_duels_challenger_id_fkey(username, avatar_emoji), '
+            'opponent:profiles!roast_duels_opponent_id_fkey(username, avatar_emoji)')
+        .or('challenger_id.eq.$userId,opponent_id.eq.$userId')
+        .inFilter('status', ['pending', 'active'])
+        .gt('expires_at', DateTime.now().toUtc().toIso8601String())
+        .order('created_at', ascending: false)
+        .order('id'));
+    return rows
+        .where((r) =>
+            r['challenges'] != null &&
+            (r['status'] == 'active' || r['opponent_id'] == userId))
+        .map((row) {
+      final mine = row['challenger_id'] == userId;
+      final other =
+          row[mine ? 'opponent' : 'challenger'] as Map<String, dynamic>;
+      return IncomingDuel(
           id: row['id'] as String,
           questTitle:
               (row['challenges'] as Map<String, dynamic>)['title'] as String,
-          challengerName: challenger['username'] as String,
-          challengerAvatar: challenger['avatar_emoji'] as String?,
-          stake: row['stake'] as int,
+          challengerName: other['username'] as String,
+          challengerAvatar: other['avatar_emoji'] as String?,
           createdAt: DateTime.parse(row['created_at'] as String),
-        );
-      }).toList();
-      debugPrint(
-          '✅ [ChallengeRepository.fetchIncomingDuels] ${duels.length} pending');
-      return duels;
-    } on PostgrestException catch (e) {
-      _log('fetchIncomingDuels', e);
-      rethrow;
-    }
+          status: row['status'] as String,
+          isChallenger: mine);
+    }).toList();
   }
 
-  /// The duel history of ONE quest, seen by the logged-in user
-  /// (RLS already limits rows to duels they are part of).
   Future<List<QuestDuel>> fetchQuestDuels(String challengeId) async {
     if (_client.auth.currentUser == null) return const [];
-
-    try {
-      final rows = await _client
-          .from('duels')
-          .select('id, challenger_id, opponent_id, stake, status, '
-              'challenger_d1, challenger_d2, opponent_d1, opponent_d2, '
-              'winner_id, created_at, '
-              'challenger:profiles!duels_challenger_id_fkey'
-              '(username, avatar_emoji), '
-              'opponent:profiles!duels_opponent_id_fkey'
-              '(username, avatar_emoji)')
-          .eq('challenge_id', challengeId)
-          .order('created_at', ascending: false)
-          .limit(20);
-
-      final duels = rows.map((row) {
-        final challenger = row['challenger'] as Map<String, dynamic>;
-        final opponent = row['opponent'] as Map<String, dynamic>;
-        final resolved = row['status'] == 'resolved';
-        return QuestDuel(
+    final rows = await _client
+        .from('roast_duels')
+        .select(
+            'id, challenger_id, opponent_id, status, challenger_score, opponent_score, '
+            'winner_id, roast_key, created_at, '
+            'challenger:profiles!roast_duels_challenger_id_fkey(username, avatar_emoji), '
+            'opponent:profiles!roast_duels_opponent_id_fkey(username, avatar_emoji)')
+        .eq('challenge_id', challengeId)
+        .order('created_at', ascending: false)
+        .limit(20);
+    return rows.map((row) {
+      final a = row['challenger'] as Map<String, dynamic>;
+      final b = row['opponent'] as Map<String, dynamic>;
+      return QuestDuel(
           id: row['id'] as String,
           challengerId: row['challenger_id'] as String,
-          challengerName: challenger['username'] as String,
-          challengerAvatar: challenger['avatar_emoji'] as String?,
+          challengerName: a['username'] as String,
+          challengerAvatar: a['avatar_emoji'] as String?,
           opponentId: row['opponent_id'] as String,
-          opponentName: opponent['username'] as String,
-          opponentAvatar: opponent['avatar_emoji'] as String?,
-          stake: row['stake'] as int,
+          opponentName: b['username'] as String,
+          opponentAvatar: b['avatar_emoji'] as String?,
           status: row['status'] as String,
-          challengerDice: resolved
-              ? [row['challenger_d1'] as int, row['challenger_d2'] as int]
-              : null,
-          opponentDice: resolved
-              ? [row['opponent_d1'] as int, row['opponent_d2'] as int]
-              : null,
           winnerId: row['winner_id'] as String?,
           createdAt: DateTime.parse(row['created_at'] as String),
-        );
-      }).toList();
-      debugPrint(
-          '✅ [ChallengeRepository.fetchQuestDuels] ${duels.length} duels');
-      return duels;
-    } on PostgrestException catch (e) {
-      _log('fetchQuestDuels', e);
-      rethrow;
-    }
+          challengerScore: row['challenger_score'] as int,
+          opponentScore: row['opponent_score'] as int,
+          roastKey: row['roast_key'] as int);
+    }).toList();
   }
 
-  /// Accepts (server rolls, returns the result) or declines (refunds
-  /// the challenger; returns null).
-  Future<DuelResult?> respondToDuel({
-    required String duelId,
-    required bool accept,
-  }) async {
-    try {
-      final json =
-          await _client.rpc<Map<String, dynamic>>('respond_to_duel', params: {
-        'p_duel_id': duelId,
-        'p_accept': accept,
-      });
-      debugPrint('✅ [ChallengeRepository.respondToDuel] '
-          '$duelId → ${json['status']}');
-      if (json['status'] != 'resolved') return null;
-      return DuelResult.fromJson(json);
-    } on PostgrestException catch (e) {
-      _log('respondToDuel', e);
-      rethrow;
-    }
+  Future<DuelResult?> respondToDuel(
+      {required String duelId, required bool accept}) async {
+    return DuelResult.fromJson(await _client.rpc<Map<String, dynamic>>(
+        'respond_roast_duel',
+        params: {'p_duel_id': duelId, 'p_accept': accept}));
+  }
+
+  Future<DuelResult> playDuel(
+      {required String duelId,
+      required int round,
+      required DuelMove move}) async {
+    return DuelResult.fromJson(await _client.rpc<Map<String, dynamic>>(
+        'play_roast_duel',
+        params: {'p_duel_id': duelId, 'p_round': round, 'p_move': move.name}));
   }
 
   /// The user's recent settlement events (penalties, strikes, saves,
@@ -903,7 +865,8 @@ class ChallengeRepository {
     try {
       final rows = await _client
           .from('settlement_events')
-          .select('kind, amount, challenge_id, period_start, created_at, '
+          .select(
+              'kind, amount, game_roast_key, challenge_id, period_start, created_at, '
               'challenges(title)')
           .eq('user_id', userId)
           .gte(
@@ -1387,7 +1350,7 @@ class ChallengeRepository {
             .lt('created_at', end.toIso8601String())
             .order('id')),
         _readAll(() => _client
-            .from('duels')
+            .from('roast_duels')
             .select('challenger_id, opponent_id, winner_id, resolved_at')
             .not('winner_id', 'is', null)
             .gte('resolved_at', start.toIso8601String())
@@ -1533,7 +1496,7 @@ class ChallengeRepository {
             .inFilter('challenge_id', shared)
             .inFilter('user_id', [userId, friendId]).order('id')),
         _readAll(() => _client
-            .from('duels')
+            .from('roast_duels')
             .select('challenger_id, opponent_id, winner_id')
             .not('winner_id', 'is', null)
             .inFilter('challenge_id', shared)

@@ -14,7 +14,7 @@ import 'package:aura_quest/features/challenges/presentation/widgets/challenge_sh
 import 'package:aura_quest/features/challenges/domain/challenge.dart';
 import 'package:aura_quest/features/challenges/domain/benefit.dart';
 import 'package:aura_quest/features/challenges/domain/duel.dart';
-import 'package:aura_quest/features/challenges/presentation/widgets/dice_duel.dart';
+import 'package:aura_quest/features/challenges/presentation/widgets/roast_duel.dart';
 import 'package:aura_quest/features/challenges/presentation/widgets/quest_party_section.dart';
 import 'package:aura_quest/features/friends/domain/social_models.dart';
 import 'package:aura_quest/features/challenges/presentation/widgets/create_challenge_sheet.dart';
@@ -130,7 +130,6 @@ void main() {
                           questTitle: 'Morning movement',
                           challengerName: 'Test challenger',
                           challengerAvatar: null,
-                          stake: 50,
                           createdAt: DateTime(2026))))
             ),
             ('shop', Scaffold(body: ChallengeShopSheet(challenge: _quest()))),
@@ -155,6 +154,8 @@ void main() {
               addTearDown(tester.view.resetDevicePixelRatio);
               await tester.pumpWidget(ProviderScope(
                   overrides: [
+                    duelStateProvider.overrideWith(
+                        (ref, id) => throw Exception('offline fixture')),
                     currentUserProvider.overrideWithValue(null),
                     myChallengesProvider.overrideWith((ref) => [
                           'home',

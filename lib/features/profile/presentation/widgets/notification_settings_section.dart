@@ -145,7 +145,7 @@ class _NotificationSettingsSectionState
           _Toggle(
             icon: Icons.bolt,
             label: 'Player attacks',
-            hint: 'Blackout, aura heist, roast, duels',
+            hint: 'Blackouts, roasts and Ego Duels',
             value: settings.attacks,
             enabled: !_saving,
             onChanged: (v) => _save(settings.copyWith(attacks: v, duels: v)),

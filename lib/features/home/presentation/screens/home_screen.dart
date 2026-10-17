@@ -14,7 +14,8 @@ import '../../../../core/text/roasts.dart';
 import '../../../challenges/application/challenge_providers.dart';
 import '../../../challenges/domain/challenge.dart';
 import '../../../challenges/domain/settlement.dart';
-import '../../../challenges/presentation/widgets/dice_duel.dart';
+import '../../../challenges/presentation/widgets/roast_duel.dart';
+import '../../../../core/text/game_roasts.dart';
 import '../../../challenges/presentation/widgets/progress_widgets.dart';
 import '../../../challenges/presentation/widgets/quick_progress_actions.dart';
 import '../../../challenges/presentation/widgets/slip_widgets.dart';
@@ -613,14 +614,15 @@ class _InboxSection extends ConsumerWidget {
       children: [
         _SectionTitle('INBOX', color: AppColors.neonYellow),
         const SizedBox(height: 12),
-        // Open duels come first — there is aura on the table.
+        // Invitations and accepted free games stay reachable from Home.
         for (final duel in duels)
           _InboxRow(
-            icon: Icons.casino,
+            icon: Icons.back_hand_outlined,
             color: AppColors.neonPink,
-            text: '🎲 @${duel.challengerName} challenges you — '
-                '${duel.pot} ⚡ pot',
-            detail: '${duel.questTitle} · stake ${duel.stake}',
+            text: duel.status == 'active'
+                ? 'Ego Duel with @${duel.challengerName} · continue playing'
+                : '@${duel.challengerName} challenges your ego',
+            detail: '${duel.questTitle} · free rock, paper, scissors',
             onTap: () => DuelSheet.show(context, duel),
           ),
         if (invites.isNotEmpty)
@@ -980,14 +982,18 @@ class _EventsSection extends ConsumerWidget {
               '(${event.amount} aura banked)',
         ),
       'duel_won' => (
-          Icons.casino,
+          Icons.back_hand_outlined,
           AppColors.neonGreen,
-          '🎲 Duel won: +${event.amount} · ${event.questTitle}',
+          event.amount == 0
+              ? 'Ego Duel won · ${event.questTitle}'
+              : 'Past duel won · ${event.questTitle}',
         ),
       'duel_lost' => (
-          Icons.casino,
+          Icons.back_hand_outlined,
           AppColors.danger,
-          '🎲 Duel lost: ${event.amount} · ${event.questTitle}',
+          event.roastKey != null
+              ? '${GameRoasts.line(event.roastKey!, languageCode: WidgetsBinding.instance.platformDispatcher.locale.languageCode)} · ${event.questTitle}'
+              : 'Past duel lost · ${event.questTitle}',
         ),
       'versus_won' => (
           Icons.sports_kabaddi,

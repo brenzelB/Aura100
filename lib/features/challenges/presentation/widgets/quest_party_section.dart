@@ -15,7 +15,7 @@ import '../../domain/benefit.dart';
 import '../../domain/challenge.dart';
 import '../../domain/quest_member.dart';
 import 'benefit_chip.dart';
-import 'dice_duel.dart';
+import 'roast_duel.dart';
 
 /// The PARTY block on the quest detail screen: every member with
 /// owner crown, current check-in status, quest aura, owned gear and a
@@ -144,7 +144,7 @@ class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
                   teamColor: teamColor,
                   isNudging: _nudgingUserId == member.userId,
                   onNudge: () => _nudge(member),
-                  onDuel: duelBusy
+                  onDuel: duelBusy || !widget.challenge.attacksEnabled
                       ? null
                       : () => startDuelFlow(
                             context,
@@ -667,7 +667,7 @@ class _MemberTile extends ConsumerWidget {
                       padding: EdgeInsets.zero,
                       constraints:
                           const BoxConstraints(minWidth: 48, minHeight: 48),
-                      icon: Icon(Icons.casino_outlined,
+                      icon: Icon(Icons.back_hand_outlined,
                           size: 20, color: AppColors.warningText),
                     ),
                     isNudging
@@ -762,7 +762,8 @@ class _MemberTile extends ConsumerWidget {
                       for (final title in member.gear)
                         if (!Benefit.titles.contains(title) &&
                             title != 'Targeted Roast' &&
-                            title != 'Aura Heist') ...[
+                            title != 'Aura Heist' &&
+                            title != 'Aura Ward') ...[
                           Icon(benefitIcon(title),
                               size: 13, color: AppColors.neonPurple),
                           const SizedBox(width: 3),

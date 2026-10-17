@@ -18,7 +18,8 @@ insert into public.apple_revoke_tokens(user_id,apple_sub,encrypted_token,revoked
 set local role authenticated;
 select throws_ok('select public.delete_my_account()','P0001',null,'a different Apple subject cannot unlock deletion');
 reset role;
-update public.apple_revoke_tokens set apple_sub='apple-subject-test',revoked_at=null;
+update public.apple_revoke_tokens set apple_sub='apple-subject-test',revoked_at=null
+ where user_id='71000000-0000-0000-0000-000000000001';
 set local role authenticated;
 select throws_ok('select public.delete_my_account()','P0001',null,'retained but unrevoked Apple token blocks deletion');
 reset role;
@@ -26,12 +27,13 @@ delete from auth.identities where user_id='71000000-0000-0000-0000-000000000001'
 set local role authenticated;
 select throws_ok('select public.delete_my_account()','P0001',null,'unlinking Apple does not bypass outstanding revocation');
 reset role;
-update public.apple_revoke_tokens set revoked_at=now();
+update public.apple_revoke_tokens set revoked_at=now()
+ where user_id='71000000-0000-0000-0000-000000000001';
 set local role authenticated;
 select lives_ok('select public.delete_my_account()','revoked Apple account can be deleted');
 reset role;
 select is((select count(*) from auth.users where id='71000000-0000-0000-0000-000000000001'),0::bigint,'Apple account removed');
-select is((select count(*) from public.apple_revoke_tokens),0::bigint,'provider token removed with the account');
+select is((select count(*) from public.apple_revoke_tokens where user_id='71000000-0000-0000-0000-000000000001'),0::bigint,'provider token removed with the account');
 select set_config('request.jwt.claim.sub','71000000-0000-0000-0000-000000000002',true);
 set local role authenticated;
 select lives_ok('select public.delete_my_account()','email-only deletion stays available');

@@ -5,11 +5,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../application/challenge_providers.dart';
 import '../../domain/challenge.dart';
 import '../../domain/duel.dart';
-import 'dice_duel.dart';
+import 'roast_duel.dart';
 
-/// The quest's duel ledger on the detail screen: how often was rolled
-/// today, what is still pending, and every past result — resolved
-/// ones replay their animation on tap.
+/// The free-game ledger. Results are separate from quest Aura and XP.
 class QuestDuelsSection extends ConsumerWidget {
   const QuestDuelsSection({super.key, required this.challenge});
 
@@ -72,17 +70,17 @@ class _DuelTile extends ConsumerWidget {
   void _open(BuildContext context) {
     if (duel.status == 'resolved') {
       DuelReplaySheet.show(context, duel: duel, questTitle: challenge.title);
-    } else if (duel.status == 'pending' && !duel.isChallenger(myId)) {
-      // My move: the regular accept flow.
+    } else if (duel.status == 'active' || duel.status == 'pending') {
       DuelSheet.show(
         context,
         IncomingDuel(
           id: duel.id,
           questTitle: challenge.title,
-          challengerName: duel.challengerName,
-          challengerAvatar: duel.challengerAvatar,
-          stake: duel.stake,
+          challengerName: duel.otherName(myId),
+          challengerAvatar: duel.otherAvatar(myId),
           createdAt: duel.createdAt,
+          status: duel.status,
+          isChallenger: duel.isChallenger(myId),
         ),
       );
     }
@@ -100,7 +98,7 @@ class _DuelTile extends ConsumerWidget {
           iWon ? AppColors.neonGreen : AppColors.danger,
           Row(mainAxisSize: MainAxisSize.min, children: [
             Text(
-              iWon ? 'WON +${duel.stake}' : 'LOST -${duel.stake}',
+              iWon ? 'WON' : 'ROASTED',
               style: textTheme.bodyMedium?.copyWith(
                 color: iWon ? AppColors.successText : AppColors.danger,
                 fontWeight: FontWeight.w700,
@@ -119,11 +117,11 @@ class _DuelTile extends ConsumerWidget {
             color: AppColors.neonYellow,
           ),
         ),
-      'pending' => (
+      'active' || 'pending' => (
           AppColors.neonPink,
           _Badge(
-            text: 'YOUR MOVE',
-            icon: Icons.casino,
+            text: duel.status == 'active' ? 'PLAYING' : 'YOUR MOVE',
+            icon: Icons.back_hand_outlined,
             color: AppColors.neonPink,
           ),
         ),
@@ -141,16 +139,9 @@ class _DuelTile extends ConsumerWidget {
         ),
     };
 
-    // Resolved duels show the final score right in the subtitle.
-    final String subtitle;
-    if (resolved) {
-      final my = duel.myDice(myId)!;
-      final their = duel.theirDice(myId)!;
-      subtitle = 'you ${my[0] + my[1]} : ${their[0] + their[1]} · '
-          'stake ${duel.stake}';
-    } else {
-      subtitle = 'stake ${duel.stake} · pot ${duel.stake * 2}';
-    }
+    final subtitle = resolved || duel.status == 'active'
+        ? '${duel.scoreFor(myId)} · first to 3'
+        : 'Free to play · Aura and XP unchanged';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -164,7 +155,7 @@ class _DuelTile extends ConsumerWidget {
         onTap: () => _open(context),
         child: Row(
           children: [
-            Icon(Icons.casino, size: 18, color: accent),
+            Icon(Icons.back_hand_outlined, size: 18, color: accent),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

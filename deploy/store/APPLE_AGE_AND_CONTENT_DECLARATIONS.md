@@ -1,8 +1,18 @@
-# Apple age and content declarations — prepared for confirmation
+# Apple age and content declarations — replacement draft, 17 October 2026
 
-Not saved or submitted. This is a proposed questionnaire based on the current
-app, not an Apple-assigned rating or a legal opinion. The user must confirm the
-declarations before they are submitted to Apple.
+The 16 October answers below were saved for build 14, including infrequent
+simulated gambling. Apple stopped that review because the app was submitted by
+an individual developer. The replacement game removes wagers and all Aura/XP
+gains, losses and transfers. The updated simulated-gambling answer below is for
+the verified replacement build only; it has not yet been saved to App Store
+Connect. The previous build must not be relabelled as gambling-free.
+
+The user explicitly confirmed these declarations on 16 October 2026. The answers
+and content rights are saved in App Store Connect. Apple calculated 13+; the
+confirmed minimum target age was applied by overriding to 16+. Apple assigns
+regional equivalents and globally 17+ for operating systems older than version 26.
+Build 14 was submitted on 16 October; review was subsequently stopped as reported
+by the user on 17 October. No public release has occurred.
 
 | Questionnaire content | Proposed answer | Evidence / reason |
 | --- | --- | --- |
@@ -20,16 +30,16 @@ declarations before they are submitted to Apple.
 | Medical/treatment information | None | No diagnoses, prescriptions or treatment advice. |
 | Health and wellness topics | Yes | Manual training, reading and focus goals; no HealthKit or sensor data. |
 | Mature/suggestive themes; sexual content/nudity | None | No such built-in images or content. |
-| Cartoon/fantasy, realistic or graphic violence; weapons | None | Heists and Aura losses are abstract game mechanics, without depicted violence. |
+| Cartoon/fantasy, realistic or graphic violence; weapons | None | Rock-paper-scissors uses hand symbols and playful text, without depicted violence. |
 | Real-money gambling | No | Aura cannot be purchased for cash or redeemed/withdrawn for cash. |
-| Simulated gambling | Infrequent | Optional dice duels wager virtual Aura; this meets Apple's definition even without real money. The core experience is completing habits. |
+| Simulated gambling | None — replacement build only | Free rock-paper-scissors has no stakes, currency rewards, transfers or paid retries. Old dice/Heist wagering endpoints are disabled. Change the saved answer only with the replacement build. |
 | Contests | Frequent | Quest competition, rankings and shared progress are continuing core features. |
 | Loot boxes | No | No randomized purchased reward boxes. |
 
 Request a **minimum of 16+**, consistent with the published target age, only if
 Apple's calculated rating is lower. Never override a higher computed rating
 downward. Country-specific ratings and requirements must be read from Apple's
-computed result; the final result is not known yet.
+computed result. The saved result is 16+ with Apple's regional equivalents.
 
 Source: [Apple's definitions and regional age ratings](https://developer.apple.com/help/app-store-connect/reference/app-information/age-ratings-values-and-definitions).
 
@@ -52,8 +62,10 @@ worker's AES token storage is server-side and is not shipped in the IPA.
 Do not reuse build 9's internal no-France declaration for worldwide release,
 declare “no encryption”, or automatically set the exemption flag without
 resolving the actual networking implementation and relevant import/export
-requirements. France is included in the draft country selection but its
-public-release compliance remains open.
+requirements. On 16 October the user explicitly chose the initial launch without
+France. France is now unavailable; build 11's standard-encryption/no-France
+answers are saved. French documentation remains necessary to resolve before
+adding that country later.
 
 Sources: [Dart SecureSocket](https://api.dart.dev/dart-io/SecureSocket-class.html),
 [Apple encryption documentation](https://developer.apple.com/help/app-store-connect/reference/app-information/export-compliance-documentation-for-encryption/).

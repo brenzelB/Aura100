@@ -33,7 +33,7 @@ select is((select lifetime_xp from public.get_my_stats()),100::bigint,'One unit 
 select throws_ok($$select public.log_check_in(pg_temp.q(1))$$,'P0001',null,'Duplicate unit rejected');
 select lives_ok($$select public.log_check_in(pg_temp.q(n)) from generate_series(2,7)n$$,'Six further confirmations');
 select is((select lifetime_xp from public.get_my_stats()),500::bigint,'Daily XP cap independent of high custom reward');
-select lives_ok($$select public.purchase_benefit((select id from public.benefits where challenge_id=pg_temp.q(7) and title='Aura Ward'))$$,'Ward purchase uses Aura');
+select lives_ok($$select public.purchase_benefit((select id from public.benefits where challenge_id=pg_temp.q(7) and title='Streak Shield'))$$,'Ordinary perk purchase uses Aura');
 select is((select lifetime_xp from public.get_my_stats()),500::bigint,'Purchase does not lower XP');
 reset role;
 delete from public.check_ins where challenge_id=pg_temp.q(7);
@@ -48,27 +48,13 @@ select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000012'
 set local role authenticated;
 select is((select count(*) from public.player_xp_events),0::bigint,'RLS hides another player XP ledger');
 select throws_ok($$select public.attempt_aura_heist(pg_temp.q(2),'00000000-0000-0000-0000-000000000013',1)$$,'P0001',null,'Chill rejects attacks on server');
-select lives_ok($$select public.purchase_benefit((select id from public.benefits where challenge_id=pg_temp.q(1) and title='Aura Ward'))$$,'Defender equips a ward');
+select throws_ok($$select public.purchase_benefit((select id from public.benefits where challenge_id=pg_temp.q(1) and title='Aura Ward'))$$,'P0001',null,'Retired wards cannot charge users');
+select is(public.log_check_in(pg_temp.q(1)),100,'Check-in preserves complete Aura reward');
+select is((select lifetime_xp from public.get_my_stats()),100::bigint,'Confirmed unit grants XP');
+select is(public.log_check_in(pg_temp.q(3)),100,'Retired Heists do not affect the next quest');
+select is(public.log_check_in(pg_temp.q(4)),100,'Check-ins retain their normal reward');
+select is((select lifetime_xp from public.get_my_stats()),300::bigint,'Game retirement does not change earned XP');
 reset role;
-insert into public.aura_heists(challenge_id,attacker_id,target_id,cost,chance,succeeded)
-values(pg_temp.q(1),'00000000-0000-0000-0000-000000000013','00000000-0000-0000-0000-000000000012',20,0.25,true);
-set local role authenticated;
-select is(public.log_check_in(pg_temp.q(1)),100,'Ward preserves complete Aura reward');
-select is((select lifetime_xp from public.get_my_stats()),100::bigint,'Defended unit still grants XP');
-reset role;
-select is((select count(*) from public.benefit_purchases bp join public.benefits b on b.id=bp.benefit_id where bp.user_id='00000000-0000-0000-0000-000000000012' and b.title='Aura Ward' and bp.consumed_at is not null),1::bigint,'Exactly one ward consumed');
-select is((select stolen_amount from public.aura_heists where challenge_id=pg_temp.q(1)),0,'Blocked heist transfers no Aura');
--- Legacy pending hits across quests cannot bypass the daily payout ceiling.
-insert into public.aura_heists(challenge_id,attacker_id,target_id,cost,chance,succeeded,created_at)
-select pg_temp.q(n),'00000000-0000-0000-0000-000000000013','00000000-0000-0000-0000-000000000012',20,0.25,true,now()-interval '1 hour' from generate_series(3,4)n;
-insert into public.benefit_purchases(challenge_id,user_id,benefit_id)
-select pg_temp.q(3),'00000000-0000-0000-0000-000000000012',id from public.benefits where challenge_id=pg_temp.q(3) and title='Aura Lord';
-set local role authenticated;
-select is(public.log_check_in(pg_temp.q(3)),100,'Heist steals only base 100; defender keeps multiplier bonus 100');
-select is(public.log_check_in(pg_temp.q(4)),100,'Second legacy pending hit cannot steal again today');
-select is((select lifetime_xp from public.get_my_stats()),300::bigint,'Heists never remove or scale earned XP');
-reset role;
-select is((select count(*) from public.aura_heists where target_id='00000000-0000-0000-0000-000000000012' and stolen_amount>0),1::bigint,'Global one paid incoming heist per day');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000011',true);
 update public.challenge_participants set challenge_aura=2000 where user_id='00000000-0000-0000-0000-000000000011';
 set local role authenticated;
@@ -89,7 +75,7 @@ select ok(not (select comeback_needed from public.challenge_participants where c
 -- Actual tier RPC, expiry and zero-reward guards.
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000012',true);
 set local role authenticated;
-select is((public.attempt_aura_heist(pg_temp.q(5),'00000000-0000-0000-0000-000000000011',1)->>'cost')::int,20,'Actual heist RPC derives price from tier');
+select throws_ok($$select public.attempt_aura_heist(pg_temp.q(5),'00000000-0000-0000-0000-000000000011',1)$$,'P0001',null,'Old random heist RPC is retired');
 select throws_ok($$select public.attempt_aura_heist(pg_temp.q(5),'00000000-0000-0000-0000-000000000011',150)$$,'P0001',null,'Old client cost is not accepted as a tier');
 reset role;
 insert into public.aura_heists(challenge_id,attacker_id,target_id,cost,chance,succeeded,created_at)

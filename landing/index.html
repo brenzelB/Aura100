@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Aura Quest — Vorsätze mit Konsequenzen</title>
-<meta name="description" content="Habit-Tracker als Wettkampf: Aura verdienen, Freunde herausfordern — und sie dürfen dich sabotieren. Blackout, Aura Heist, Würfelduelle.">
+<meta name="description" content="Habit-Tracker als Wettkampf: Aura verdienen, Freunde herausfordern — und sie dürfen dich sabotieren. Blackouts, Roasts und kostenlose Ego Duelle.">
 <meta name="theme-color" content="#FBE9E1">
 
 <link rel="alternate" hreflang="de" href="/">
@@ -55,7 +55,7 @@
       <p class="lede reveal">
         Aura Quest ist ein Gewohnheits-Tracker, in dem Mitspieler dich
         aktiv sabotieren dürfen. Sie sperren dich aus, klauen deinen
-        Fortschritt und würfeln um deine Punkte.
+        Fortschritt und fordern dich zu kostenlosen Ego Duellen heraus.
         Durchziehen wird dadurch überraschend interessant.
       </p>
 
@@ -123,7 +123,7 @@
       <span class="step__n" aria-hidden="true">01</span>
       <h3>Quest anlegen</h3>
       <p>
-        Du setzt den Einsatz selbst: Aura pro Erfolg, Strafe pro
+        Du legst die Regeln fest: Aura pro Erfolg, Abzug pro
         Ausfall, und wie viele Fehltritte du dir leistest, bevor es
         vorbei ist. Danach lädst du ein, wen es treffen soll.
       </p>
@@ -268,11 +268,7 @@
           </button>
         </li>
         <li>
-          <button class="attack" data-attack="heist" data-cost="150">
-            <span class="attack__name">Aura Heist</span>
-            <span class="attack__desc">Klaut die Aura seines nächsten Check-ins. 150 = 25 %, 500 = 75 % Chance.</span>
-            <span class="attack__cost">⚡ 150</span>
-          </button>
+          <button class="attack" data-attack="ego" data-cost="0"><span class="attack__name">Ego Duel</span><span class="attack__desc">Schere, Stein, Papier. Wer zuerst drei Runden gewinnt, gewinnt das Duell. Der Verlierer bekommt einen frechen Spruch. Aura und XP bleiben unverändert.</span><span class="attack__cost">KOSTENLOS</span></button>
         </li>
         <li>
           <button class="attack" data-attack="blackout" data-cost="250">
@@ -283,17 +279,10 @@
         </li>
       </ul>
 
-      <div class="phone phone--sabo">
-        <img src="/screens/shop.webp" width="560" height="1195" loading="lazy" decoding="async"
-             alt="Der Quest-Shop mit den drei Angriffsgegenständen Targeted Roast, Aura Heist und Blackout samt Preisen.">
-      </div>
+      <div class="phone phone--sabo" style="padding:2rem;text-align:center"><p style="font-size:3rem">✊ ✋ ✌️</p><h3>EGO DUEL</h3><p>Schere, Stein, Papier. Wer zuerst drei Runden gewinnt, gewinnt das Duell. Der Verlierer bekommt einen frechen Spruch. Aura und XP bleiben unverändert.</p></div>
     </div>
 
-    <p class="sabo__foot reveal">
-      Dazu Würfelduelle: Aura setzen, zwei Würfel, höhere Summe nimmt den
-      Topf. Höchstens ein Viertel deines Bestands — damit ein Wurf nicht
-      die ganze Quest entscheidet.
-    </p>
+    <p class="sabo__foot reveal">Ego Duelle sind kostenlos: verdeckt wählen, gemeinsam aufdecken, zuerst drei Siege holen. Keine Wetten, kein Punkte-Topf. Nur Angeberrechte und ein Roast.</p>
   </div>
 
   <!-- Wird von main.js fuer die Demo-Angriffe benutzt -->
@@ -331,8 +320,7 @@
       <h3>Und das Wichtigste:<br>Schummeln geht nicht</h3>
       <p>
         Jede Regel liegt in der Datenbank, nicht in der App. Check-ins,
-        Würfel, Diebstahlschancen und Abrechnungen entscheidet der
-        Server. Ein manipuliertes Gerät kann nichts erzwingen, was die
+        Spielzüge und Abrechnungen prüft der Server. Ein manipuliertes Gerät kann nichts erzwingen, was die
         Datenbank nicht erlaubt.
       </p>
       <p class="modes__proof-note">

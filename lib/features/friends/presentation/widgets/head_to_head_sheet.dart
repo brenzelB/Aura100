@@ -165,8 +165,8 @@ class _HeadToHeadSheet extends ConsumerWidget {
         // Duels only earn a line once one has actually been fought.
         if (r.duelsWon + r.duelsLost > 0)
           _Row(
-            icon: Icons.casino_outlined,
-            label: 'Dice duels',
+            icon: Icons.back_hand_outlined,
+            label: 'Ego duels',
             value: r.duelLine,
             color: r.duelsWon >= r.duelsLost
                 ? AppColors.successText

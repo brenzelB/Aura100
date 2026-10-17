@@ -40,16 +40,18 @@ class _Quests implements ChallengeRepository {
   bool hidden = false;
   final day = DateTime.utc(2026, 9, 29);
   static const verdict = DuelResult(
-      challengerDice: [4, 5],
-      opponentDice: [1, 2],
-      winnerId: 'alice',
-      pot: 200);
+      id: 'duel',
+      status: 'active',
+      challengerId: 'alice',
+      opponentId: 'bob',
+      round: 1,
+      challengerScore: 0,
+      opponentScore: 0,
+      roastKey: 0);
 
   @override
   Future<void> createDuel(
-      {required String challengeId,
-      required String opponentId,
-      required int stake}) async {
+      {required String challengeId, required String opponentId}) async {
     calls++;
     await reply.future;
   }
@@ -60,6 +62,16 @@ class _Quests implements ChallengeRepository {
     calls++;
     await reply.future;
     return accept ? verdict : null;
+  }
+
+  @override
+  Future<DuelResult> playDuel(
+      {required String duelId,
+      required int round,
+      required DuelMove move}) async {
+    calls++;
+    await reply.future;
+    return verdict;
   }
 
   @override
@@ -186,9 +198,9 @@ Future<Object?> _act(ProviderContainer container, String action) {
   }
   final controller = container.read(duelControllerProvider.notifier);
   return switch (action) {
-    'create' =>
-      controller.create(challengeId: 'quest', opponentId: 'bob', stake: 100),
-    'accept' => controller.acceptAndRoll('duel'),
+    'create' => controller.create(challengeId: 'quest', opponentId: 'bob'),
+    'accept' => controller.accept('duel'),
+    'play' => controller.play('duel', 1, DuelMove.rock),
     _ => controller.decline('duel'),
   };
 }
@@ -196,7 +208,7 @@ Future<Object?> _act(ProviderContainer container, String action) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  for (final action in ['create', 'accept', 'decline', 'hide']) {
+  for (final action in ['create', 'accept', 'play', 'decline', 'hide']) {
     test('$action completes after its last widget listener disappears',
         () async {
       final repo = _Quests();
@@ -213,7 +225,8 @@ void main() {
       await container.pump();
       expect(container.exists(provider), isTrue);
       repo.reply.complete();
-      expect(await result, action == 'accept' ? _Quests.verdict : true);
+      expect(await result,
+          ['accept', 'play'].contains(action) ? _Quests.verdict : true);
       await container.pump();
       expect(container.exists(provider), isFalse);
     });
@@ -234,7 +247,7 @@ void main() {
       await container.pump();
       const error = PostgrestException(message: 'Server rejected the action.');
       repo.reply.completeError(error);
-      expect(await result, action == 'accept' ? null : false);
+      expect(await result, ['accept', 'play'].contains(action) ? null : false);
       expect(container.read(provider).error, error);
     });
 
@@ -267,7 +280,7 @@ void main() {
       await container.pump();
       auth.currentUser = null;
       repo.reply.complete();
-      expect(await result, action == 'accept' ? null : false);
+      expect(await result, ['accept', 'play'].contains(action) ? null : false);
       await container.pump();
       expect(reads, 2);
     });

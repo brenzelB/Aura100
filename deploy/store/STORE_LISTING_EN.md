@@ -8,7 +8,7 @@
 | iOS subtitle | `Habits, duels & more Aura` | Saved in App Store Connect on 10 October 2026 |
 | Google Play short description | `Turn habits into quests. Earn Aura and play with friends.` | Under the 80-character limit |
 | Category | Productivity | Select the closest available category in App Store Connect |
-| Age rating | Not assigned | Confirm the prepared questionnaire, including optional dice duels with virtual Aura stakes; there is no real-money wagering. |
+| Age rating | Not assigned | Recalculate for the verified replacement build: free rock-paper-scissors without wagers, currency prizes or transfers. |
 
 ## iOS promotional text
 
@@ -28,7 +28,7 @@ BETTER WITH FRIENDS
 Invite friends to a quest, see their activity and send a nudge when they need a push. Android and iPhone players share the same quests.
 
 AURA, XP AND PERKS
-Earn Aura for your next move and build permanent XP for personal progress. Spend virtual Aura on quest Perks, challenge friends to dice duels or try an Aura Heist with a clearly displayed chance. All stakes are virtual: no cash rewards, withdrawals or real-money purchases.
+Earn Aura for your next move and build permanent XP for personal progress. Spend virtual Aura on quest Perks. Challenge friends to free Ego Duels: rock, paper, scissors, first to three wins. The loser gets a cheeky roast. Duels never change Aura or XP; there are no wagers or currency prizes.
 
 A LITTLE ATTITUDE
 Celebrate your wins. Get an honest roast when you quit. Pick your look with three themes and light or dark mode.

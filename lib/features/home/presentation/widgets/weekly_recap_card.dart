@@ -170,7 +170,7 @@ class _WeeklyRecapCardState extends ConsumerState<WeeklyRecapCard> {
                 recap.duelsWon >= recap.duelsLost
                     ? AppColors.successText
                     : AppColors.danger,
-                Icons.casino_outlined,
+                Icons.back_hand_outlined,
               ),
           ],
         ),

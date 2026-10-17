@@ -11,11 +11,11 @@ import '../../domain/quest_balance.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/motion.dart';
 import '../../application/challenge_providers.dart';
-import '../../domain/aura_heist.dart';
 import '../../domain/benefit.dart';
 import '../../domain/blackout.dart';
 import '../../domain/challenge.dart';
 import '../../domain/quest_member.dart';
+import 'roast_duel.dart';
 
 /// The QUEST SHOP — strictly scoped to ONE challenge: it lists only
 /// this challenge's benefits and spends only this challenge's aura.
@@ -92,16 +92,6 @@ class _ChallengeShopSheetState extends ConsumerState<ChallengeShopSheet> {
           backgroundColor: AppColors.neonPurple,
         ));
       }
-      return;
-    }
-
-    if (benefit.title == 'Aura Heist') {
-      // The heist dialog shows its own hit/miss result; the shop just
-      // reflects the new balance afterwards.
-      await showDialog<int?>(
-        context: context,
-        builder: (_) => _AuraHeistFlowDialog(challenge: widget.challenge),
-      );
       return;
     }
 
@@ -218,18 +208,106 @@ class _ChallengeShopSheetState extends ConsumerState<ChallengeShopSheet> {
           const SizedBox(height: 20),
 
           // ── Stock ─────────────────────────────────────────────
+          if (widget.challenge.attacksEnabled && !widget.challenge.amIOut) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text('EGO DUEL · FREE', style: textTheme.titleLarge),
+                    const SizedBox(height: 8),
+                    const Text('Rock, paper, scissors. The loser gets roasted. '
+                        'No Aura stakes, transfers or XP rewards.'),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      onPressed: ref.watch(duelControllerProvider).isLoading
+                          ? null
+                          : () async {
+                              final opponent = await showDialog<QuestMember>(
+                                  context: context,
+                                  builder: (dialogContext) => AlertDialog(
+                                        title: const Text('PICK YOUR RIVAL'),
+                                        content: SizedBox(
+                                            width: 400,
+                                            child: Consumer(
+                                              builder: (context, ref, _) => ref
+                                                  .watch(questMembersProvider(
+                                                      widget.challenge.id))
+                                                  .when(
+                                                    loading: () => const Center(
+                                                        child:
+                                                            CircularProgressIndicator()),
+                                                    error: (_, __) => const Text(
+                                                        'Could not load players. Try again.'),
+                                                    data: (members) {
+                                                      final rivals = members
+                                                          .where((m) =>
+                                                              !m.isMe &&
+                                                              !m.isOut &&
+                                                              !m.isWinner)
+                                                          .toList();
+                                                      if (rivals.isEmpty) {
+                                                        return const Text(
+                                                            'Invite a friend to this quest first.');
+                                                      }
+                                                      return SingleChildScrollView(
+                                                          child: Column(
+                                                              mainAxisSize:
+                                                                  MainAxisSize
+                                                                      .min,
+                                                              children: [
+                                                            for (final rival
+                                                                in rivals)
+                                                              ListTile(
+                                                                title: Text(
+                                                                    '@${rival.username}'),
+                                                                leading: const Icon(
+                                                                    Icons
+                                                                        .back_hand_outlined),
+                                                                onTap: () =>
+                                                                    Navigator.pop(
+                                                                        dialogContext,
+                                                                        rival),
+                                                              )
+                                                          ]));
+                                                    },
+                                                  ),
+                                            )),
+                                        actions: [
+                                          TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(dialogContext),
+                                              child: const Text('CLOSE'))
+                                        ],
+                                      ));
+                              if (opponent == null || !context.mounted) return;
+                              await startDuelFlow(context, ref,
+                                  challenge: widget.challenge,
+                                  opponent: opponent);
+                            },
+                      icon: const Icon(Icons.back_hand_outlined),
+                      label: const Text('CHALLENGE A FRIEND'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           Text(widget.challenge.auraGain > 0
               ? 'Prices follow this quest’s ${widget.challenge.auraGain} Aura base reward. Your XP and level stay when you spend Aura.'
               : 'Perks are unavailable for quests with a zero Aura reward.'),
           const SizedBox(height: 8),
           Text(widget.challenge.attacksEnabled
-              ? '3 outgoing attacks per account / UTC day. One successful incoming heist per day. Aura Ward blocks a hit.'
+              ? '3 outgoing attacks per account / UTC day. Ego Duels are free: no Aura or XP changes.'
               : 'Attacks are disabled in this quest.'),
           const SizedBox(height: 12),
           benefitsAsync.when(
             data: (benefits) => Column(
               children: benefits
                   .where((b) =>
+                      !const ['Aura Heist', 'Aura Ward'].contains(b.title) &&
                       widget.challenge.auraGain > 0 &&
                       (widget.challenge.attacksEnabled ||
                           !const [
@@ -790,375 +868,6 @@ class __TargetedRoastFlowDialogState
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Aura Heist: pick odds + target, roll, then reveal hit or miss.
-// ─────────────────────────────────────────────────────────────────
-class _HeistTier {
-  const _HeistTier(this.tier, this.chance);
-  final int tier;
-  final int chance; // percent
-}
-
-const _heistTiers = [
-  _HeistTier(1, 25),
-  _HeistTier(2, 50),
-  _HeistTier(3, 75),
-];
-
-class _AuraHeistFlowDialog extends ConsumerStatefulWidget {
-  const _AuraHeistFlowDialog({required this.challenge});
-
-  final Challenge challenge;
-
-  @override
-  ConsumerState<_AuraHeistFlowDialog> createState() =>
-      _AuraHeistFlowDialogState();
-}
-
-class _AuraHeistFlowDialogState extends ConsumerState<_AuraHeistFlowDialog> {
-  _HeistTier _tier = _heistTiers.first;
-  int _cost(_HeistTier tier) =>
-      QuestBalance.price(widget.challenge.auraGain, 'Aura Heist',
-          tier: tier.tier);
-  QuestMember? _target;
-  bool _sending = false;
-  String? _error;
-  AuraHeistResult? _result;
-
-  Future<void> _send() async {
-    if (_target == null) return;
-    setState(() {
-      _sending = true;
-      _error = null;
-    });
-    try {
-      final result =
-          await ref.read(challengeRepositoryProvider).attemptAuraHeist(
-                challengeId: widget.challenge.id,
-                targetId: _target!.userId,
-                tier: _tier.tier,
-              );
-      ref.invalidate(myChallengesProvider);
-      ref.invalidate(questMembersProvider(widget.challenge.id));
-      if (mounted) setState(() => _result = result);
-    } on PostgrestException catch (e) {
-      if (mounted) setState(() => _error = e.message);
-    } catch (_) {
-      if (mounted) setState(() => _error = 'Heist failed — try again.');
-    } finally {
-      if (mounted) setState(() => _sending = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    // ── Result reveal ────────────────────────────────────
-    if (_result case final result?) {
-      return _HeistResultDialog(
-        result: result,
-        targetName: _target!.username,
-        onClose: () => Navigator.of(context).pop(result.newBalance),
-      );
-    }
-
-    final membersAsync = ref.watch(questMembersProvider(widget.challenge.id));
-
-    return AppDialog(
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: AppColors.neonPurple, width: 2),
-      ),
-      title: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('💰', style: TextStyle(fontSize: 24)),
-              const SizedBox(width: 6),
-              Text('AURA HEIST',
-                  style: textTheme.titleMedium?.copyWith(
-                    color: AppColors.neonPurple,
-                    fontWeight: FontWeight.w900,
-                  )),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text('At most one base reward. Expires in 24h; wards can block it.',
-              textAlign: TextAlign.center,
-              style: textTheme.bodySmall
-                  ?.copyWith(color: AppColors.textSecondary)),
-        ],
-      ),
-      content: SingleChildScrollView(
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('1. Pick your odds:',
-                style: textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w700, color: AppColors.neonPurple)),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                for (final tier in _heistTiers) ...[
-                  Expanded(
-                    child: Pressable(
-                      onTap: () => setState(() => _tier = tier),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: _tier == tier
-                              ? AppColors.neonPurple.withValues(alpha: 0.15)
-                              : AppColors.surfaceLight,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: _tier == tier
-                                ? AppColors.neonPurple
-                                : Colors.transparent,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Text('${tier.chance}%',
-                                style: textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    color: _tier == tier
-                                        ? AppColors.neonPurple
-                                        : AppColors.textPrimary)),
-                            Text('⚡${_cost(tier)}',
-                                style: textTheme.bodySmall?.copyWith(
-                                    color: AppColors.textSecondary,
-                                    fontWeight: FontWeight.w600)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (tier != _heistTiers.last) const SizedBox(width: 8),
-                ],
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text('2. Pick your mark:',
-                style: textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w700, color: AppColors.neonPurple)),
-            const SizedBox(height: 6),
-            membersAsync.when(
-              data: (members) {
-                final targets = members
-                    .where((m) => !m.isMe && m.status == 'active')
-                    .toList();
-                if (targets.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text('No other players to rob.',
-                        style: textTheme.bodySmall
-                            ?.copyWith(color: AppColors.textSecondary)),
-                  );
-                }
-                return Column(
-                  children: [
-                    for (final member in targets)
-                      Pressable(
-                        onTap: () => setState(() => _target = member),
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 6),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: _target?.userId == member.userId
-                                ? AppColors.neonPurple.withValues(alpha: 0.15)
-                                : AppColors.surfaceLight,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: _target?.userId == member.userId
-                                  ? AppColors.neonPurple
-                                  : Colors.transparent,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                  _target?.userId == member.userId
-                                      ? Icons.radio_button_checked
-                                      : Icons.radio_button_unchecked,
-                                  size: 18,
-                                  color: _target?.userId == member.userId
-                                      ? AppColors.neonPurple
-                                      : AppColors.textSecondary),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text('@${member.username}',
-                                    style: textTheme.bodyMedium?.copyWith(
-                                        fontWeight: FontWeight.w700)),
-                              ),
-                              Text('⚡${member.questAura}',
-                                  style: textTheme.bodySmall?.copyWith(
-                                      color: AppColors.textSecondary)),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-              loading: () => const Center(
-                  child: Padding(
-                      padding: EdgeInsets.all(12),
-                      child: CircularProgressIndicator())),
-              error: (err, _) => Text('Error: $err'),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 8),
-              Text(_error!,
-                  style:
-                      textTheme.bodySmall?.copyWith(color: AppColors.danger)),
-            ],
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _sending ? null : () => Navigator.of(context).pop(),
-          child: const Text('CANCEL'),
-        ),
-        ElevatedButton(
-          onPressed: (_target != null && !_sending) ? _send : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.neonPurple,
-            foregroundColor:
-                AppColors.isDark ? AppColors.background : Colors.white,
-            disabledBackgroundColor:
-                AppColors.textSecondary.withValues(alpha: 0.2),
-          ),
-          child: _sending
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2))
-              : Text('💰 PULL IT (⚡${_cost(_tier)})'),
-        ),
-      ],
-    );
-  }
-}
-
-/// The reveal: a scale-in verdict of hit or miss. Emil-style — starts at
-/// 0.9 (never 0), strong ease-out, honours reduced motion.
-class _HeistResultDialog extends StatefulWidget {
-  const _HeistResultDialog({
-    required this.result,
-    required this.targetName,
-    required this.onClose,
-  });
-
-  final AuraHeistResult result;
-  final String targetName;
-  final VoidCallback onClose;
-
-  @override
-  State<_HeistResultDialog> createState() => _HeistResultDialogState();
-}
-
-class _HeistResultDialogState extends State<_HeistResultDialog>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: AppDurations.base,
-  );
-  bool _kicked = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_kicked) return;
-    _kicked = true;
-    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
-      _c.value = 1;
-    } else {
-      _c.forward();
-    }
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final hit = widget.result.succeeded;
-    // Bright for the border and the button fill, readable for the text.
-    final accent = hit ? AppColors.neonGreen : AppColors.textSecondary;
-    final color = hit ? AppColors.successText : AppColors.textSecondary;
-
-    final curved = CurvedAnimation(parent: _c, curve: AppCurves.emphasizedOut);
-
-    return AppDialog(
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: accent, width: 2.5),
-      ),
-      content: FadeTransition(
-        opacity: curved,
-        child: ScaleTransition(
-          scale: Tween(begin: 0.9, end: 1.0).animate(curved),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(hit ? '💰' : '🫥', style: const TextStyle(fontSize: 48)),
-              const SizedBox(height: 8),
-              Text(
-                hit ? 'HEIST LANDED!' : 'FUMBLED!',
-                style: textTheme.headlineSmall
-                    ?.copyWith(color: color, fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                hit
-                    ? "You're set. @${widget.targetName}'s next check-in "
-                        'can pay you at most one base reward within 24h. A ward can block it.'
-                    : '@${widget.targetName} slipped away. '
-                        'Your ⚡${widget.result.cost} is gone.',
-                textAlign: TextAlign.center,
-                style: textTheme.bodyMedium
-                    ?.copyWith(color: AppColors.textPrimary, height: 1.3),
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: widget.onClose,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: accent,
-              foregroundColor: AppColors.background,
-              minimumSize: const Size(0, 48),
-            ),
-            child: Text(hit ? 'NICE' : 'DAMN'),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Buying a Blackout: pick a slice of their day, pick a mate.
-///
-/// Deliberately the same two-step shape as the Aura Heist dialog — same
-/// radio rows, same purple, same buttons. What gets blocked is never
-/// asked: a counting quest locks the reps, everything else the check-in.
 class _BlackoutFlowDialog extends ConsumerStatefulWidget {
   const _BlackoutFlowDialog({required this.challenge});
 

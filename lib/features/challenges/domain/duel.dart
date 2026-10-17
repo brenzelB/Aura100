@@ -1,100 +1,106 @@
-/// A dice duel waiting for the logged-in user's answer.
-class IncomingDuel {
-  const IncomingDuel({
-    required this.id,
-    required this.questTitle,
-    required this.challengerName,
-    required this.challengerAvatar,
-    required this.stake,
-    required this.createdAt,
-  });
+/// Free rock-paper-scissors. These models deliberately have no currency fields.
+enum DuelMove {
+  rock('Rock', '✊'),
+  paper('Paper', '✋'),
+  scissors('Scissors', '✌️');
 
-  final String id;
-  final String questTitle;
-  final String challengerName;
-  final String? challengerAvatar;
-  final int stake;
-  final DateTime createdAt;
-
-  int get pot => stake * 2;
+  const DuelMove(this.label, this.symbol);
+  final String label, symbol;
+  bool beats(DuelMove other) => switch ((this, other)) {
+        (rock, scissors) || (scissors, paper) || (paper, rock) => true,
+        _ => false,
+      };
+  static DuelMove? parse(Object? value) =>
+      values.where((move) => move.name == value).firstOrNull;
 }
 
-/// A duel as it appears in the quest's duel history — any status,
-/// seen from either side.
-class QuestDuel {
-  const QuestDuel({
-    required this.id,
-    required this.challengerId,
-    required this.challengerName,
-    required this.challengerAvatar,
-    required this.opponentId,
-    required this.opponentName,
-    required this.opponentAvatar,
-    required this.stake,
-    required this.status,
-    required this.challengerDice,
-    required this.opponentDice,
-    required this.winnerId,
-    required this.createdAt,
-  });
+class IncomingDuel {
+  const IncomingDuel(
+      {required this.id,
+      required this.questTitle,
+      required this.challengerName,
+      required this.challengerAvatar,
+      required this.createdAt,
+      this.status = 'pending',
+      this.isChallenger = false});
+  final String id, questTitle;
 
-  final String id;
-  final String challengerId;
+  /// The other player, including accepted outgoing invitations.
   final String challengerName;
   final String? challengerAvatar;
-  final String opponentId;
-  final String opponentName;
-  final String? opponentAvatar;
-  final int stake;
-
-  /// 'pending' | 'resolved' | 'declined' | 'expired'
-  final String status;
-
-  /// Null until resolved.
-  final List<int>? challengerDice;
-  final List<int>? opponentDice;
-  final String? winnerId;
-
   final DateTime createdAt;
+  final String status;
+  final bool isChallenger;
+}
 
+class QuestDuel {
+  const QuestDuel(
+      {required this.id,
+      required this.challengerId,
+      required this.challengerName,
+      required this.challengerAvatar,
+      required this.opponentId,
+      required this.opponentName,
+      required this.opponentAvatar,
+      required this.status,
+      required this.winnerId,
+      required this.createdAt,
+      this.challengerScore = 0,
+      this.opponentScore = 0,
+      this.roastKey = 0});
+  final String id,
+      challengerId,
+      challengerName,
+      opponentId,
+      opponentName,
+      status;
+  final String? challengerAvatar, opponentAvatar, winnerId;
+  final DateTime createdAt;
+  final int challengerScore, opponentScore, roastKey;
   bool isChallenger(String userId) => challengerId == userId;
-
-  /// The other player, from [userId]'s perspective.
   String otherName(String userId) =>
       isChallenger(userId) ? opponentName : challengerName;
   String? otherAvatar(String userId) =>
       isChallenger(userId) ? opponentAvatar : challengerAvatar;
-
-  List<int>? myDice(String userId) =>
-      isChallenger(userId) ? challengerDice : opponentDice;
-  List<int>? theirDice(String userId) =>
-      isChallenger(userId) ? opponentDice : challengerDice;
-
   bool wonBy(String userId) => winnerId == userId;
+  String scoreFor(String userId) => isChallenger(userId)
+      ? '$challengerScore : $opponentScore'
+      : '$opponentScore : $challengerScore';
 }
 
-/// The server's verdict — dice are rolled in the RPC; the client only
-/// animates what is already decided.
 class DuelResult {
-  const DuelResult({
-    required this.challengerDice,
-    required this.opponentDice,
-    required this.winnerId,
-    required this.pot,
-  });
-
-  final List<int> challengerDice;
-  final List<int> opponentDice;
-  final String winnerId;
-  final int pot;
-
+  const DuelResult(
+      {required this.id,
+      required this.status,
+      required this.challengerId,
+      required this.opponentId,
+      required this.round,
+      required this.challengerScore,
+      required this.opponentScore,
+      required this.roastKey,
+      this.winnerId,
+      this.myMove,
+      this.lastChallengerMove,
+      this.lastOpponentMove});
+  final String id, status, challengerId, opponentId;
+  final int round, challengerScore, opponentScore, roastKey;
+  final String? winnerId;
+  final DuelMove? myMove, lastChallengerMove, lastOpponentMove;
+  bool get isFinished => status == 'resolved';
+  String scoreFor(String userId) => userId == challengerId
+      ? '$challengerScore : $opponentScore'
+      : '$opponentScore : $challengerScore';
   factory DuelResult.fromJson(Map<String, dynamic> json) => DuelResult(
-        challengerDice: (json['challenger_dice'] as List)
-            .map((e) => e as int)
-            .toList(),
-        opponentDice:
-            (json['opponent_dice'] as List).map((e) => e as int).toList(),
-        winnerId: json['winner_id'] as String,
-        pot: json['pot'] as int,
-      );
+      id: json['id'] as String,
+      status: json['status'] as String,
+      challengerId: json['challenger_id'] as String,
+      opponentId: json['opponent_id'] as String,
+      round: json['round_number'] as int,
+      challengerScore: json['challenger_score'] as int,
+      opponentScore: json['opponent_score'] as int,
+      roastKey: json['roast_key'] as int,
+      winnerId: json['winner_id'] as String?,
+      myMove: DuelMove.parse(json['my_move']),
+      lastChallengerMove: DuelMove.parse(json['last_challenger_move']),
+      lastOpponentMove: DuelMove.parse(json['last_opponent_move']));
 }

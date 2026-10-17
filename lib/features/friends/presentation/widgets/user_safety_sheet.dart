@@ -208,7 +208,7 @@ class _UserSafetySheetState extends ConsumerState<_UserSafetySheet> {
                 blocked
                     ? "You've blocked @${widget.username}. Neither of you can "
                         'poke, roast, rob or duel the other.'
-                    : 'Blocking stops all pokes, roasts, heists and duels '
+                    : 'Blocking stops all pokes, roasts and Ego Duels '
                         'between you both ways, and ends the friendship.',
                 textAlign: TextAlign.center,
                 style: textTheme.bodySmall

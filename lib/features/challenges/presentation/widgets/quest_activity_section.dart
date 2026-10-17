@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/text/game_roasts.dart';
 import '../../../../core/widgets/editorial_cover.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -194,14 +195,18 @@ class _ActivityRow extends StatelessWidget {
           'failed the quest (${amount ?? 0} salvaged)',
         ),
       'duel_won' => (
-          Icons.casino,
+          Icons.back_hand_outlined,
           AppColors.neonGreen,
-          'won a duel (+${amount ?? 0})',
+          'won an Ego Duel',
         ),
       'duel_lost' => (
-          Icons.casino,
+          Icons.back_hand_outlined,
           AppColors.danger,
-          'lost a duel (${amount ?? 0})',
+          item.roastKey == null
+              ? 'lost a past duel'
+              : GameRoasts.line(item.roastKey!,
+                  languageCode: WidgetsBinding
+                      .instance.platformDispatcher.locale.languageCode),
         ),
       'versus_won' => (
           Icons.sports_kabaddi,

@@ -31,7 +31,7 @@ class HeadToHead {
   final int myAura;
   final int theirAura;
 
-  /// Dice duels between exactly these two, decided.
+  /// Ego duels between exactly these two, decided.
   final int duelsWon;
   final int duelsLost;
 

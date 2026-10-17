@@ -888,7 +888,7 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
                                 contentPadding: EdgeInsets.zero,
                                 title: const Text('Allow attacks'),
                                 subtitle: const Text(
-                                    '3 outgoing attacks per account and UTC day. One successful incoming heist per day.'),
+                                    '3 outgoing attacks per account and UTC day. Ego Duels are free and never change Aura or XP.'),
                                 value: _attacksEnabled,
                                 onChanged: (value) =>
                                     setState(() => _attacksEnabled = value)),

@@ -12,6 +12,7 @@ class QuestActivity {
     this.avatarEmoji,
     this.amount,
     this.detail,
+    this.roastKey,
   });
 
   /// Settlement kinds ('penalty', 'strike', 'failed', 'completed',
@@ -30,6 +31,7 @@ class QuestActivity {
   /// Free text the row needs to make sense: the item bought, the mate
   /// roasted, the slice of day a lockout covers.
   final String? detail;
+  final int? roastKey;
 
   /// Good news or bad news? Drives the colour in the feed.
   bool get isPositive => const {

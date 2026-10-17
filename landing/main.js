@@ -108,19 +108,15 @@ const GOOGLE_PLAY_URL = '#';   // Google Play Store
   const T = EN ? {
     roastTitle: '🔥 ROASTED',
     roastFoot: 'Three seconds. No way to dismiss it.',
-    heistWon: '💰 CLEAN LIFT',
-    heistLost: '🛡 MISSED',
-    heistWonText: 'The heist landed — the aura from their next check-in is yours.',
-    heistLostText: '25 % odds are 25 % odds. The stake is gone, the loot is not.',
+    egoTitle: 'EGO DUEL · SAMPLE ROUND',
+    egoText: 'Rock meets paper. Paper wins. Big ego. Tiny scissors. No Aura or XP changes.',
     blackTitle: '🌙 LOCKED OUT',
     blackText: 'This is what it looks like when a quest mate locks you out. Two hours, nothing you log counts.',
   } : {
     roastTitle: '🔥 GEROASTET',
     roastFoot: 'Drei Sekunden. Wegklicken geht nicht.',
-    heistWon: '💰 BEUTE',
-    heistLost: '🛡 DANEBEN',
-    heistWonText: 'Der Raubzug hat geklappt — die Aura seines nächsten Check-ins gehört dir.',
-    heistLostText: '25 % Chance sind 25 % Chance. Der Einsatz ist weg, die Beute nicht.',
+    egoTitle: 'EGO DUELL · BEISPIELRUNDE',
+    egoText: 'Stein trifft Papier. Papier gewinnt. Große Klappe. Kleine Schere. Aura und XP bleiben unverändert.',
     blackTitle: '🌙 AUSGESPERRT',
     blackText: 'So sieht es aus, wenn ein Mitspieler dich sperrt. Zwei Stunden lang kannst du nichts eintragen.',
   };
@@ -159,14 +155,9 @@ const GOOGLE_PLAY_URL = '#';   // Google Play Store
         3000
       );
     },
-    heist() {
-      // Echte Wahrscheinlichkeit aus der App: 150 Aura = 25 %.
-      const won = Math.random() < 0.25;
-      show(
-        '<p class="overlay__title">' + (won ? T.heistWon : T.heistLost) + '</p>' +
-        '<p class="overlay__sub">' + (won ? T.heistWonText : T.heistLostText) + '</p>',
-        2200
-      );
+    ego() {
+      show('<p class="overlay__title">' + T.egoTitle + '</p>' +
+        '<p class="overlay__sub">' + T.egoText + '</p>', 3000);
     },
     blackout() {
       let left = 2 * 60 * 60;

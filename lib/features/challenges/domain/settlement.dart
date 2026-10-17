@@ -7,6 +7,7 @@ class SettlementEvent {
     required this.questTitle,
     required this.createdAt,
     this.canOpenQuest = true,
+    this.roastKey,
   });
 
   /// 'penalty' | 'strike' | 'shield_saved' | 'failed' | 'completed' |
@@ -16,6 +17,7 @@ class SettlementEvent {
 
   /// Aura delta (negative for penalties) or streak/strike count.
   final int? amount;
+  final int? roastKey;
 
   final String challengeId;
   final String questTitle;
@@ -29,6 +31,7 @@ class SettlementEvent {
     return SettlementEvent(
       kind: row['kind'] as String,
       amount: (row['amount'] as num?)?.toInt(),
+      roastKey: (row['game_roast_key'] as num?)?.toInt(),
       challengeId: row['challenge_id'] as String,
       questTitle: quest?['title'] as String? ?? 'Unavailable quest',
       createdAt: DateTime.parse(row['created_at'] as String).toUtc(),

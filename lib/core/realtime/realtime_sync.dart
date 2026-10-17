@@ -76,13 +76,17 @@ class RealtimeSync with WidgetsBindingObserver {
         value: _userId,
         onEvent: () => _ref.invalidate(pokeBacksProvider));
 
-    _on(channel, 'duels', column: 'opponent_id', value: _userId, onEvent: () {
+    _on(channel, 'roast_duels', column: 'opponent_id', value: _userId,
+        onEvent: () {
       _ref.invalidate(incomingDuelsProvider);
       _ref.invalidate(questDuelsProvider);
+      _ref.invalidate(duelStateProvider);
     });
-    _on(channel, 'duels', column: 'challenger_id', value: _userId, onEvent: () {
+    _on(channel, 'roast_duels', column: 'challenger_id', value: _userId,
+        onEvent: () {
       _ref.invalidate(questDuelsProvider);
-      _ref.invalidate(myChallengesProvider);
+      _ref.invalidate(duelStateProvider);
+      _ref.invalidate(incomingDuelsProvider);
     });
 
     // Somebody wants something from me — a friendship or a quest. Both
@@ -182,6 +186,7 @@ class RealtimeSync with WidgetsBindingObserver {
   }
 
   void _refreshSocial() {
+    _ref.invalidate(duelStateProvider);
     _ref.invalidate(myInvitesProvider);
     _ref.invalidate(friendRequestsProvider);
     _ref.invalidate(myFriendsProvider);
