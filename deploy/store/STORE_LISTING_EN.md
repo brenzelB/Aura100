@@ -8,7 +8,7 @@
 | iOS subtitle | `Habits, duels & more Aura` | Saved in App Store Connect on 10 October 2026 |
 | Google Play short description | `Turn habits into quests. Earn Aura and play with friends.` | Under the 80-character limit |
 | Category | Productivity | Select the closest available category in App Store Connect |
-| Age rating | Not assigned | Recalculate for the verified replacement build: free rock-paper-scissors without wagers, currency prizes or transfers. |
+| Age rating | 16+ with regional equivalents | Saved at Apple for build 16: free rock-paper-scissors without wagers, currency prizes or transfers. |
 
 ## iOS promotional text
 

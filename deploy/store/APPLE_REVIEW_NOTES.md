@@ -1,15 +1,18 @@
-# App Review notes — replacement draft, 17 October 2026
+# App Review notes — resubmitted, 17 October 2026
 
 Apple stopped the build 14 review because its accurate simulated-gambling rating
 is incompatible with an individual developer submission. The replacement removes
-the wagering mechanics themselves. The following updated notes are a local draft;
-they have not yet been saved to Apple or used for a new submission.
+the wagering mechanics themselves. The updated notes below are saved at Apple.
+On **17 October 2026 at 11:28 Europe/Berlin**, build **1.0.2 (16)** was resubmitted
+and Apple confirmed **Waiting for Review**. Apple reused submission
+`eaa11e08-627f-4c8e-8e4c-3b67607eb19f`. See
+[the resubmission evidence](../../docs/2026-10-17-apple-resubmission.md).
 
 Replacement **1.0.2 (16)** has passed CI, signed-IPA inspection and Apple's upload
 processing. Export answers are saved (standard encryption, no France). The
 existing **Aura Quest iOS intern** group shows it as **Testing / Im Test** with
-the existing single tester. A real-device game test is still required before
-updating the public age-rating answers and submitting the replacement for review.
+the existing single tester. The user explicitly requested the replacement's
+resubmission; a real-device game acceptance test has not been confirmed.
 Build 16 corrects the unnecessary locale switch introduced in build 15: all
 Ego Duel roasts, like the rest of the app, are always in English.
 See [the replacement-build checkpoint](../../docs/2026-10-17-ego-duels.md).
@@ -74,5 +77,8 @@ Apple authorization revocation on a real-device deletion remains a separate open
 check; automated worker/database tests passed and the user reported successful
 account deletion without identifying the sign-in provider. The public demo login
 and all three quests were rechecked immediately before submission (18:30:39 UTC).
-The approved reviewer contact fields are filled in App Store Connect. Never paste the DPAPI ciphertext
+The public review login, all three quests and the free-game API guards were
+rechecked on **17 October at 09:19:30 UTC** before this resubmission. The approved
+reviewer contact fields and existing demo credentials were preserved in App Store
+Connect. Never paste the DPAPI ciphertext
 as a password; decrypt only locally for the specifically approved Apple form.

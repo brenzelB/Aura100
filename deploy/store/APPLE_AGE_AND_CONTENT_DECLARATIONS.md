@@ -1,18 +1,23 @@
-# Apple age and content declarations — replacement draft, 17 October 2026
+# Apple age and content declarations — saved for build 16, 17 October 2026
 
 The 16 October answers below were saved for build 14, including infrequent
 simulated gambling. Apple stopped that review because the app was submitted by
 an individual developer. The replacement game removes wagers and all Aura/XP
 gains, losses and transfers. The updated simulated-gambling answer below is for
-the verified replacement build only; it has not yet been saved to App Store
-Connect. The previous build must not be relabelled as gambling-free.
+the verified replacement build only. On 17 October, after build 16 was selected,
+the answer was saved as **None / Nie**, with all other questionnaire choices and
+the existing **16+** override preserved. Apple shows 16+ in 173 countries/regions,
+including Australia, plus its regional equivalents. Build 16 was resubmitted at
+11:28 Europe/Berlin and Apple confirmed **Waiting for Review**. The previous build
+14 has not been relabelled as gambling-free.
 
 The user explicitly confirmed these declarations on 16 October 2026. The answers
 and content rights are saved in App Store Connect. Apple calculated 13+; the
 confirmed minimum target age was applied by overriding to 16+. Apple assigns
 regional equivalents and globally 17+ for operating systems older than version 26.
-Build 14 was submitted on 16 October; review was subsequently stopped as reported
-by the user on 17 October. No public release has occurred.
+Build 14 was submitted on 16 October and its review was stopped on 17 October.
+The revised declaration is now associated with replacement build 16. No public
+release has occurred; release remains manual.
 
 | Questionnaire content | Proposed answer | Evidence / reason |
 | --- | --- | --- |
@@ -32,7 +37,7 @@ by the user on 17 October. No public release has occurred.
 | Mature/suggestive themes; sexual content/nudity | None | No such built-in images or content. |
 | Cartoon/fantasy, realistic or graphic violence; weapons | None | Rock-paper-scissors uses hand symbols and playful text, without depicted violence. |
 | Real-money gambling | No | Aura cannot be purchased for cash or redeemed/withdrawn for cash. |
-| Simulated gambling | None — replacement build only | Free rock-paper-scissors has no stakes, currency rewards, transfers or paid retries. Old dice/Heist wagering endpoints are disabled. Change the saved answer only with the replacement build. |
+| Simulated gambling | None — saved for build 16 | Free rock-paper-scissors has no stakes, currency rewards, transfers or paid retries. Old dice/Heist wagering endpoints are disabled. The saved change was made with build 16 selected. |
 | Contests | Frequent | Quest competition, rankings and shared progress are continuing core features. |
 | Loot boxes | No | No randomized purchased reward boxes. |
 
