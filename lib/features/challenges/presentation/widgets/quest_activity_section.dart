@@ -204,9 +204,7 @@ class _ActivityRow extends StatelessWidget {
           AppColors.danger,
           item.roastKey == null
               ? 'lost a past duel'
-              : GameRoasts.line(item.roastKey!,
-                  languageCode: WidgetsBinding
-                      .instance.platformDispatcher.locale.languageCode),
+              : GameRoasts.line(item.roastKey!),
         ),
       'versus_won' => (
           Icons.sports_kabaddi,

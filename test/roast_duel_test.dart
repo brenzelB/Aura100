@@ -122,16 +122,13 @@ void main() {
     expect(DuelMove.paper.beats(DuelMove.rock), isTrue);
     expect(DuelMove.scissors.beats(DuelMove.paper), isTrue);
   });
-  test('all stored roast keys work in both languages and stay stable', () {
-    for (final lines in [GameRoasts.english, GameRoasts.german]) {
-      expect(lines.length, 40);
-      expect(lines.toSet().length, 40);
-      expect(lines.every((s) => s.isNotEmpty && s == s.trim()), isTrue);
-    }
+  test('all stored roast keys keep the original English line', () {
+    expect(GameRoasts.english.length, 40);
+    expect(GameRoasts.english.toSet().length, 40);
+    expect(
+        GameRoasts.english.every((s) => s.isNotEmpty && s == s.trim()), isTrue);
     for (var key = 0; key < 40; key++) {
       expect(GameRoasts.line(key), GameRoasts.english[key]);
-      expect(GameRoasts.line(key, languageCode: 'de'), GameRoasts.german[key]);
-      expect(GameRoasts.line(key, languageCode: 'fr'), GameRoasts.english[key]);
     }
   });
   testWidgets('a pending save disables all moves; saved choice stays locked',
@@ -156,7 +153,7 @@ void main() {
     }
     expect(tester.takeException(), isNull);
   });
-  testWidgets('loser gets the saved German roast without currency changes',
+  testWidgets('German device still shows the saved English loss roast',
       (tester) async {
     tester.platformDispatcher.localeTestValue = const Locale('de');
     addTearDown(tester.platformDispatcher.clearLocaleTestValue);
@@ -164,7 +161,7 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
     expect(find.text('EGO: LIGHTLY TOASTED.'), findsOneWidget);
-    expect(find.text('Große Klappe. Kleine Schere.'), findsOneWidget);
+    expect(find.text('Big ego. Tiny scissors.'), findsOneWidget);
     expect(find.text('No Aura lost. No XP changed. Just bragging rights.'),
         findsOneWidget);
     expect(find.byKey(const ValueKey('move-rock')), findsNothing);

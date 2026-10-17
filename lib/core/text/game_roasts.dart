@@ -1,4 +1,5 @@
-/// Curated loss lines. The match stores its index; reopening cannot reroll it.
+/// English loss lines, matching the rest of the app on every device locale.
+/// The match stores its index; reopening cannot reroll it.
 /// Tease the play, not a player's identity, appearance or personal worth.
 abstract final class GameRoasts {
   static const english = [
@@ -44,51 +45,5 @@ abstract final class GameRoasts {
     'Take the roast. Keep the streak. Come back louder.',
   ];
 
-  static const german = [
-    'Große Klappe. Kleine Schere.',
-    'Deine Strategie hatte offenbar eine Schlummertaste.',
-    'Selbstvertrauen aus Stein. Umsetzung aus Papier.',
-    'Der Plot-Twist war einfach nur deine Niederlage.',
-    'Drei Möglichkeiten. Du fandest die vierte: Reue.',
-    'Hauptcharakter-Energie. Versprecher-Sammlung als Ergebnis.',
-    'Dein Masterplan lädt noch.',
-    'Die Schere hat deine Siegesrede gleich mitgekürzt.',
-    'Papierkram erledigt. Ego zusammengefaltet.',
-    'Du kamst mit Stein. Geglänzt hast du nicht.',
-    'Deine Klappe war schneller als deine Hand.',
-    'Das war weniger Masterplan, mehr erster Entwurf.',
-    'Dein Comeback ist gerade im Flugmodus.',
-    'Mutiger Zug. Die Anzeigetafel sieht das anders.',
-    'Eine Schweigeminute für deine Siegerpose.',
-    'Dein innerer Champion möchte anonym bleiben.',
-    'Du hast den Raum gelesen. Dein Gegner deine Hand.',
-    'Dein Bluff hätte etwas mehr Bluff vertragen.',
-    'Dein Ego nahm die Panoramaroute auf Platz zwei.',
-    'Das Tutorial hat angerufen. Es hätte noch Fragen.',
-    'Du hast Selbstvertrauen geliefert. Dein Gegner das Ergebnis.',
-    'Deine Strategie hatte eine tolle Präsentation. Das war alles.',
-    'Keine Glanzleistung. Aber Material für den Gruppenchat.',
-    'Sogar deine Sieger-Playlist hat Pause gedrückt.',
-    'Du kamst für Ruhm. Du gehst mit Charakterentwicklung.',
-    'Dein Gegner hat die Aufgabe verstanden. Du hast sie dekoriert.',
-    'Das Highlight-Video hat diese Szene höflich übersprungen.',
-    'Viel Anlauf für eine sehr kleine Handlung.',
-    'Deine Siegesrede ist jetzt ein Podcast ohne Publikum.',
-    'Dein nächster Zug? Vielleicht erst mal durchatmen.',
-    'Du hast schneller gefaltet als das Papier.',
-    'Der Stein hatte mehr Entschlossenheit als dein Plan.',
-    'Deine Schere war wohl noch im Flugmodus.',
-    'Die Anzeigetafel ist heute unangenehm ehrlich.',
-    'Dein Ego hat ein Software-Update angefordert.',
-    'Du hattest die Aura eines Siegers. Kurz.',
-    'Deine Hand hat sich für eine Nebenquest entschieden.',
-    'Die gute Nachricht: Deine Gewohnheiten zählen trotzdem.',
-    'Aura unversehrt. Angeberrechte vorübergehend nicht verfügbar.',
-    'Nimm den Spruch. Halt die Streak. Komm lauter zurück.',
-  ];
-
-  static String line(int key, {String languageCode = 'en'}) {
-    final lines = languageCode == 'de' ? german : english;
-    return lines[key % lines.length];
-  }
+  static String line(int key) => english[key % english.length];
 }

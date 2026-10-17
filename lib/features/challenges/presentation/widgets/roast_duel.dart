@@ -192,11 +192,7 @@ class _GameContent extends StatelessWidget {
           Semantics(
               liveRegion: true,
               child: Text(
-                GameRoasts.line(game.roastKey,
-                    languageCode: View.of(context)
-                        .platformDispatcher
-                        .locale
-                        .languageCode),
+                GameRoasts.line(game.roastKey),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.titleLarge
                     ?.copyWith(fontWeight: FontWeight.w700),

@@ -992,7 +992,7 @@ class _EventsSection extends ConsumerWidget {
           Icons.back_hand_outlined,
           AppColors.danger,
           event.roastKey != null
-              ? '${GameRoasts.line(event.roastKey!, languageCode: WidgetsBinding.instance.platformDispatcher.locale.languageCode)} · ${event.questTitle}'
+              ? '${GameRoasts.line(event.roastKey!)} · ${event.questTitle}'
               : 'Past duel lost · ${event.questTitle}',
         ),
       'versus_won' => (
