@@ -25,7 +25,7 @@ YOUR GOALS. YOUR QUESTS.
 Create a reading goal, a training routine or your own challenge. Choose Chill, Classic or Chaos, then check in when you complete a planned session. Track streaks, progress and personal stats.
 
 BETTER WITH FRIENDS
-Invite friends to a quest, see their activity and send a nudge when they need a push. Android and iPhone players share the same quests.
+Invite friends to a quest, see their activity and send a nudge when they need a push. Build better habits together and cheer each other on.
 
 AURA, XP AND PERKS
 Earn Aura for your next move and build permanent XP for personal progress. Spend virtual Aura on quest Perks. Challenge friends to free Ego Duels: rock, paper, scissors, first to three wins. The loser gets a cheeky roast. Duels never change Aura or XP; there are no wagers or currency prizes.
