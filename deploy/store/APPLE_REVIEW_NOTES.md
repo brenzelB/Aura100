@@ -1,4 +1,13 @@
-# App Review notes — resubmitted, 17 October 2026
+# App Review notes — resubmitted, 19 October 2026
+
+Latest status: Apple rejected build 16 on 19 October under Guideline 2.3.10 because
+the English description mentioned another mobile platform. That sentence has
+been replaced with a description of the app experience. Both de-DE and en-US
+metadata were checked after saving. The same **1.0.2 (16)** was resubmitted on
+**19 October 2026 at 16:21 Europe/Berlin**, and Apple confirmed **Waiting for Review**.
+Release remains manual. The reviewer notes below and existing credentials were
+preserved; no additional App Review message was sent. See
+[the metadata correction and submission evidence](../../docs/2026-10-19-apple-metadata-correction.md).
 
 Apple stopped the build 14 review because its accurate simulated-gambling rating
 is incompatible with an individual developer submission. The replacement removes
