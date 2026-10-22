@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'package:aura_quest/core/feedback/interaction_feedback.dart';
+import 'package:aura_quest/features/auth/data/auth_repository.dart';
+import 'helpers/recording_feedback.dart';
 
 import 'package:aura_quest/core/offline/offline_check_in_queue.dart';
 import 'package:aura_quest/core/offline/pending_check_in.dart';
@@ -29,6 +32,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 final _ownerProvider = StateProvider<String>((ref) => 'alice');
+
+class _Auth implements AuthRepository {
+  _Auth(this.user);
+  final User? Function() user;
+  @override
+  User? get currentUser => user();
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 Challenge _quest(
         {double progress = 0, bool daily = false, bool critical = false}) =>
@@ -77,6 +89,9 @@ List<Override> _overrides(
   Blackout? blackout,
 }) =>
     [
+      interactionFeedbackProvider.overrideWithValue(RecordingFeedback()),
+      authRepositoryProvider
+          .overrideWith((ref) => _Auth(() => ref.read(currentUserProvider))),
       if (freezeAgenda)
         homeAgendaProvider.overrideWith((ref) => HomeAgenda.build(
             challenges: [_quest(daily: daily)],
@@ -426,7 +441,7 @@ void main() {
   });
 
   testWidgets(
-      'pending feedback has no reward or success haptic; reduced motion shows the final confirmed amount',
+      'visual feedback never duplicates controller haptics; reduced motion shows the confirmed amount',
       (tester) async {
     final messenger = GlobalKey<ScaffoldMessengerState>();
     final haptics = <MethodCall>[];
@@ -453,6 +468,6 @@ void main() {
         message: 'Confirmed', confirmedAura: 100);
     await tester.pump();
     expect(find.text('+100 ⚡'), findsOneWidget);
-    expect(haptics.single.arguments, 'HapticFeedbackType.lightImpact');
+    expect(haptics, isEmpty);
   });
 }

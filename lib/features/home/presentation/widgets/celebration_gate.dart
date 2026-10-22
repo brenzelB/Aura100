@@ -1,11 +1,11 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/text/hype.dart';
+import '../../../../core/feedback/interaction_feedback.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../challenges/application/challenge_providers.dart';
 import '../../../challenges/domain/settlement.dart';
@@ -96,16 +96,16 @@ class _CelebrationGateState extends ConsumerState<CelebrationGate> {
 
 /// The celebration itself: a confetti burst behind a big glyph, a
 /// hype line, and one loud dismiss button.
-class _CelebrationDialog extends StatefulWidget {
+class _CelebrationDialog extends ConsumerStatefulWidget {
   const _CelebrationDialog({required this.event});
 
   final SettlementEvent event;
 
   @override
-  State<_CelebrationDialog> createState() => _CelebrationDialogState();
+  ConsumerState<_CelebrationDialog> createState() => _CelebrationDialogState();
 }
 
-class _CelebrationDialogState extends State<_CelebrationDialog>
+class _CelebrationDialogState extends ConsumerState<_CelebrationDialog>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final List<_Particle> _particles;
@@ -141,7 +141,7 @@ class _CelebrationDialogState extends State<_CelebrationDialog>
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     );
-    HapticFeedback.mediumImpact();
+    ref.read(interactionFeedbackProvider).play(FeedbackCue.milestone);
   }
 
   @override

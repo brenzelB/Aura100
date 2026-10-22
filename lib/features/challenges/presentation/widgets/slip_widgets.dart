@@ -1,10 +1,10 @@
 import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/feedback/interaction_feedback.dart';
 import '../../../../core/theme/motion.dart';
 import '../../application/challenge_providers.dart';
 import '../../domain/challenge.dart';
@@ -154,7 +154,7 @@ Future<void> logSlipAndReveal(
   if (!context.mounted) return;
 
   if (result.justFailed) {
-    HapticFeedback.heavyImpact();
+    ref.read(interactionFeedbackProvider).selection();
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -163,7 +163,7 @@ Future<void> logSlipAndReveal(
     return;
   }
 
-  HapticFeedback.selectionClick();
+  ref.read(interactionFeedbackProvider).selection();
   if (result.over) {
     messenger.showSnackBar(AppSnackBar(
       content: Text('Logged — ${result.count} today. '

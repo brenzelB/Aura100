@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:aura_quest/core/feedback/interaction_feedback.dart';
 import 'package:aura_quest/features/auth/application/auth_providers.dart';
 import 'package:aura_quest/features/auth/data/auth_repository.dart';
 import 'package:aura_quest/features/challenges/application/challenge_providers.dart';
@@ -7,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'helpers/recording_feedback.dart';
 
 class _Auth implements AuthRepository {
   @override
@@ -36,7 +39,9 @@ void main() {
       () async {
     final auth = _Auth();
     final repo = _Repo();
+    final feedback = RecordingFeedback();
     final container = ProviderContainer(overrides: [
+      interactionFeedbackProvider.overrideWithValue(feedback),
       authRepositoryProvider.overrideWithValue(auth),
       currentUserProvider.overrideWith((ref) => auth.currentUser),
       challengeRepositoryProvider.overrideWithValue(repo),
@@ -51,13 +56,16 @@ void main() {
     await container.pump();
     repo.reply.complete(100);
     expect((await result).auraGained, 100);
+    expect(feedback.cues, [FeedbackCue.checkIn]);
     await container.pump();
     expect(container.exists(provider), isFalse);
   });
   test('server rejection remains an error when the card disappears', () async {
     final auth = _Auth();
     final repo = _Repo();
+    final feedback = RecordingFeedback();
     final container = ProviderContainer(overrides: [
+      interactionFeedbackProvider.overrideWithValue(feedback),
       authRepositoryProvider.overrideWithValue(auth),
       currentUserProvider.overrideWith((ref) => auth.currentUser),
       challengeRepositoryProvider.overrideWithValue(repo),
@@ -74,6 +82,7 @@ void main() {
     expect(result.isSuccess, isFalse);
     expect(result.auraGained, isNull);
     expect(result.errorMessage, 'Already checked in today.');
+    expect(feedback.cues, isEmpty);
     await container.pump();
     expect(container.exists(provider), isFalse);
   });
@@ -81,7 +90,9 @@ void main() {
       () async {
     final auth = _Auth();
     final repo = _Repo();
+    final feedback = RecordingFeedback();
     final container = ProviderContainer(overrides: [
+      interactionFeedbackProvider.overrideWithValue(feedback),
       authRepositoryProvider.overrideWithValue(auth),
       currentUserProvider.overrideWith((ref) => auth.currentUser),
       challengeRepositoryProvider.overrideWithValue(repo),
@@ -97,5 +108,26 @@ void main() {
     final result = await response;
     expect(result.isSuccess, isFalse);
     expect(result.errorMessage, 'Account changed. Please try again.');
+    expect(feedback.cues, isEmpty);
+  });
+
+  test('an offline queued check-in has no success sound or haptic', () async {
+    final auth = _Auth();
+    final repo = _Repo();
+    final feedback = RecordingFeedback();
+    final container = ProviderContainer(overrides: [
+      interactionFeedbackProvider.overrideWithValue(feedback),
+      authRepositoryProvider.overrideWithValue(auth),
+      currentUserProvider.overrideWith((ref) => auth.currentUser),
+      challengeRepositoryProvider.overrideWithValue(repo),
+    ]);
+    addTearDown(container.dispose);
+    final provider = checkInControllerProvider('quest');
+    final subscription = container.listen(provider, (_, __) {});
+    addTearDown(subscription.close);
+    final response = container.read(provider.notifier).checkIn();
+    repo.reply.completeError(const SocketException('No connection'));
+    expect((await response).isQueuedOffline, isTrue);
+    expect(feedback.cues, isEmpty);
   });
 }

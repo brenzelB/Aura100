@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/push/push_providers.dart';
+import 'core/feedback/interaction_feedback.dart';
 import 'features/auth/application/auth_providers.dart';
 import 'core/realtime/realtime_sync.dart';
 import 'core/router/app_router.dart';
@@ -18,6 +19,7 @@ class AuraQuestApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     final theme = ref.watch(themeProvider);
+    ref.watch(interactionFeedbackProvider);
 
     // One realtime channel for the whole app: keeps the signed-in user's
     // notifications and balances current without any screen polling.

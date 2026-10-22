@@ -1,11 +1,11 @@
 import 'package:aura_quest/core/theme/design_tokens.dart';
 import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../../../core/text/quantity.dart';
+import '../../../../core/feedback/interaction_feedback.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/motion.dart';
 import '../../application/challenge_providers.dart';
@@ -438,7 +438,7 @@ class _CorrectEntrySheetState extends ConsumerState<_CorrectEntrySheet> {
       _showError();
       return;
     }
-    HapticFeedback.mediumImpact();
+    ref.read(interactionFeedbackProvider).selection();
     Navigator.of(context).pop(_CorrectOutcome(deleted: false, amount: amount));
   }
 
@@ -457,7 +457,7 @@ class _CorrectEntrySheetState extends ConsumerState<_CorrectEntrySheet> {
       _showError();
       return;
     }
-    HapticFeedback.mediumImpact();
+    ref.read(interactionFeedbackProvider).selection();
     Navigator.of(context)
         .pop(_CorrectOutcome(deleted: true, amount: widget.entry.amount));
   }

@@ -10,13 +10,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:aura_quest/app.dart';
+import 'package:aura_quest/core/feedback/interaction_feedback.dart';
 import 'package:aura_quest/features/auth/application/auth_providers.dart';
+import 'helpers/recording_feedback.dart';
 
 void main() {
   testWidgets('boots and shows the splash screen', (WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          interactionFeedbackProvider.overrideWithValue(RecordingFeedback()),
           // No live backend in tests: feed the router an empty auth stream
           // and a null user instead of hitting Supabase.instance.
           authStateChangesProvider.overrideWith((ref) => const Stream.empty()),

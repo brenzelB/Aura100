@@ -23,6 +23,7 @@ import '../../domain/profile.dart';
 import '../widgets/activity_heatmap.dart';
 import '../widgets/emoji_picker_sheet.dart';
 import '../widgets/notification_settings_section.dart';
+import '../widgets/feedback_settings_section.dart';
 import '../../../../core/text/dates.dart';
 
 /// Profile tab: identity, lifetime stats and account settings.
@@ -541,6 +542,9 @@ class ProfileScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
+                const SizedBox(height: 28),
+
+                const FeedbackSettingsSection(),
                 const SizedBox(height: 28),
 
                 // ── Notifications ────────────────────────────

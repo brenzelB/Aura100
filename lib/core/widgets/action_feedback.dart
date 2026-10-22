@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/motion.dart';
@@ -18,7 +17,6 @@ void showActionFeedback(
       : pending
           ? AppColors.warningText
           : AppColors.successText;
-  if (!pending && !error) HapticFeedback.lightImpact();
   messenger
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(

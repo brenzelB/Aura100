@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/supabase_config.dart';
+import '../../../core/feedback/interaction_feedback.dart';
 import '../../../core/offline/offline_check_in_queue.dart';
 import '../../../core/offline/offline_sync_service.dart';
 import '../../../core/offline/pending_check_in.dart';
@@ -384,7 +385,18 @@ class ProgressController extends AutoDisposeFamilyAsyncNotifier<void, String> {
 
   /// Returns the new running total, or null when the server refused.
   Future<ProgressResult?> add(double amount) async {
+    final pending = ref.keepAlive();
+    try {
+      return await _add(amount);
+    } finally {
+      pending.close();
+    }
+  }
+
+  Future<ProgressResult?> _add(double amount) async {
     final repo = ref.read(challengeRepositoryProvider);
+    final auth = ref.read(authRepositoryProvider);
+    final owner = ref.read(currentUserProvider)?.id;
     state = const AsyncLoading();
     ProgressResult? result;
     state = await AsyncValue.guard(() async {
@@ -392,6 +404,12 @@ class ProgressController extends AutoDisposeFamilyAsyncNotifier<void, String> {
     });
     if (state.hasError) return null;
 
+    if (owner != null && auth.currentUser?.id == owner && result != null) {
+      ref.read(interactionFeedbackProvider).play(
+          result!.completed && !result!.overshoot
+              ? FeedbackCue.milestone
+              : FeedbackCue.progress);
+    }
     // The bar, the history and — once the target is met — the aura,
     // timeline and event feed all move.
     _refreshAfterProgress();
@@ -644,6 +662,7 @@ class CheckInController extends AutoDisposeFamilyAsyncNotifier<void, String> {
           errorMessage: 'Account changed. Please try again.');
     }
     if (caughtError == null && gained != null) {
+      ref.read(interactionFeedbackProvider).play(FeedbackCue.checkIn);
       ref.invalidate(myChallengesProvider);
       ref.invalidate(checkInsProvider(arg));
       ref.invalidate(myCheckInsProvider);
