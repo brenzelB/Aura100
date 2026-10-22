@@ -41,7 +41,7 @@ class InteractionFeedback with WidgetsBindingObserver {
     DateTime Function()? now,
   })  : _settings = settings,
         _output = output,
-        _haptic = haptic ?? HapticFeedback.lightImpact,
+        _haptic = haptic ?? HapticFeedback.heavyImpact,
         _now = now ?? DateTime.now;
 
   final FeedbackSettings? Function() _settings;

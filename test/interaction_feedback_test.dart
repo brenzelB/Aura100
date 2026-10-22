@@ -18,6 +18,41 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
+  test('confirmed feedback requests one firm impact and honours haptic mute',
+      () async {
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      calls.add(call);
+      return null;
+    });
+    addTearDown(() => TestDefaultBinaryMessengerBinding
+        .instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null));
+    var settings = const FeedbackSettings();
+    var now = DateTime.utc(2026, 10, 22);
+    final feedback = InteractionFeedback(
+      settings: () => settings,
+      output: SilentSoundOutput(),
+      now: () => now,
+    );
+    feedback.initialize();
+    feedback.didChangeAppLifecycleState(AppLifecycleState.resumed);
+    addTearDown(feedback.dispose);
+    await Future<void>.delayed(Duration.zero);
+    feedback.play(FeedbackCue.checkIn);
+    feedback.play(FeedbackCue.checkIn);
+    await Future<void>.delayed(Duration.zero);
+    expect(calls, hasLength(1));
+    expect(calls.single.method, 'HapticFeedback.vibrate');
+    expect(calls.single.arguments, 'HapticFeedbackType.heavyImpact');
+    now = now.add(const Duration(seconds: 1));
+    settings = const FeedbackSettings(haptics: false);
+    feedback.play(FeedbackCue.milestone);
+    await Future<void>.delayed(Duration.zero);
+    expect(calls, hasLength(1));
+  });
+
   test('sound and haptics preferences persist independently across restarts',
       () async {
     final container = ProviderContainer();
@@ -150,7 +185,8 @@ void main() {
     expect(context.iOS.category, AVAudioSessionCategory.ambient);
   });
 
-  test('bundled cues are short quiet PCM, without clipping or remote assets',
+  test(
+      'bundled cues are short controlled PCM, without clipping or remote assets',
       () async {
     var totalBytes = 0;
     for (final path in BundledSoundOutput.assets.values) {
@@ -166,9 +202,9 @@ void main() {
       for (var i = 44; i < bytes.lengthInBytes; i += 2) {
         peak = max(peak, bytes.getInt16(i, Endian.little).abs());
       }
-      expect(peak, inInclusiveRange(100, 8300)); // At most -12 dBFS.
+      expect(peak, inInclusiveRange(100, 11630)); // At most -9 dBFS.
     }
-    expect(totalBytes, lessThan(160000));
+    expect(totalBytes, lessThan(165000));
   });
 }
 

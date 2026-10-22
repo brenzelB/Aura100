@@ -46,7 +46,7 @@ class _FeedbackSettingsSectionState
                 .headlineSmall
                 ?.copyWith(color: AppColors.accentText)),
         const SizedBox(height: 6),
-        Text('Small wins. Quietly celebrated. Saved on this device.',
+        Text('Checked off. Well earned. Saved on this device.',
             style: Theme.of(context)
                 .textTheme
                 .bodySmall
@@ -66,8 +66,9 @@ class _FeedbackSettingsSectionState
         SwitchListTile.adaptive(
           contentPadding: EdgeInsets.zero,
           secondary: const Icon(Icons.vibration_outlined),
-          title: const Text('Gentle haptics'),
-          subtitle: const Text('One short tap when an action is confirmed.'),
+          title: const Text('Haptic feedback'),
+          subtitle:
+              const Text('A firm, short tap when an action is confirmed.'),
           value: settings?.haptics ?? false,
           onChanged: enabled
               ? (value) => _save(() => controller.setHaptics(value))
