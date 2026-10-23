@@ -58,7 +58,7 @@ signed Android bundle and signed iOS IPA with TestFlight upload.
   Bundled feedback sounds match current source bytes, and the iOS native audio
   plugin remains linked.
 
-### Still pending — not available to testers yet
+### Google Play — still pending
 
 Google internal release draft ID 5 was created in the existing track and given
 the name `Aura Quest 1.0.3 (19) - Smoother Quests`, with English/German notes.
@@ -66,14 +66,29 @@ The verified AAB has **not** been selected/uploaded or published. At the upload
 file picker, Windows Computer Use stopped this turn because it could not
 determine the browser URL confidently enough to enforce its policy. No alternate
 UI automation was used to bypass that stop. Existing build 18 remains available.
+On the user's next explicit request to finish, a fresh parent-window activation
+and capture encountered the same URL-enforcement stop. Native Chrome control
+cannot currently complete this file selection; the user must select the local
+AAB once before browser-based release confirmation can continue. No additional
+release or duplicate upload was created.
 
-Apple received build 19, ID `ce65274c-3086-4de5-882a-c2090784703d`; the API
-confirmed `VALID` at 08:31 UTC on 23 October. Export compliance is still unset
-(`usesNonExemptEncryption=null`). The already-approved standard-encryption /
-no-France answers must be saved in the browser before guarded assignment to the
-existing internal group. The Developer API key cannot write that confirmation.
-Build 19 was therefore **not** added to the internal group. Existing tester
-access and the public version were not changed.
+### Apple / TestFlight — complete
+
+On 23 October at 09:21 UTC (11:21 Europe/Berlin), saved the already-approved
+standard-encryption / no-France answers for build 19 in App Store Connect.
+The API then confirmed `usesNonExemptEncryption=false`; the provenance-guarded
+helper saved English test notes and added build
+`ce65274c-3086-4de5-882a-c2090784703d` to `Aura Quest iOS intern`.
+
+- API verification: `internalBuildState=IN_BETA_TESTING`.
+- Live group page: **Build 1.0.3 (19) — Im Test**.
+- Group retains its one tester and previous builds, now nine builds total.
+- Public version 1.0.2 / build 16 remains `READY_FOR_SALE`; its complete version
+  snapshot was compared unchanged before/after assignment.
+- Screenshot: `build/audit/proofs/testflight-19-internal.jpg`.
+- Guarded API evidence: `build/audit/ux-19-testflight-release-verified.json`.
+- Tester's iPhone 13 currently reports installed build 18. Build 19 availability
+  is verified; installation and physical-device acceptance are user actions.
 
 The local guarded assignment helper for build 19 and the verified artifact
 reports are under ignored `build/`; credentials were not committed or printed.
