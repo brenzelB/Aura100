@@ -58,19 +58,31 @@ signed Android bundle and signed iOS IPA with TestFlight upload.
   Bundled feedback sounds match current source bytes, and the iOS native audio
   plugin remains linked.
 
-### Google Play — still pending
+### Google Play — complete
 
-Google internal release draft ID 5 was created in the existing track and given
-the name `Aura Quest 1.0.3 (19) - Smoother Quests`, with English/German notes.
-The verified AAB has **not** been selected/uploaded or published. At the upload
-file picker, Windows Computer Use stopped this turn because it could not
-determine the browser URL confidently enough to enforce its policy. No alternate
-UI automation was used to bypass that stop. Existing build 18 remains available.
-On the user's next explicit request to finish, a fresh parent-window activation
-and capture encountered the same URL-enforcement stop. Native Chrome control
-cannot currently complete this file selection; the user must select the local
-AAB once before browser-based release confirmation can continue. No additional
-release or duplicate upload was created.
+On 23 October at 15:23 Europe/Berlin, released the verified AAB as internal
+release ID 5, `Aura Quest 1.0.3 (19) - Smoother Quests`, in the existing internal
+track `4701204184033716950`. English/German notes are included.
+
+- The browser's documented file-chooser API transferred the original signed
+  AAB successfully. Its SHA-256 was rechecked against the provenance above.
+- Google processed code 19 / version 1.0.3, minimum API 24 and target SDK 36.
+  Review showed no errors and no loss of supported devices.
+- Confirmed both internal publication steps. The final live track page states
+  **Für interne Tester verfügbar**, one version code, published 23 October 15:23.
+- Existing testers and track retained. No global metadata changes, closed-test
+  changes or public-production release were submitted.
+- Opt-in/install: https://play.google.com/apps/internaltest/4701204184033716950.
+- Screenshot: `build/audit/proofs/google-play-19-internal.jpg`.
+- Observed release record: `build/audit/ux19-google-release.json`.
+- Google says changes normally appear within one hour and may take longer.
+
+Windows-native capture had earlier stopped because its URL-enforcement check
+could not identify the Chrome address. That control was not used again. The
+separate browser file-chooser API verifies its own tab destination and completed
+the authorized upload; its initial local transfer took about 16.5 minutes before
+the Google upload/optimization phase. No duplicate release was created and no
+manual file selection remains required.
 
 ### Apple / TestFlight — complete
 
@@ -92,3 +104,12 @@ helper saved English test notes and added build
 
 The local guarded assignment helper for build 19 and the verified artifact
 reports are under ignored `build/`; credentials were not committed or printed.
+
+## Editorial Growth proposals
+
+The owner confirmed Google Play plus TestFlight and three separate directions,
+with Home/Quest views in Light/Dark and the existing English tone. The twelve
+proposal screens are now visually inspected and saved under
+`design/editorial-growth-2026-10-23/`, with four browser comparison screenshots.
+Example quests and rewards are aligned across variants. These remain concepts;
+no replacement style was applied to the production app or this build.

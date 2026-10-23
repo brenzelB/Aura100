@@ -55,7 +55,17 @@ standing preference for marketing pages or future projects is recorded.
 
 All twelve portrait HTML files were checked for their required views, embedded
 fonts, existing four-tab navigation, no scripts and no external dependencies.
-These are visual concepts, not native app builds. A Windows Computer Use stop
-prevented a final rendered comparison and screenshot capture in this turn;
-the concepts have therefore not received a final visual or native review.
-No animation or physical-device performance acceptance is implied.
+The three directions were visually compared in the browser for Home and Quest
+in both modes (twelve portrait screens, each designed at 390 × 844). All four
+comparison captures are saved under `previews/`. Main actions, progress, activity
+and the four navigation labels remain visible. The Home Dark content bounds
+also fit above each navigation bar. The same three example quests and +100 Aura
+rewards now appear across the Home variants for a fair comparison.
+
+These are visual concepts, not native app builds. No direction has been chosen
+or applied to the app. Browser inspection is not a native accessibility,
+animation or physical-device performance acceptance.
+
+Screenshot provenance: all four JPGs under `previews/` are captures of the local
+HTML comparison page at http://127.0.0.1:64752/ on 23 October 2026. They contain
+illustrative quest data and are not store assets or live app screenshots.

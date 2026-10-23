@@ -48,7 +48,9 @@ and balance presets. The app supports Google, Apple and email authentication.
 Aura Quest name and current logo. Playful, provocative English voice with an
 adult, professional finish. Editorial Growth is allowed a radically different
 visual world, with considered light and dark appearances. Current request is
-to compare proposals before selecting a replacement for that theme.
+to compare three proposals, each with Home and Quest views in Light/Dark,
+before selecting a replacement for that theme. The owner explicitly confirmed
+this scope and the English voice; choosing a direction is still pending.
 
 ## Evidence on Hand
 
