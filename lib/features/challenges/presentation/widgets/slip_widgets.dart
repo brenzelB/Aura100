@@ -14,8 +14,8 @@ import '../../domain/slip_result.dart';
 /// last slip, red once the period is lost.
 Color slipColor(Challenge challenge) {
   if (challenge.slipLimitBroken) return AppColors.danger;
-  if (challenge.slipNearLimit) return AppColors.neonYellow;
-  return AppColors.neonGreen;
+  if (challenge.slipNearLimit) return AppColors.warningText;
+  return AppColors.successText;
 }
 
 /// "2 / 3 slips" read-out with the traffic-light colour. Cold-turkey

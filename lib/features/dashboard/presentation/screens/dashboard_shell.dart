@@ -1,62 +1,108 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/design_tokens.dart';
+import '../../../home/application/activity_summary.dart';
 
-/// Shell around the four main tabs (Home, Challenges, Friends, Shop).
+/// Shell around the four main tabs (Home, Quests, Friends, Profile).
 ///
 /// go_router's [StatefulNavigationShell] gives us the current tab index
 /// and a `goBranch` method that switches tabs while preserving each
 /// tab's own navigation stack (like Instagram / TikTok tab behavior).
-class DashboardShell extends StatelessWidget {
+class DashboardShell extends ConsumerWidget {
   const DashboardShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: DecoratedBox(
-          position: DecorationPosition.foreground,
-          decoration: BoxDecoration(
-              border:
-                  Border(top: BorderSide(color: AppColors.outline, width: 2))),
-          child: NavigationBar(
-            animationDuration: MediaQuery.disableAnimationsOf(context)
-                ? Duration.zero
-                : const Duration(milliseconds: 180),
-            selectedIndex: navigationShell.currentIndex,
-            onDestinationSelected: (index) => navigationShell.goBranch(
-              index,
-              // Tapping the active tab again pops that tab back to its root.
-              initialLocation: index == navigationShell.currentIndex,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(activitySummaryProvider).count;
+    Widget homeIcon(bool selected) => count == 0
+        ? Icon(selected ? Icons.home : Icons.home_outlined)
+        : Semantics(
+            label: '$count new activities',
+            child: Badge(
+              key: selected ? const ValueKey('home-activity-badge') : null,
+              backgroundColor: AppColors.danger,
+              textColor: readableOn(AppColors.danger),
+              label: Text(count > 99 ? '99+' : '$count'),
+              child: Icon(selected ? Icons.home : Icons.home_outlined),
             ),
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home),
-                label: 'Home',
+          );
+    final icons = [
+      homeIcon(false),
+      const Icon(Icons.emoji_events_outlined),
+      const Icon(Icons.group_outlined),
+      const Icon(Icons.person_outline),
+    ];
+    final selectedIcons = [
+      homeIcon(true),
+      const Icon(Icons.emoji_events),
+      const Icon(Icons.group),
+      const Icon(Icons.person),
+    ];
+    const labels = ['Home', 'Quests', 'Friends', 'Profile'];
+    void select(int index) => navigationShell.goBranch(index,
+        initialLocation: index == navigationShell.currentIndex);
+
+    return LayoutBuilder(builder: (context, constraints) {
+      if (constraints.maxWidth >= 840) {
+        final extended = constraints.maxWidth >= 1200;
+        return Scaffold(
+          body: Row(children: [
+            SafeArea(
+              child: NavigationRail(
+                extended: extended,
+                labelType: extended
+                    ? NavigationRailLabelType.none
+                    : NavigationRailLabelType.all,
+                selectedIndex: navigationShell.currentIndex,
+                onDestinationSelected: select,
+                backgroundColor: AppColors.surface,
+                destinations: [
+                  for (var i = 0; i < labels.length; i++)
+                    NavigationRailDestination(
+                        icon: icons[i],
+                        selectedIcon: selectedIcons[i],
+                        label: Text(labels[i])),
+                ],
               ),
-              NavigationDestination(
-                icon: Icon(Icons.emoji_events_outlined),
-                selectedIcon: Icon(Icons.emoji_events),
-                // "Quest" everywhere the player reads — the code still says
-                // challenge (tables, providers, routes), and that is fine:
-                // those names are ours, this one is theirs.
-                label: 'Quests',
+            ),
+            VerticalDivider(width: 1, color: AppColors.outline),
+            Expanded(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 880),
+                    child: navigationShell),
               ),
-              NavigationDestination(
-                icon: Icon(Icons.group_outlined),
-                selectedIcon: Icon(Icons.group),
-                label: 'Friends',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person),
-                label: 'Profile',
-              ),
-            ],
-          )),
-    );
+            ),
+          ]),
+        );
+      }
+      return Scaffold(
+        body: navigationShell,
+        bottomNavigationBar: DecoratedBox(
+            position: DecorationPosition.foreground,
+            decoration: BoxDecoration(
+                border: Border(
+                    top: BorderSide(color: AppColors.outline, width: 2))),
+            child: NavigationBar(
+              animationDuration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : const Duration(milliseconds: 180),
+              selectedIndex: navigationShell.currentIndex,
+              onDestinationSelected: select,
+              destinations: [
+                for (var i = 0; i < labels.length; i++)
+                  NavigationDestination(
+                      icon: icons[i],
+                      selectedIcon: selectedIcons[i],
+                      label: labels[i]),
+              ],
+            )),
+      );
+    });
   }
 }

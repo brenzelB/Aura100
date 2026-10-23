@@ -24,6 +24,7 @@ import '../../../friends/domain/social_models.dart';
 import '../../../profile/application/profile_providers.dart';
 import '../../../auth/application/auth_providers.dart';
 import '../../application/home_providers.dart';
+import '../../application/activity_summary.dart';
 import '../../domain/home_agenda.dart';
 import '../widgets/celebration_gate.dart';
 import '../widgets/blackout_notice_gate.dart';
@@ -122,6 +123,19 @@ class HomeScreen extends ConsumerWidget {
                         .where((i) => pendingIds.contains(i.challenge.id))
                         .length),
                 const SizedBox(height: 16),
+                if (ref.watch(activitySummaryProvider).count > 0) ...[
+                  ListTile(
+                    key: const ValueKey('home-activity-shortcut'),
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.notifications_active_outlined,
+                        color: AppColors.accentText),
+                    title: Text(ref.watch(activitySummaryProvider).label),
+                    subtitle: const Text('Open invitations and activity'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push(AppRoutes.activity),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 if (syncNotice != null)
                   ListTile(
                     leading: const Icon(Icons.info_outline),
@@ -250,7 +264,8 @@ String _comebackMessage(Challenge quest) {
 
 /// Events stay discoverable without pushing today's tasks below the fold.
 class _ActivitySection extends ConsumerWidget {
-  const _ActivitySection({super.key});
+  const _ActivitySection({super.key, this.initiallyExpanded = false});
+  final bool initiallyExpanded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -266,14 +281,7 @@ class _ActivitySection extends ConsumerWidget {
     final blackouts = ref.watch(unseenBlackoutsProvider);
     final backs = ref.watch(pokeBacksProvider);
     final events = ref.watch(settlementEventsProvider);
-    final count = (invites.valueOrNull?.length ?? 0) +
-        (requests.valueOrNull?.length ?? 0) +
-        (duels.valueOrNull?.length ?? 0) +
-        PokeGroup.group(nudges.valueOrNull ?? []).length +
-        (roasts.valueOrNull?.length ?? 0) +
-        (robbed.valueOrNull?.length ?? 0) +
-        (blackouts.valueOrNull?.length ?? 0) +
-        (backs.valueOrNull?.length ?? 0);
+    final count = ref.watch(activitySummaryProvider).count;
     final states = [
       invites,
       requests,
@@ -302,6 +310,7 @@ class _ActivitySection extends ConsumerWidget {
         glow: hasUnread,
       ),
       child: ExpansionTile(
+        initiallyExpanded: initiallyExpanded,
         shape: const Border(),
         collapsedShape: const Border(),
         leading: Stack(
@@ -493,6 +502,7 @@ class _TodayHeader extends StatelessWidget {
 
     if (AppColors.activeType == AppThemeType.editorial) {
       return EditorialCover(
+        compact: true,
         title:
             allDone ? 'Look at you grow.' : 'Small steps.\nWild possibilities.',
         chapter:
@@ -582,6 +592,21 @@ class _TodayHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A direct route to the same inbox actions used on Home, without scrolling
+/// through every quest. All actions keep their existing providers and handlers.
+class ActivityScreen extends StatelessWidget {
+  const ActivityScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('ACTIVITY')),
+        body: ListView(
+          padding: const EdgeInsets.all(20),
+          children: const [_ActivitySection(initiallyExpanded: true)],
+        ),
+      );
 }
 
 /// Pending invites + fresh pokes. Without push notifications this is

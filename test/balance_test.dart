@@ -1,4 +1,6 @@
 import 'package:aura_quest/features/challenges/domain/challenge.dart';
+import 'package:aura_quest/features/auth/application/auth_providers.dart';
+import 'package:aura_quest/features/friends/application/friends_providers.dart';
 import 'package:aura_quest/features/challenges/domain/quest_balance.dart';
 import 'package:aura_quest/features/challenges/presentation/widgets/create_challenge_sheet.dart';
 import 'package:aura_quest/features/profile/domain/profile.dart';
@@ -87,8 +89,16 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(const ProviderScope(
-        child: MaterialApp(home: Scaffold(body: CreateChallengeSheet()))));
+    await tester.pumpWidget(ProviderScope(overrides: [
+      currentUserProvider.overrideWithValue(null),
+      myFriendsProvider.overrideWith((ref) => []),
+    ], child: MaterialApp(home: Scaffold(body: CreateChallengeSheet()))));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Quest name'), 'Morning movement');
+    await tester.tap(find.text('NEXT'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('NEXT'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('BALANCE'));
     await tester.pumpAndSettle();

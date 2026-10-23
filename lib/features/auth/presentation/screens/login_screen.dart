@@ -4,7 +4,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
-import '../../../../core/widgets/editorial_cover.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -343,27 +342,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // ── Hero / branding ──────────────────────────
-                if (AppColors.activeType == AppThemeType.editorial)
-                  const EditorialCover(
-                      title: 'Grow your own way.',
-                      chapter: 'AURA QUEST / GROWTH, UNSCRIPTED',
-                      compact: true,
-                      subtitle:
-                          'Small rituals. Shared adventures. A story that is yours.'),
-                Text(
-                  'AURA\nQUEST',
-                  textAlign: TextAlign.center,
-                  style: textTheme.displayMedium
-                      ?.copyWith(color: AppColors.accentText),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Level up your habits. Outshine your friends.',
-                  textAlign: TextAlign.center,
-                  style: textTheme.bodyLarge
-                      ?.copyWith(color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 28),
+                if (AppColors.activeType == AppThemeType.editorial) ...[
+                  Text('Aura Quest',
+                      style: textTheme.displaySmall,
+                      textAlign: TextAlign.center),
+                  const SizedBox(height: 8),
+                  Text('Grow your own way.',
+                      style: textTheme.bodyLarge, textAlign: TextAlign.center),
+                  const SizedBox(height: 24),
+                ] else ...[
+                  Text(
+                    'AURA\nQUEST',
+                    textAlign: TextAlign.center,
+                    style: textTheme.displayMedium
+                        ?.copyWith(color: AppColors.accentText),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Level up your habits. Outshine your friends.',
+                    textAlign: TextAlign.center,
+                    style: textTheme.bodyLarge
+                        ?.copyWith(color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 28),
+                ],
 
                 // Form and "check your inbox" occupy the same spot. The
                 // switch is a soft fade rather than a cut: the account was
@@ -406,6 +408,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   /// apart by key, while the Form's own key has to stay [_formKey] for
   /// validation to work.
   Widget _buildForm(TextTheme textTheme, bool isLoading) {
+    final editorial = AppColors.activeType == AppThemeType.editorial;
     return KeyedSubtree(
       key: const ValueKey('form'),
       child: Form(
@@ -413,6 +416,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (editorial) ...[
+              ..._socialActions(isLoading),
+              const SizedBox(height: 12),
+              const Row(children: [
+                Expanded(child: Divider()),
+                Flexible(
+                    flex: 3,
+                    child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child:
+                            Text('or use email', textAlign: TextAlign.center))),
+                Expanded(child: Divider()),
+              ]),
+              const SizedBox(height: 12),
+            ],
             // ── Username (sign-up only) ──────────────────
             // Stored in auth metadata; the handle_new_user DB
             // trigger uses it to create the profile row.
@@ -526,23 +544,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: isLoading ? null : _signInWithGoogle,
-              icon: const Icon(Icons.g_mobiledata, size: 28),
-              label: const Text('CONTINUE WITH GOOGLE'),
-            ),
-            if (defaultTargetPlatform == TargetPlatform.iOS) ...[
-              const SizedBox(height: 12),
-              SignInWithAppleButton(
-                onPressed: isLoading ? null : _signInWithApple,
-                text: _isSignUp ? 'Create Account' : 'Sign in with Apple',
-                style: Theme.of(context).brightness == Brightness.dark
-                    ? SignInWithAppleButtonStyle.white
-                    : SignInWithAppleButtonStyle.black,
-                borderRadius: BorderRadius.circular(12),
-                height: 50,
-              ),
-            ],
+            if (!editorial) ..._socialActions(isLoading),
             const SizedBox(height: 24),
 
             // ── Mode toggle ──────────────────────────────
@@ -562,6 +564,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
     );
   }
+
+  List<Widget> _socialActions(bool isLoading) => [
+        OutlinedButton.icon(
+          onPressed: isLoading ? null : _signInWithGoogle,
+          icon: const Icon(Icons.g_mobiledata, size: 28),
+          label: const Text('CONTINUE WITH GOOGLE'),
+        ),
+        if (defaultTargetPlatform == TargetPlatform.iOS) ...[
+          const SizedBox(height: 12),
+          SignInWithAppleButton(
+            onPressed: isLoading ? null : _signInWithApple,
+            text: _isSignUp ? 'Create Account' : 'Sign in with Apple',
+            style: Theme.of(context).brightness == Brightness.dark
+                ? SignInWithAppleButtonStyle.white
+                : SignInWithAppleButtonStyle.black,
+            borderRadius: BorderRadius.circular(12),
+            height: 50,
+          ),
+        ],
+      ];
 
   /// The six-digit code step, used by both mails.
   ///

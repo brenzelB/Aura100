@@ -19,6 +19,7 @@ abstract class AppRoutes {
   static const String splash = '/';
   static const String login = '/login';
   static const String home = '/home';
+  static const String activity = '/home/activity';
   static const String challenges = '/challenges';
   static const String friends = '/friends';
 
@@ -98,6 +99,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               path: AppRoutes.home,
               builder: (context, state) =>
                   ThemeScope(builder: (_) => HomeScreen()),
+              routes: [
+                GoRoute(
+                  path: 'activity',
+                  builder: (context, state) =>
+                      ThemeScope(builder: (_) => const ActivityScreen()),
+                ),
+              ],
             ),
           ]),
           StatefulShellBranch(routes: [
