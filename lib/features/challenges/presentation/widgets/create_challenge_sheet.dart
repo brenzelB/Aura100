@@ -816,7 +816,8 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
                                       labelStyle: TextStyle(
                                           color: AppColors.textSecondary),
                                       suffixIcon: Icon(Icons.event,
-                                          size: 20, color: AppColors.neonPink),
+                                          size: 20,
+                                          color: AppColors.socialText),
                                     ),
                                     child: Text(
                                       _dateLabel(_endsOn, todayAllowed: false),

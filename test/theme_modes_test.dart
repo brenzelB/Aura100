@@ -58,12 +58,14 @@ void main() {
       expect(AppColors.background, neoBrutalistColors.background);
     });
 
-    test('light palettes keep their original hand-picked values', () {
+    test(
+        'light palettes retain untouched worlds and selected Cut & Grow tokens',
+        () {
       // Guards the user's design work against accidental drift.
       expect(neoBrutalistColors.background, const Color(0xFFF6F2DF));
       expect(neoBrutalistColors.outline, const Color(0xFF191919));
-      expect(editorialColors.neonCyan, const Color(0xFF2944C5));
-      expect(editorialColors.inputOutline, const Color(0xFF777769));
+      expect(editorialColors.neonCyan, const Color(0xFF312149));
+      expect(editorialColors.inputOutline, const Color(0xFF84617F));
       expect(auralisColors.neonPurple, const Color(0xFF5457E8));
       expect(auralisColors.outline, const Color(0xFFE3E5E9));
     });

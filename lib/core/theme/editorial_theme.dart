@@ -12,37 +12,57 @@ abstract class EditorialTheme {
           letterSpacing: -.7,
           color: AppColors.textPrimary,
         );
-    const pill = StadiumBorder();
+    final control =
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(12));
     final text = base.textTheme.copyWith(
-      displayLarge: display(64),
+      displayLarge: display(52),
       displayMedium: display(48),
-      displaySmall: display(38),
-      headlineLarge: display(32),
-      headlineMedium: display(27),
+      displaySmall: display(43),
+      headlineLarge: display(38),
+      headlineMedium: display(29),
       headlineSmall: display(22),
       titleLarge: display(24),
     );
     return base.copyWith(
       textTheme: text,
       appBarTheme: base.appBarTheme.copyWith(
-        titleTextStyle: display(25),
-        toolbarHeight: 68,
-        shape: Border(bottom: BorderSide(color: AppColors.outline)),
+        titleTextStyle:
+            base.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+        toolbarHeight: 56,
+        shape: const Border(),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
           style: base.elevatedButtonTheme.style
-              ?.copyWith(shape: const WidgetStatePropertyAll(pill))),
+              ?.copyWith(shape: WidgetStatePropertyAll(control))),
       filledButtonTheme: FilledButtonThemeData(
           style: base.filledButtonTheme.style
-              ?.copyWith(shape: const WidgetStatePropertyAll(pill))),
+              ?.copyWith(shape: WidgetStatePropertyAll(control))),
       outlinedButtonTheme: OutlinedButtonThemeData(
           style: base.outlinedButtonTheme.style
-              ?.copyWith(shape: const WidgetStatePropertyAll(pill))),
+              ?.copyWith(shape: WidgetStatePropertyAll(control))),
       floatingActionButtonTheme:
-          base.floatingActionButtonTheme.copyWith(shape: pill, elevation: 0),
-      navigationBarTheme:
-          base.navigationBarTheme.copyWith(indicatorShape: pill, height: 78),
-      chipTheme: base.chipTheme.copyWith(shape: pill),
+          base.floatingActionButtonTheme.copyWith(shape: control, elevation: 0),
+      navigationBarTheme: base.navigationBarTheme.copyWith(
+        indicatorShape: control,
+        height: 72,
+        indicatorColor: const Color(0xFFB7EBCC),
+        iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
+              color: states.contains(WidgetState.selected)
+                  ? const Color(0xFF312149)
+                  : AppColors.textSecondary,
+            )),
+      ),
+      navigationRailTheme: base.navigationRailTheme.copyWith(
+        indicatorShape: control,
+        indicatorColor: const Color(0xFFB7EBCC),
+        selectedIconTheme: const IconThemeData(color: Color(0xFF312149)),
+      ),
+      chipTheme: base.chipTheme.copyWith(shape: control),
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: AppColors.accentText,
+        selectionColor: AppColors.neonPink.withValues(alpha: .3),
+        selectionHandleColor: AppColors.accentText,
+      ),
       progressIndicatorTheme: base.progressIndicatorTheme.copyWith(
           borderRadius: BorderRadius.circular(12), linearMinHeight: 6),
       dialogTheme: base.dialogTheme.copyWith(titleTextStyle: display(28)),

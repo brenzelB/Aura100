@@ -1,8 +1,10 @@
-import 'dart:ui' as ui;
 import 'package:aura_quest/core/theme/app_colors.dart';
 import 'package:aura_quest/core/theme/app_theme.dart';
 import 'package:aura_quest/core/widgets/app_theme_background.dart';
 import 'package:aura_quest/core/widgets/editorial_cover.dart';
+import 'package:aura_quest/core/widgets/editorial_marks.dart';
+import 'package:aura_quest/features/challenges/domain/challenge.dart';
+import 'package:aura_quest/features/challenges/presentation/widgets/progress_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,6 +29,62 @@ void main() {
   tearDown(
       () => AppColors.apply(AppThemeType.neoBrutalist, AppThemeMode.light));
 
+  for (final mode in AppThemeMode.values) {
+    for (final amount in [4.0, 12.0]) {
+      testWidgets(
+          'Cut & Grow goal marks reflect real progress and bonus / $mode / $amount',
+          (tester) async {
+        AppColors.apply(AppThemeType.editorial, mode);
+        final now = DateTime.now().toUtc();
+        final quest = Challenge(
+            id: 'q',
+            creatorId: 'a',
+            title: 'Read 10 pages',
+            description: '',
+            durationDays: 30,
+            startsOn: now,
+            createdAt: now,
+            auraGain: 100,
+            auraPenalty: 25,
+            maxStrikes: 3,
+            goalType: GoalType.progress,
+            targetValue: 10,
+            unit: 'pages',
+            progressInPeriod: amount);
+        tester.view.physicalSize = const Size(320, 850);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(MaterialApp(
+          theme: AppTheme.build(AppThemeType.editorial, mode),
+          home: MediaQuery(
+            data: const MediaQueryData(
+                disableAnimations: true, textScaler: TextScaler.linear(1.6)),
+            child: Scaffold(
+                body: Padding(
+              padding: const EdgeInsets.all(20),
+              child: QuestProgressBar(challenge: quest),
+            )),
+          ),
+        ));
+        await tester.pumpAndSettle();
+        expect(
+            tester
+                .widget<EditorialGoalMarks>(find.byType(EditorialGoalMarks))
+                .progress,
+            amount < 10 ? .4 : 1);
+        expect(
+            find.text(
+                amount < 10 ? 'Today · 6 to go' : 'Today · target reached'),
+            findsOneWidget);
+        if (amount > 10) expect(find.text('+2 over'), findsOneWidget);
+        expect(tester.getSize(find.byType(EditorialProgressTrack)).width,
+            greaterThan(200));
+        expect(tester.binding.transientCallbackCount, 0);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+
   test('editorial readable text and controls have accessible contrast', () {
     double contrast(Color a, Color b) {
       final x = a.computeLuminance(), y = b.computeLuminance();
@@ -48,7 +106,7 @@ void main() {
         }
         expect(contrast(p.inputOutline, background), greaterThanOrEqualTo(3));
       }
-      expect(contrast(p.neonCyan, p.onAccent), greaterThanOrEqualTo(4.5));
+      expect(contrast(p.neonPink, p.onAccent), greaterThanOrEqualTo(4.5));
     }
   });
 
@@ -73,13 +131,6 @@ void main() {
                     themeType: AppThemeType.editorial, child: child!)),
             home: const _Preview(),
           ));
-          // Asset decoding runs outside the fake test clock. Wait explicitly
-          // so a filtered golden run also captures the artwork on its first test.
-          await tester.runAsync(() async {
-            final imageFinder = find.byType(Image);
-            final image = tester.widget<Image>(imageFinder);
-            await precacheImage(image.image, tester.element(imageFinder));
-          });
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
           for (var i = 0; i < 4; i++) {
@@ -102,7 +153,8 @@ void main() {
     }
   }
 
-  testWidgets('hover settles and reduced motion disables cover transformations',
+  testWidgets(
+      'paper cuts stay visible and idle without motion or image decoding',
       (tester) async {
     AppColors.apply(AppThemeType.editorial, AppThemeMode.light);
     for (final reduced in [false, true]) {
@@ -115,16 +167,9 @@ void main() {
                           title: 'Keep growing.',
                           subtitle: 'One step at a time.'))))));
       await tester.pumpAndSettle();
-      final mouse =
-          await tester.createGesture(kind: ui.PointerDeviceKind.mouse);
-      await mouse.addPointer(location: Offset.zero);
-      await mouse.moveTo(tester.getCenter(find.byType(Image)));
-      await tester.pumpAndSettle();
-      final scale = tester.widget<AnimatedScale>(find.byType(AnimatedScale));
-      expect(scale.scale, reduced ? 1 : 1.035);
+      expect(find.byType(Image), findsNothing);
+      expect(find.byType(EditorialMarks), findsOneWidget);
       expect(tester.binding.transientCallbackCount, 0);
-      await mouse.removePointer();
-      await tester.pumpAndSettle();
     }
   });
 }

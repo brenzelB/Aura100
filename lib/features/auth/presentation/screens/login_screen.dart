@@ -556,7 +556,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 _isSignUp
                     ? 'Already have an account? Sign in'
                     : 'New here? Create an account',
-                style: TextStyle(color: AppColors.neonPink),
+                style: TextStyle(color: AppColors.socialText),
               ),
             ),
           ],
@@ -702,7 +702,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             onPressed: isLoading ? null : _backToForm,
             child: Text(
               recovery ? 'Back to sign in' : 'Use a different address',
-              style: TextStyle(color: AppColors.neonPink),
+              style: TextStyle(color: AppColors.socialText),
             ),
           ),
         ],

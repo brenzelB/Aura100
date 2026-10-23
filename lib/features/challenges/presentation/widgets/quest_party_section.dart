@@ -106,9 +106,13 @@ class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Text(
-              'PARTY',
-              style:
-                  textTheme.headlineSmall?.copyWith(color: AppColors.neonPink),
+              AppColors.activeType == AppThemeType.editorial
+                  ? 'Participants'
+                  : 'PARTY',
+              style: textTheme.headlineSmall?.copyWith(
+                  color: AppColors.activeType == AppThemeType.editorial
+                      ? AppColors.textPrimary
+                      : AppColors.neonPink),
             ),
             OutlinedButton.icon(
               // Out of the running: no bringing in reinforcements either.
@@ -186,7 +190,7 @@ class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
           loading: () => Padding(
             padding: EdgeInsets.all(24),
             child: Center(
-              child: CircularProgressIndicator(color: AppColors.neonPink),
+              child: CircularProgressIndicator(color: AppColors.socialText),
             ),
           ),
           error: (error, _) => Text(
@@ -680,7 +684,7 @@ class _MemberTile extends ConsumerWidget {
                               width: 16,
                               height: 16,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: AppColors.neonPink),
+                                  strokeWidth: 2, color: AppColors.socialText),
                             ),
                           )
                         : IconButton(
@@ -690,7 +694,7 @@ class _MemberTile extends ConsumerWidget {
                             constraints: const BoxConstraints(
                                 minWidth: 48, minHeight: 48),
                             icon: Icon(Icons.notifications_active_outlined,
-                                size: 20, color: AppColors.neonPink),
+                                size: 20, color: AppColors.socialText),
                           ),
                   ],
                   // Report / block. Quiet on purpose, but always

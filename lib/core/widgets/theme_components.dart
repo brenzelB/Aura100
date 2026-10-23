@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 import '../theme/motion.dart';
+import 'editorial_marks.dart';
 
 /// A theme-aware icon widget.
 /// Renders standard icons in Neo-Brutalist/Editorial/Auralis.
@@ -51,47 +52,8 @@ class ThemeProgressRing extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     if (AppColors.activeType == AppThemeType.editorial) {
-      // ── Thick Stroke Circular Progress Indicator for Editorial Growth ──
-      final allDone = completion == 1.0;
-      return SizedBox(
-        width: 64,
-        height: 64,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: completion ?? 0),
-              duration: MediaQuery.disableAnimationsOf(context)
-                  ? Duration.zero
-                  : AppDurations.slow,
-              curve: AppCurves.emphasizedOut,
-              builder: (context, value, _) => SizedBox(
-                width: 64,
-                height: 64,
-                child: CircularProgressIndicator(
-                  value: completion == null ? 0 : value,
-                  strokeWidth: 6, // Thick stroke
-                  color: accent, // Terracotta
-                  backgroundColor:
-                      AppColors.surfaceLight, // Very light neutral/cream
-                ),
-              ),
-            ),
-            if (allDone)
-              Icon(Icons.check, color: AppColors.successText)
-            else
-              Text(
-                '$doneCount/$totalCount',
-                style: TextStyle(
-                  fontFamily: 'Editorial Body',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-          ],
-        ),
-      );
+      return EditorialMarks(
+          completed: doneCount, total: totalCount, width: 64, height: 52);
     }
 
     if (AppColors.activeType == AppThemeType.auralis) {

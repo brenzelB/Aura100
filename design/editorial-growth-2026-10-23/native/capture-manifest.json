@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-23",
+  "flutter": "3.44.6",
+  "source": "production Flutter widgets with local illustrative provider fixtures",
+  "device": "Android Pixel emulator",
+  "physicalSize": [
+    1080,
+    2424
+  ],
+  "density": 420,
+  "fontScale": 1.0,
+  "captures": [
+    {
+      "file": "home-light.png",
+      "decodedPixelSha256": "83a3103612124f8371f086befbab9cfddfe03752b2372ead7048b81ba8b269f5",
+      "origin": "Origin: unedited native Android emulator capture via adb exec-out screencap -p on 2026-10-23, 1080x2424 density420 fontScale1.0, home-light. Production Aura Quest Flutter widgets; isolated local illustrative quest data, no NAS writes. Cut & Grow implementation review."
+    },
+    {
+      "file": "quest-light.png",
+      "decodedPixelSha256": "915e8adbca6a923f2cb7a63fd8489201eceab5ac02d1f00464facf1e2356114d",
+      "origin": "Origin: unedited native Android emulator capture via adb exec-out screencap -p on 2026-10-23, 1080x2424 density420 fontScale1.0, quest-light. Production Aura Quest Flutter widgets; isolated local illustrative quest data, no NAS writes. Cut & Grow implementation review."
+    },
+    {
+      "file": "home-dark.png",
+      "decodedPixelSha256": "55225c60cd9933f96ed5c28122845b1d12c8500a0f7472bcd26c96a83cda0cb0",
+      "origin": "Origin: unedited native Android emulator capture via adb exec-out screencap -p on 2026-10-23, 1080x2424 density420 fontScale1.0, home-dark. Production Aura Quest Flutter widgets; isolated local illustrative quest data, no NAS writes. Cut & Grow implementation review."
+    },
+    {
+      "file": "quest-dark.png",
+      "decodedPixelSha256": "650b93275ef4815a9becdc0c593c10a48692c373250df0e98b956b204ecc7725",
+      "origin": "Origin: unedited native Android emulator capture via adb exec-out screencap -p on 2026-10-23, 1080x2424 density420 fontScale1.0, quest-dark. Production Aura Quest Flutter widgets; isolated local illustrative quest data, no NAS writes. Cut & Grow implementation review."
+    }
+  ]
+}

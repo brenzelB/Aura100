@@ -8,6 +8,7 @@ import '../../../../core/text/quantity.dart';
 import '../../../../core/feedback/interaction_feedback.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/motion.dart';
+import '../../../../core/widgets/editorial_marks.dart';
 import '../../application/challenge_providers.dart';
 import '../../../auth/application/auth_providers.dart';
 import '../../domain/challenge.dart';
@@ -37,6 +38,57 @@ class QuestProgressBar extends StatelessWidget {
     final accent = done ? AppColors.neonGreen : AppColors.neonPurple;
     final reduce = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 
+    if (AppColors.activeType == AppThemeType.editorial && !compact) {
+      final period = switch (challenge.checkinPeriod) {
+        CheckinPeriod.daily => 'Today',
+        CheckinPeriod.weekly => 'This week',
+        CheckinPeriod.monthly => 'This month',
+      };
+      final fraction = Text(
+          formatProgress(
+              challenge.progressInPeriod, target, challenge.unit ?? ''),
+          style: textTheme.titleLarge?.copyWith(
+              fontFamily: 'Editorial Body',
+              fontSize: 32,
+              fontWeight: FontWeight.w800,
+              color: AppColors.isDark
+                  ? AppColors.successText
+                  : AppColors.textPrimary));
+      final marks = EditorialGoalMarks(progress: challenge.progressRatio);
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        LayoutBuilder(builder: (context, box) {
+          if (box.maxWidth < 280 ||
+              MediaQuery.textScalerOf(context).scale(1) > 1.3) {
+            return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [fraction, const SizedBox(height: 8), marks]);
+          }
+          return Row(children: [
+            Expanded(child: fraction),
+            const SizedBox(width: 12),
+            marks
+          ]);
+        }),
+        const SizedBox(height: 8),
+        Wrap(spacing: 12, runSpacing: 6, children: [
+          Text(
+              done
+                  ? '$period · target reached'
+                  : '$period · ${formatQuantity(challenge.progressRemaining)} to go',
+              style: textTheme.bodySmall
+                  ?.copyWith(color: AppColors.textSecondary)),
+          Text(
+              challenge.overshoot > 0
+                  ? '+${formatQuantity(challenge.overshoot)} over'
+                  : '${challenge.progressPercent} %',
+              style: textTheme.bodySmall?.copyWith(
+                  color: AppColors.successText, fontWeight: FontWeight.w700)),
+        ]),
+        const SizedBox(height: 14),
+        EditorialProgressTrack(value: challenge.progressRatio),
+      ]);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -55,7 +107,13 @@ class QuestProgressBar extends StatelessWidget {
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: (compact ? textTheme.bodySmall : textTheme.bodyLarge)
+                style: (AppColors.activeType == AppThemeType.editorial
+                        ? compact
+                            ? textTheme.titleMedium
+                            : textTheme.headlineLarge
+                        : compact
+                            ? textTheme.bodySmall
+                            : textTheme.bodyLarge)
                     ?.copyWith(
                   color: done ? accent : AppColors.textPrimary,
                   fontWeight: FontWeight.w700,
@@ -88,22 +146,26 @@ class QuestProgressBar extends StatelessWidget {
         ),
         SizedBox(height: compact ? 5 : 8),
         // Animates from wherever it was to the new value after a log.
-        TweenAnimationBuilder<double>(
-          tween: Tween(
-              begin: reduce ? challenge.progressRatio : 0,
-              end: challenge.progressRatio),
-          duration: reduce ? Duration.zero : AppDurations.slow,
-          curve: AppCurves.emphasizedOut,
-          builder: (context, value, _) => ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: value,
-              minHeight: compact ? 6 : 10,
-              color: accent,
-              backgroundColor: AppColors.surfaceLight,
+        if (AppColors.activeType == AppThemeType.editorial)
+          EditorialProgressTrack(
+              value: challenge.progressRatio, compact: compact)
+        else
+          TweenAnimationBuilder<double>(
+            tween: Tween(
+                begin: reduce ? challenge.progressRatio : 0,
+                end: challenge.progressRatio),
+            duration: reduce ? Duration.zero : AppDurations.slow,
+            curve: AppCurves.emphasizedOut,
+            builder: (context, value, _) => ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: value,
+                minHeight: compact ? 6 : 10,
+                color: accent,
+                backgroundColor: AppColors.surfaceLight,
+              ),
             ),
           ),
-        ),
       ],
     );
   }

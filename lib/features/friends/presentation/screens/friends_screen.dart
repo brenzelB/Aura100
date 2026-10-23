@@ -225,7 +225,7 @@ class FriendsScreen extends ConsumerWidget {
         ],
       ),
       body: RefreshIndicator(
-        color: AppColors.neonPink,
+        color: AppColors.socialText,
         backgroundColor: AppColors.surface,
         onRefresh: () {
           ref.invalidate(myNudgesProvider);
@@ -362,8 +362,8 @@ class FriendsScreen extends ConsumerWidget {
             // ── Pokes ─────────────────────────────────────────
             Text(
               'POKES',
-              style:
-                  textTheme.headlineSmall?.copyWith(color: AppColors.neonPink),
+              style: textTheme.headlineSmall
+                  ?.copyWith(color: AppColors.socialText),
             ),
             const SizedBox(height: 12),
             nudgesAsync.when(
@@ -382,7 +382,7 @@ class FriendsScreen extends ConsumerWidget {
               loading: () => Padding(
                 padding: EdgeInsets.all(24),
                 child: Center(
-                  child: CircularProgressIndicator(color: AppColors.neonPink),
+                  child: CircularProgressIndicator(color: AppColors.socialText),
                 ),
               ),
               error: (error, _) => Text(
@@ -645,7 +645,7 @@ class _NudgeTile extends StatelessWidget {
                   TextSpan(
                     text: '@${nudge.fromName}',
                     style: TextStyle(
-                      color: AppColors.neonPink,
+                      color: AppColors.socialText,
                       fontWeight: FontWeight.w700,
                     ),
                   ),

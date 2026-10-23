@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/widgets/editorial_cover.dart';
+import '../../../../core/widgets/editorial_marks.dart';
 import '../../../../core/widgets/app_states.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -42,6 +42,8 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final editorial = AppColors.activeType == AppThemeType.editorial;
+    final activity = ref.watch(activitySummaryProvider);
     final agendaAsync = ref.watch(homeAgendaProvider);
     final profile = ref.watch(currentProfileProvider).valueOrNull;
     final comebacks =
@@ -56,12 +58,21 @@ class HomeScreen extends ConsumerWidget {
         .toSet();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('HOME'), actions: [
-        IconButton(
-            tooltip: 'Create a quest',
-            icon: const Icon(Icons.add),
-            onPressed: () => CreateChallengeSheet.show(context)),
-      ]),
+      appBar: AppBar(
+          title: editorial
+              ? Row(mainAxisSize: MainAxisSize.min, children: [
+                  Image.asset('assets/icon/logo_mark.png',
+                      width: 26, height: 26, excludeFromSemantics: true),
+                  const SizedBox(width: 8),
+                  const Flexible(child: Text('Aura Quest')),
+                ])
+              : const Text('HOME'),
+          actions: [
+            IconButton(
+                tooltip: 'Create a quest',
+                icon: const Icon(Icons.add),
+                onPressed: () => CreateChallengeSheet.show(context)),
+          ]),
       body: RefreshIndicator(
         color: AppColors.neonCyan,
         backgroundColor: AppColors.surface,
@@ -116,6 +127,50 @@ class HomeScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
               children: [
                 const TargetedRoastRefresher(),
+                if (editorial) ...[
+                  Row(children: [
+                    Expanded(
+                        child: Text('Today',
+                            style: Theme.of(context).textTheme.displaySmall)),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => context.push(AppRoutes.activity),
+                      icon: Badge(
+                          isLabelVisible: activity.count > 0,
+                          label: Text('${activity.count}'),
+                          backgroundColor: AppColors.textPrimary,
+                          textColor: AppColors.background,
+                          child:
+                              const Icon(Icons.notifications_none, size: 20)),
+                      label: const Text('Activity'),
+                    ),
+                  ]),
+                  if (activity.count > 0) ...[
+                    const SizedBox(height: 14),
+                    Material(
+                        color: AppColors.isDark
+                            ? const Color(0xFF3D3C44)
+                            : const Color(0xFFB7EBCC),
+                        borderRadius: BorderRadius.circular(12),
+                        child: ListTile(
+                          key: const ValueKey('home-activity-shortcut'),
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 14),
+                          title: Text(activity.label,
+                              style: TextStyle(
+                                  color: AppColors.isDark
+                                      ? const Color(0xFFB7EBCC)
+                                      : const Color(0xFF312149),
+                                  fontWeight: FontWeight.w700)),
+                          trailing: Icon(Icons.arrow_forward,
+                              color: AppColors.isDark
+                                  ? const Color(0xFFB7EBCC)
+                                  : const Color(0xFF312149)),
+                          onTap: () => context.push(AppRoutes.activity),
+                        )),
+                  ],
+                  const SizedBox(height: 6),
+                ],
                 _TodayHeader(
                     agenda: agenda,
                     username: profile?.username,
@@ -123,7 +178,7 @@ class HomeScreen extends ConsumerWidget {
                         .where((i) => pendingIds.contains(i.challenge.id))
                         .length),
                 const SizedBox(height: 16),
-                if (ref.watch(activitySummaryProvider).count > 0) ...[
+                if (!editorial && activity.count > 0) ...[
                   ListTile(
                     key: const ValueKey('home-activity-shortcut'),
                     contentPadding: EdgeInsets.zero,
@@ -164,7 +219,7 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                 ],
                 _SectionTitle(
-                  'TODAY',
+                  editorial ? 'Your quests' : 'TODAY',
                   color: AppColors.accentText,
                 ),
                 const SizedBox(height: 12),
@@ -464,13 +519,11 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (AppColors.activeType == AppThemeType.editorial) {
-      return Row(children: [
-        Expanded(
-            child:
-                Text(text, style: Theme.of(context).textTheme.headlineMedium)),
-        const SizedBox(width: 16),
-        Container(width: 32, height: 2, color: AppColors.accentText),
-      ]);
+      return Text(text,
+          style: Theme.of(context)
+              .textTheme
+              .titleMedium
+              ?.copyWith(fontWeight: FontWeight.w800));
     }
     return Text(
       text,
@@ -501,19 +554,46 @@ class _TodayHeader extends StatelessWidget {
     final accent = allDone ? AppColors.neonGreen : AppColors.neonCyan;
 
     if (AppColors.activeType == AppThemeType.editorial) {
-      return EditorialCover(
-        compact: true,
-        title:
-            allDone ? 'Look at you grow.' : 'Small steps.\nWild possibilities.',
-        chapter:
-            username == null ? 'THE DAILY EDIT' : 'THE DAILY EDIT / @$username',
-        subtitle: pendingCount > 0
-            ? '$pendingCount saved on this device · waiting to sync'
-            : agenda.totalRunning == 0
-                ? 'Your next chapter starts with a quest.'
-                : allDone
-                    ? 'Everything done today. Legend.'
-                    : '${agenda.open.length} quests waiting · $confirmed/${agenda.totalRunning} complete',
+      final copy =
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('$confirmed of ${agenda.totalRunning} complete',
+            style: textTheme.titleLarge?.copyWith(
+                fontFamily: 'Editorial Body',
+                fontWeight: FontWeight.w800,
+                color: AppColors.isDark
+                    ? AppColors.successText
+                    : AppColors.textPrimary)),
+        const SizedBox(height: 4),
+        Text(
+            pendingCount > 0
+                ? '$pendingCount saved on this device · waiting to sync'
+                : agenda.totalRunning == 0
+                    ? 'Your next chapter starts with a quest.'
+                    : allDone
+                        ? 'Everything done today. Legend.'
+                        : "Nice start. Don't get smug.",
+            style:
+                textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
+      ]);
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: AppColors.outline))),
+        child: LayoutBuilder(builder: (context, box) {
+          final marks =
+              EditorialMarks(completed: confirmed, total: agenda.totalRunning);
+          if (box.maxWidth < 340 ||
+              MediaQuery.textScalerOf(context).scale(1) > 1.3) {
+            return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [copy, const SizedBox(height: 8), marks]);
+          }
+          return Row(children: [
+            Expanded(child: copy),
+            const SizedBox(width: 8),
+            marks
+          ]);
+        }),
       );
     }
 
@@ -643,7 +723,7 @@ class _InboxSection extends ConsumerWidget {
         for (final duel in duels)
           _InboxRow(
             icon: Icons.back_hand_outlined,
-            color: AppColors.neonPink,
+            color: AppColors.socialText,
             text: duel.status == 'active'
                 ? 'Ego Duel with @${duel.challengerName} · continue playing'
                 : '@${duel.challengerName} challenges your ego',
@@ -740,7 +820,7 @@ class _PokeInboxCardState extends ConsumerState<_PokeInboxCard> {
           Row(
             children: [
               Icon(Icons.notifications_active,
-                  size: 18, color: AppColors.neonPink),
+                  size: 18, color: AppColors.socialText),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -1271,14 +1351,20 @@ class _CheckInButtonState extends ConsumerState<_CheckInButton> {
                 }
               },
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.neonPurple,
-          foregroundColor: AppColors.background,
+          backgroundColor: AppColors.activeType == AppThemeType.editorial
+              ? AppColors.neonPink
+              : AppColors.neonPurple,
+          foregroundColor: AppColors.activeType == AppThemeType.editorial
+              ? AppColors.onAccent
+              : AppColors.background,
           minimumSize: const Size(0, 48),
           padding: const EdgeInsets.symmetric(horizontal: 14),
           textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         ),
         icon: const Icon(Icons.add, size: 16),
-        label: const Text('ADD'),
+        label: Text(AppColors.activeType == AppThemeType.editorial
+            ? 'Add progress'
+            : 'ADD'),
       );
     }
 
@@ -1330,14 +1416,20 @@ class _AgendaCard extends ConsumerWidget {
     final pendingRoast =
         roasts.where((r) => r.challengeId == item.challenge.id).firstOrNull;
 
+    final editorial = AppColors.activeType == AppThemeType.editorial;
+    final featured = editorial && item.challenge.isProgress;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: AppColors.panelDecoration(
-        accent:
-            pendingRoast != null ? AppColors.neonPurple : AppColors.neonCyan,
-        glow: pendingRoast != null,
-      ),
+      padding: EdgeInsets.all(featured ? 16 : 14),
+      decoration: editorial && !featured && pendingRoast == null
+          ? BoxDecoration(
+              border: Border(bottom: BorderSide(color: AppColors.outline)))
+          : AppColors.panelDecoration(
+              accent: pendingRoast != null
+                  ? AppColors.neonPurple
+                  : AppColors.neonCyan,
+              glow: pendingRoast != null,
+            ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1402,15 +1494,22 @@ class _AgendaCard extends ConsumerWidget {
                   },
                   child: Text(
                     item.challenge.title,
-                    maxLines: 1,
+                    maxLines: editorial ? 3 : 1,
                     overflow: TextOverflow.ellipsis,
-                    style: textTheme.bodyLarge
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                    style: featured
+                        ? textTheme.headlineMedium
+                        : textTheme.bodyLarge
+                            ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
               const SizedBox(width: 12),
-              _CheckInButton(item: item, color: AppColors.neonGreen),
+              if (!featured)
+                _CheckInButton(
+                    item: item,
+                    color: editorial
+                        ? AppColors.textPrimary
+                        : AppColors.neonGreen),
             ],
           ),
           const SizedBox(height: 4),
@@ -1422,7 +1521,10 @@ class _AgendaCard extends ConsumerWidget {
               Text(item.demandLabel,
                   style: textTheme.bodySmall
                       ?.copyWith(color: AppColors.accentText)),
-              Text('+${item.challenge.auraGain} ⚡',
+              Text(
+                  editorial
+                      ? '+${item.challenge.auraGain} Aura'
+                      : '+${item.challenge.auraGain} ⚡',
                   style: textTheme.bodySmall
                       ?.copyWith(color: AppColors.successText)),
             ],
@@ -1430,6 +1532,12 @@ class _AgendaCard extends ConsumerWidget {
           if (item.challenge.isProgress) ...[
             const SizedBox(height: 8),
             QuestProgressBar(challenge: item.challenge, compact: true),
+            if (featured) ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                  width: double.infinity,
+                  child: _CheckInButton(item: item, color: AppColors.neonPink)),
+            ],
             QuickProgressActions(challenge: item.challenge),
           ],
         ],

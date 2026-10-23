@@ -6,6 +6,7 @@ import 'helpers/recording_feedback.dart';
 import 'package:aura_quest/core/offline/offline_check_in_queue.dart';
 import 'package:aura_quest/core/offline/pending_check_in.dart';
 import 'package:aura_quest/core/widgets/action_feedback.dart';
+import 'package:aura_quest/core/widgets/editorial_marks.dart';
 import 'package:aura_quest/core/theme/app_colors.dart';
 import 'package:aura_quest/core/theme/app_theme.dart';
 import 'package:aura_quest/features/auth/application/auth_providers.dart';
@@ -156,11 +157,18 @@ Future<void> _mount(
   bool freezeAgenda = false,
   List<SettlementEvent> events = const [],
   Blackout? blackout,
+  AppThemeMode? editorialMode,
 }) async {
   tester.view.physicalSize = Size(width, 850);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
+  if (editorialMode != null) {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('selected_theme', AppThemeType.editorial.index);
+    await prefs.setInt('selected_theme_mode', editorialMode.index);
+    AppColors.apply(AppThemeType.editorial, editorialMode);
+  }
   await tester.pumpWidget(ProviderScope(
     overrides: _overrides(repo,
         daily: daily,
@@ -170,6 +178,9 @@ Future<void> _mount(
         events: events,
         blackout: blackout),
     child: MaterialApp(
+      theme: editorialMode == null
+          ? null
+          : AppTheme.build(AppThemeType.editorial, editorialMode),
       builder: (context, child) => MediaQuery(
           data: MediaQuery.of(context)
               .copyWith(textScaler: TextScaler.linear(scale)),
@@ -196,6 +207,60 @@ void main() {
         'celebration_acked_at': '2020-01-01T00:00:00Z',
         'loss_roast_acked_at': '2020-01-01T00:00:00Z',
       }));
+
+  for (final mode in AppThemeMode.values) {
+    for (final width in [320.0, 390.0, 768.0, 1440.0]) {
+      testWidgets('Cut & Grow progress action remains usable at $width / $mode',
+          (tester) async {
+        addTearDown(() =>
+            AppColors.apply(AppThemeType.neoBrutalist, AppThemeMode.light));
+        await _mount(tester, _Repository(),
+            home: true,
+            width: width,
+            scale: width == 390 ? 1 : 1.6,
+            editorialMode: mode);
+        expect(find.text('0 of 1 complete'), findsOneWidget);
+        final track = find.byType(EditorialProgressTrack);
+        await tester.scrollUntilVisible(track, 160,
+            scrollable: find.byType(Scrollable).first);
+        expect(tester.getSize(track).width, greaterThan(200));
+        final action = find.text('Add progress');
+        for (var i = 0;
+            i < 12 && action.hitTestable().evaluate().isEmpty;
+            i++) {
+          await tester.drag(
+              find.byType(Scrollable).first, const Offset(0, -160));
+          await tester.pumpAndSettle();
+        }
+        expect(action.hitTestable(), findsOneWidget);
+        await tester.tap(action.hitTestable());
+        await tester.pumpAndSettle();
+        expect(find.text('ADD PROGRESS'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+      });
+    }
+    testWidgets(
+        'Cut & Grow never fills a confirmed mark for an offline check-in / $mode',
+        (tester) async {
+      addTearDown(
+          () => AppColors.apply(AppThemeType.neoBrutalist, AppThemeMode.light));
+      final now = DateTime.now().toUtc();
+      await const OfflineCheckInQueue(userId: 'alice').enqueue(PendingCheckIn(
+          challengeId: 'q',
+          questTitle: 'Morning movement',
+          timestamp: now,
+          date: DateTime.utc(now.year, now.month, now.day)));
+      await _mount(tester, _Repository(),
+          home: true, daily: true, freezeAgenda: true, editorialMode: mode);
+      final marks = tester.widget<EditorialMarks>(find.byType(EditorialMarks));
+      expect(marks.completed, 0);
+      expect(marks.total, 1);
+      expect(find.text('Waiting to sync'), findsOneWidget);
+      expect(find.byType(ConfirmedAuraAmount), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
 
   test('presets preserve fractional units and reject invalid targets', () {
     expect(progressPresets(10), [1, 2.5, 5]);

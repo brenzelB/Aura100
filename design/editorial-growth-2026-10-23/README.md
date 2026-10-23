@@ -1,8 +1,11 @@
 # Editorial Growth — design proposals
 
-Three separate visual directions for the selectable theme. No proposal is
-implemented in the app. English UI with illustrative data: one of three quests
-complete; reading 4/10 pages and movement are still open.
+Three separate visual directions for the selectable theme. On 23 October 2026,
+the owner selected **Cut & Grow**. It is now implemented exclusively in the
+existing Editorial Growth theme; Pace Notes and Type in Motion remain concepts.
+These HTML comparisons still use illustrative data: one of three quests complete;
+reading 4/10 pages and movement are still open. See
+`../../docs/2026-10-23-cut-and-grow.md` for implementation and verification.
 
 Open `index.html` or serve this directory only on localhost. The comparison
 switches every concept between Home/Quest and Light/Dark. The controls inside

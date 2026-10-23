@@ -2,6 +2,7 @@ import 'package:aura_quest/core/theme/design_tokens.dart';
 import 'package:aura_quest/core/widgets/app_states.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/editorial_marks.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
@@ -360,10 +361,11 @@ class _DetailBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Soft entrance: content fades in and slides up slightly.
+    final editorial = AppColors.activeType == AppThemeType.editorial;
+    // Editorial starts fully visible; subsequent progress is its authored motion.
     return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: AppDurations.base,
+      tween: Tween(begin: editorial ? 1 : 0, end: 1),
+      duration: editorial ? Duration.zero : AppDurations.base,
       curve: AppCurves.emphasizedOut,
       builder: (context, t, child) => Opacity(
         opacity: t,
@@ -396,7 +398,7 @@ class _DetailBody extends StatelessWidget {
               sliver: SliverToBoxAdapter(child: _LobbyCard(challenge)),
             ),
           // The day-by-day stats are meaningless before a quest starts.
-          if (!challenge.isLobby)
+          if (!challenge.isLobby && !editorial)
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               sliver: SliverToBoxAdapter(child: _StatsRow(timeline.stats)),
@@ -406,7 +408,8 @@ class _DetailBody extends StatelessWidget {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
               sliver: SliverToBoxAdapter(
-                child: _ProgressSection(challenge: challenge),
+                child: _ProgressSection(
+                    challenge: challenge, includeHistory: !editorial),
               ),
             ),
           // Negative quests lead with their slip budget.
@@ -436,6 +439,11 @@ class _DetailBody extends StatelessWidget {
             ),
           ),
           if (!challenge.isLobby) ...[
+            if (editorial)
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                sliver: SliverToBoxAdapter(child: _StatsRow(timeline.stats)),
+              ),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
               sliver: SliverToBoxAdapter(
@@ -448,6 +456,12 @@ class _DetailBody extends StatelessWidget {
                 child: QuestActivitySection(challenge: challenge),
               ),
             ),
+            if (editorial && challenge.isProgress)
+              SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  sliver: SliverToBoxAdapter(
+                      child: _ProgressSection(
+                          challenge: challenge, historyOnly: true))),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
               sliver: SliverToBoxAdapter(
@@ -682,6 +696,7 @@ class _HeaderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final editorial = AppColors.activeType == AppThemeType.editorial;
 
     final today = DateTime.now().toUtc();
     final ended = !challenge.isEndless && !today.isBefore(challenge.endsAt);
@@ -692,11 +707,13 @@ class _HeaderCard extends StatelessWidget {
     final progress = dayNumber / challenge.durationDays;
 
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: AppColors.panelDecoration(
-        accent: ended ? AppColors.textSecondary : AppColors.neonYellow,
-        glow: !ended,
-      ),
+      padding: editorial ? EdgeInsets.zero : const EdgeInsets.all(20),
+      decoration: editorial
+          ? null
+          : AppColors.panelDecoration(
+              accent: ended ? AppColors.textSecondary : AppColors.neonYellow,
+              glow: !ended,
+            ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -722,8 +739,10 @@ class _HeaderCard extends StatelessWidget {
           ],
           Text(
             challenge.title,
-            style: textTheme.headlineMedium
-                ?.copyWith(color: AppColors.warningText),
+            style: editorial
+                ? textTheme.headlineLarge
+                : textTheme.headlineMedium
+                    ?.copyWith(color: AppColors.warningText),
           ),
           if (challenge.description.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -769,13 +788,13 @@ class _HeaderCard extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.repeat, size: 16, color: AppColors.neonPink),
+                Icon(Icons.repeat, size: 16, color: AppColors.socialText),
                 const SizedBox(width: 6),
                 Text(
                   '${challenge.checkinsPerPeriod}x per '
                   '${challenge.checkinPeriod == CheckinPeriod.weekly ? 'week' : 'month'}',
-                  style:
-                      textTheme.bodyMedium?.copyWith(color: AppColors.neonPink),
+                  style: textTheme.bodyMedium
+                      ?.copyWith(color: AppColors.socialText),
                 ),
               ],
             ),
@@ -799,6 +818,10 @@ class _HeaderCard extends StatelessWidget {
                 ),
               ],
             )
+          else if (editorial)
+            Text('Day $dayNumber of ${challenge.durationDays}',
+                style: textTheme.bodySmall
+                    ?.copyWith(color: AppColors.textSecondary))
           else ...[
             // Progress: Day X of Y with an animated bar.
             Wrap(
@@ -818,22 +841,26 @@ class _HeaderCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: progress),
-              duration: MediaQuery.disableAnimationsOf(context)
-                  ? Duration.zero
-                  : AppDurations.slow,
-              curve: AppCurves.emphasizedOut,
-              builder: (context, value, _) => ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: LinearProgressIndicator(
-                  value: value,
-                  minHeight: 8,
-                  color: ended ? AppColors.textSecondary : AppColors.neonYellow,
-                  backgroundColor: AppColors.surfaceLight,
+            if (editorial)
+              EditorialProgressTrack(value: progress, compact: true)
+            else
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: progress),
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : AppDurations.slow,
+                curve: AppCurves.emphasizedOut,
+                builder: (context, value, _) => ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: value,
+                    minHeight: 8,
+                    color:
+                        ended ? AppColors.textSecondary : AppColors.neonYellow,
+                    backgroundColor: AppColors.surfaceLight,
+                  ),
                 ),
               ),
-            ),
           ],
         ],
       ),
@@ -940,7 +967,11 @@ class _LobbyCard extends ConsumerWidget {
 // Progress: the bar, the log button and the full history
 // ─────────────────────────────────────────────────────────────────
 class _ProgressSection extends ConsumerWidget {
-  const _ProgressSection({required this.challenge});
+  const _ProgressSection(
+      {required this.challenge,
+      this.includeHistory = true,
+      this.historyOnly = false});
+  final bool includeHistory, historyOnly;
 
   final Challenge challenge;
 
@@ -971,166 +1002,182 @@ class _ProgressSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: AppColors.panelDecoration(
-            accent: done ? AppColors.neonGreen : AppColors.neonPurple,
-            glow: done,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    'THIS ${challenge.checkinPeriod.name.toUpperCase()}',
-                    style: textTheme.headlineSmall?.copyWith(
-                      color:
-                          done ? AppColors.successText : AppColors.neonPurple,
-                    ),
+        if (!historyOnly) ...[
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: AppColors.panelDecoration(
+              accent: done ? AppColors.neonGreen : AppColors.neonPurple,
+              glow: done,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (AppColors.activeType != AppThemeType.editorial)
+                  Row(
+                    children: [
+                      Text(
+                        'THIS ${challenge.checkinPeriod.name.toUpperCase()}',
+                        style: textTheme.headlineSmall?.copyWith(
+                          color: done
+                              ? AppColors.successText
+                              : AppColors.neonPurple,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (!done)
+                        Text(
+                          '${formatQuantity(challenge.progressRemaining)} to go',
+                          style: textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textSecondary),
+                        ),
+                    ],
                   ),
-                  const Spacer(),
-                  if (!done)
-                    Text(
-                      '${formatQuantity(challenge.progressRemaining)} to go',
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.textSecondary),
-                    ),
+                // Reached-and-beyond banner.
+                if (done) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle,
+                          size: 16, color: AppColors.successText),
+                      const SizedBox(width: 6),
+                      Text(
+                        challenge.overshoot > 0
+                            ? 'Target reached · +${formatQuantity(challenge.overshoot)} '
+                                '${challenge.unit ?? ''} beyond'
+                            : 'Target reached — keep going for bonus',
+                        style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.successText,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
                 ],
-              ),
-              // Reached-and-beyond banner.
-              if (done) ...[
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Icon(Icons.check_circle,
-                        size: 16, color: AppColors.successText),
-                    const SizedBox(width: 6),
-                    Text(
-                      challenge.overshoot > 0
-                          ? 'Target reached · +${formatQuantity(challenge.overshoot)} '
-                              '${challenge.unit ?? ''} beyond'
-                          : 'Target reached — keep going for bonus',
-                      style: textTheme.bodySmall?.copyWith(
-                          color: AppColors.successText,
-                          fontWeight: FontWeight.w600),
-                    ),
-                  ],
+                if (AppColors.activeType != AppThemeType.editorial)
+                  const SizedBox(height: 14),
+                QuestProgressBar(challenge: challenge),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  // You can always log more — bonus reps past the goal are
+                  // documented (they feed the totals below). Unless you are
+                  // out (read-only for good) or blacked out (read-only for
+                  // the next couple of hours).
+                  child: (ended || challenge.amIOut || blackout != null)
+                      ? OutlinedButton.icon(
+                          onPressed: null,
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 48),
+                            disabledForegroundColor: blackout != null
+                                ? AppColors.neonPurple
+                                : (challenge.amIOut
+                                    ? AppColors.danger
+                                    : (done
+                                        ? AppColors.successText
+                                        : AppColors.textSecondary)),
+                            side: BorderSide(
+                                color: blackout != null
+                                    ? AppColors.neonPurple
+                                    : (challenge.amIOut
+                                        ? AppColors.danger
+                                        : (done
+                                            ? AppColors.neonGreen
+                                            : AppColors.textSecondary))),
+                          ),
+                          icon: Icon(
+                              blackout != null
+                                  ? Icons.block
+                                  : (challenge.amIOut
+                                      ? Icons.visibility_outlined
+                                      : (done
+                                          ? Icons.check_circle
+                                          : Icons.lock)),
+                              size: 18),
+                          label: Text(blackout != null
+                              ? 'BLACKED OUT · ${blackout.remainingLabel} LEFT'
+                              : (challenge.amIOut
+                                  ? 'WATCHING ONLY'
+                                  : (done ? 'TARGET REACHED' : 'QUEST OVER'))),
+                        )
+                      : ElevatedButton.icon(
+                          onPressed: () =>
+                              showAddProgressSheet(context, ref, challenge),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                AppColors.activeType == AppThemeType.editorial
+                                    ? AppColors.neonPink
+                                    : done
+                                        ? AppColors.neonGreen
+                                        : AppColors.neonPurple,
+                            foregroundColor:
+                                AppColors.activeType == AppThemeType.editorial
+                                    ? AppColors.onAccent
+                                    : AppColors.background,
+                            minimumSize: const Size(0, 48),
+                          ),
+                          icon: const Icon(Icons.add),
+                          label: Text(done ? 'LOG MORE REPS' : 'ADD PROGRESS'),
+                        ),
                 ),
               ],
-              const SizedBox(height: 14),
-              QuestProgressBar(challenge: challenge),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                // You can always log more — bonus reps past the goal are
-                // documented (they feed the totals below). Unless you are
-                // out (read-only for good) or blacked out (read-only for
-                // the next couple of hours).
-                child: (ended || challenge.amIOut || blackout != null)
-                    ? OutlinedButton.icon(
-                        onPressed: null,
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(0, 48),
-                          disabledForegroundColor: blackout != null
-                              ? AppColors.neonPurple
-                              : (challenge.amIOut
-                                  ? AppColors.danger
-                                  : (done
-                                      ? AppColors.successText
-                                      : AppColors.textSecondary)),
-                          side: BorderSide(
-                              color: blackout != null
-                                  ? AppColors.neonPurple
-                                  : (challenge.amIOut
-                                      ? AppColors.danger
-                                      : (done
-                                          ? AppColors.neonGreen
-                                          : AppColors.textSecondary))),
-                        ),
-                        icon: Icon(
-                            blackout != null
-                                ? Icons.block
-                                : (challenge.amIOut
-                                    ? Icons.visibility_outlined
-                                    : (done ? Icons.check_circle : Icons.lock)),
-                            size: 18),
-                        label: Text(blackout != null
-                            ? 'BLACKED OUT · ${blackout.remainingLabel} LEFT'
-                            : (challenge.amIOut
-                                ? 'WATCHING ONLY'
-                                : (done ? 'TARGET REACHED' : 'QUEST OVER'))),
-                      )
-                    : ElevatedButton.icon(
-                        onPressed: () =>
-                            showAddProgressSheet(context, ref, challenge),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              done ? AppColors.neonGreen : AppColors.neonPurple,
-                          foregroundColor: AppColors.background,
-                          minimumSize: const Size(0, 48),
-                        ),
-                        icon: const Icon(Icons.add),
-                        label: Text(done ? 'LOG MORE REPS' : 'ADD PROGRESS'),
-                      ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        // ── Cumulative totals ────────────────────────────
-        _CumulativeTotals(
-          challenge: challenge,
-          entries: entriesAsync.valueOrNull ?? const [],
-        ),
-        const SizedBox(height: 24),
-
-        // ── History ──────────────────────────────────────
-        Text(
-          'HISTORY',
-          style: textTheme.headlineSmall?.copyWith(color: AppColors.neonPurple),
-        ),
-        const SizedBox(height: 12),
-        entriesAsync.when(
-          skipLoadingOnReload: true,
-          loading: () => Padding(
-            padding: const EdgeInsets.all(16),
-            child: Center(
-              child: CircularProgressIndicator(color: AppColors.neonPurple),
             ),
           ),
-          error: (error, _) => Text(
-            'Could not load the history. Please try again.',
-            style: textTheme.bodySmall?.copyWith(color: AppColors.danger),
+          const SizedBox(height: 20),
+        ],
+        if (includeHistory) ...[
+          // ── Cumulative totals ────────────────────────────
+          _CumulativeTotals(
+            challenge: challenge,
+            entries: entriesAsync.valueOrNull ?? const [],
           ),
-          data: (entries) {
-            if (entries.isEmpty) {
-              return Text(
-                'Nothing logged yet — your first entry starts the story.',
-                style: textTheme.bodySmall
-                    ?.copyWith(color: AppColors.textSecondary),
+          const SizedBox(height: 24),
+
+          // ── History ──────────────────────────────────────
+          Text(
+            'HISTORY',
+            style:
+                textTheme.headlineSmall?.copyWith(color: AppColors.neonPurple),
+          ),
+          const SizedBox(height: 12),
+          entriesAsync.when(
+            skipLoadingOnReload: true,
+            loading: () => Padding(
+              padding: const EdgeInsets.all(16),
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.neonPurple),
+              ),
+            ),
+            error: (error, _) => Text(
+              'Could not load the history. Please try again.',
+              style: textTheme.bodySmall?.copyWith(color: AppColors.danger),
+            ),
+            data: (entries) {
+              if (entries.isEmpty) {
+                return Text(
+                  'Nothing logged yet — your first entry starts the story.',
+                  style: textTheme.bodySmall
+                      ?.copyWith(color: AppColors.textSecondary),
+                );
+              }
+              final periods = ProgressPeriod.group(entries, target);
+              return Column(
+                children: [
+                  for (final period in periods)
+                    _PeriodHistoryTile(
+                      challenge: challenge,
+                      label: _periodLabel(challenge, period.periodStart),
+                      period: period,
+                      unit: challenge.unit ?? '',
+                      time: _time,
+                      // Only the running period can be corrected; the rest
+                      // are settled and locked by the server.
+                      editable:
+                          period.periodStart == challenge.currentPeriodStart,
+                    ),
+                ],
               );
-            }
-            final periods = ProgressPeriod.group(entries, target);
-            return Column(
-              children: [
-                for (final period in periods)
-                  _PeriodHistoryTile(
-                    challenge: challenge,
-                    label: _periodLabel(challenge, period.periodStart),
-                    period: period,
-                    unit: challenge.unit ?? '',
-                    time: _time,
-                    // Only the running period can be corrected; the rest
-                    // are settled and locked by the server.
-                    editable:
-                        period.periodStart == challenge.currentPeriodStart,
-                  ),
-              ],
-            );
-          },
-        ),
+            },
+          ),
+        ],
       ],
     );
   }
@@ -1494,6 +1541,24 @@ class _StakesSection extends StatelessWidget {
             '${challenge.checkinPeriod == CheckinPeriod.weekly ? 'week' : 'month'}'
             '${challenge.hasRestDays ? ' · ${challenge.weekdayLabel}' : ''}';
 
+    if (AppColors.activeType == AppThemeType.editorial) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Wrap(spacing: 20, runSpacing: 8, children: [
+          Text('+${challenge.auraGain} / check-in',
+              style: textTheme.titleSmall),
+          Text('−${challenge.auraPenalty} / miss', style: textTheme.titleSmall),
+          Text('${challenge.strikesUsed}/${challenge.maxStrikes} strikes',
+              style: textTheme.bodySmall),
+        ]),
+        const SizedBox(height: 10),
+        Text('$frequency · $_modeLabel',
+            style:
+                textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
+        const SizedBox(height: 4),
+        _GearShopRow(challenge),
+      ]);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1537,7 +1602,7 @@ class _StakesSection extends StatelessWidget {
             _InfoChip(
               icon: Icons.repeat,
               label: frequency,
-              color: AppColors.neonPink,
+              color: AppColors.socialText,
             ),
             _InfoChip(icon: _modeIcon, label: _modeLabel, color: _modeColor),
           ],

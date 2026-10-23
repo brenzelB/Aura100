@@ -156,46 +156,46 @@ const neoBrutalistDarkColors = AppThemeColors(
 
 // ── Editorial Growth ────────────────────────────────────────────
 const editorialColors = AppThemeColors(
-  background: Color(0xFFF5F0E5),
-  surface: Color(0xFFFFFCF5),
-  surfaceLight: Color(0xFFEAE4D7),
-  neonCyan: Color(0xFF2944C5),
-  neonPink: Color(0xFF2944C5),
-  neonPurple: Color(0xFF873B66),
-  neonGreen: Color(0xFF316348),
-  neonYellow: Color(0xFF856000),
-  textPrimary: Color(0xFF22251E),
-  textSecondary: Color(0xFF5C5C52),
+  background: Color(0xFFF7E7F2),
+  surface: Color(0xFFFFF8F4),
+  surfaceLight: Color(0xFFE8D7E2),
+  neonCyan: Color(0xFF312149),
+  neonPink: Color(0xFFFE6746),
+  neonPurple: Color(0xFF312149),
+  neonGreen: Color(0xFF296044),
+  neonYellow: Color(0xFF785013),
+  textPrimary: Color(0xFF312149),
+  textSecondary: Color(0xFF6A4D67),
   danger: Color(0xFFB32C24),
-  outline: Color(0xFFCDC7B9),
-  inputOutline: Color(0xFF777769),
-  shadow: Color(0xFF252D58),
-  onAccent: Color(0xFFFFFFFF),
-  accentText: Color(0xFF2944C5),
-  successText: Color(0xFF316348),
-  warningText: Color(0xFF856000),
+  outline: Color(0xFFD6BED2),
+  inputOutline: Color(0xFF84617F),
+  shadow: Color(0xFF312149),
+  onAccent: Color(0xFF312149),
+  accentText: Color(0xFFA63420),
+  successText: Color(0xFF296044),
+  warningText: Color(0xFF785013),
   isDark: false,
 );
 
 const editorialDarkColors = AppThemeColors(
-  background: Color(0xFF171320),
-  surface: Color(0xFF241D30),
-  surfaceLight: Color(0xFF332A40),
-  neonCyan: Color(0xFFDBEF86),
-  neonPink: Color(0xFFDBEF86),
-  neonPurple: Color(0xFFCCAFF4),
-  neonGreen: Color(0xFF9BD3AD),
-  neonYellow: Color(0xFFEDC680),
-  textPrimary: Color(0xFFF5F0E5),
-  textSecondary: Color(0xFFC7BDCF),
+  background: Color(0xFF24182F),
+  surface: Color(0xFF382542),
+  surfaceLight: Color(0xFF5B4064),
+  neonCyan: Color(0xFFFFE9DB),
+  neonPink: Color(0xFFFFB08E),
+  neonPurple: Color(0xFFB7EBCC),
+  neonGreen: Color(0xFFB7EBCC),
+  neonYellow: Color(0xFFF2CB8D),
+  textPrimary: Color(0xFFFFE9DB),
+  textSecondary: Color(0xFFD6BDD4),
   danger: Color(0xFFFF9F93),
-  outline: Color(0xFF50445E),
-  inputOutline: Color(0xFF95859F),
+  outline: Color(0xFF57405F),
+  inputOutline: Color(0xFFB399B8),
   shadow: Color(0xFF000000),
-  onAccent: Color(0xFF171320),
-  accentText: Color(0xFFDBEF86),
-  successText: Color(0xFF9BD3AD),
-  warningText: Color(0xFFEDC680),
+  onAccent: Color(0xFF312149),
+  accentText: Color(0xFFFFB08E),
+  successText: Color(0xFFB7EBCC),
+  warningText: Color(0xFFF2CB8D),
   isDark: true,
 );
 
@@ -288,6 +288,10 @@ abstract class AppColors {
   static Color get successText => current.successText;
   static Color get warningText => current.warningText;
 
+  /// Coral is an action fill in Cut & Grow; small social labels need its ink twin.
+  static Color get socialText =>
+      activeType == AppThemeType.editorial ? accentText : neonPink;
+
   static bool get isDark => current.isDark;
 
   static List<BoxShadow> neonGlow(Color color) => [
@@ -341,24 +345,8 @@ abstract class AppColors {
       case AppThemeType.editorial:
         return BoxDecoration(
           color: effectiveFill,
-          borderRadius: radius != null
-              ? BorderRadius.circular(radius)
-              : const BorderRadius.only(
-                  topLeft: Radius.circular(6),
-                  topRight: Radius.circular(24),
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(6)),
-          border: Border.all(
-            color: isDanger ? danger : outline, // outline-variant
-            width: 1.0,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: shadow.withValues(alpha: isDark ? .18 : .05),
-              blurRadius: 12,
-              offset: const Offset(0, 3),
-            )
-          ],
+          borderRadius: BorderRadius.circular(radius ?? 16),
+          border: isDanger ? Border.all(color: danger) : null,
         );
       case AppThemeType.auralis:
         // Real, directional depth. On light, a soft cast shadow lets

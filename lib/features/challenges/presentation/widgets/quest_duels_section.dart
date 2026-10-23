@@ -122,7 +122,7 @@ class _DuelTile extends ConsumerWidget {
           _Badge(
             text: duel.status == 'active' ? 'PLAYING' : 'YOUR MOVE',
             icon: Icons.back_hand_outlined,
-            color: AppColors.neonPink,
+            color: AppColors.socialText,
           ),
         ),
       'declined' => (

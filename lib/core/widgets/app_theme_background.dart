@@ -36,28 +36,13 @@ class AppThemeBackground extends StatelessWidget {
           ),
         );
       case AppThemeType.editorial:
-        return Container(
+        return ColoredBox(
           color: AppColors.background,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    painter: _EditorialBackgroundPainter(
-                      color: AppColors.neonCyan.withValues(alpha: 0.06),
-                    ),
-                  ),
-                ),
-              ),
-              Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
+          child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1040),
-                  child: child,
-                ),
-              ),
-            ],
-          ),
+                  child: child)),
         );
       case AppThemeType.auralis:
         return Container(
@@ -121,44 +106,4 @@ class _GridPainter extends CustomPainter {
       old.color != color ||
       old.spacing != spacing ||
       old.strokeWidth != strokeWidth;
-}
-
-class _EditorialBackgroundPainter extends CustomPainter {
-  _EditorialBackgroundPainter({required this.color});
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Draw organic asymmetrical overlapping circular motifs in terracotta
-    // with low opacity to serve as a warm editorial style background.
-    final terracottaPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    // 1. Top-Left Circle
-    canvas.drawCircle(
-      const Offset(-40, 100),
-      size.width * 0.5,
-      terracottaPaint,
-    );
-
-    // 2. Middle-Right Circle
-    canvas.drawCircle(
-      Offset(size.width + 50, size.height * 0.45),
-      size.width * 0.4,
-      terracottaPaint,
-    );
-
-    // 3. Bottom-Left/Center Circle
-    canvas.drawCircle(
-      Offset(size.width * 0.15, size.height + 60),
-      size.width * 0.6,
-      terracottaPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _EditorialBackgroundPainter old) =>
-      old.color != color;
 }

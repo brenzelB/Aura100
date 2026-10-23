@@ -144,7 +144,7 @@ class QuestReminderRow extends ConsumerWidget {
             child: Text(
               on ? _label(at.hour, at.minute) : 'SET',
               style: TextStyle(
-                color: AppColors.neonPink,
+                color: AppColors.socialText,
                 fontWeight: FontWeight.w700,
                 fontFeatures: const [FontFeature.tabularFigures()],
               ),

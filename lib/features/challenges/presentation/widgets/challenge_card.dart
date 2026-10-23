@@ -172,7 +172,7 @@ class ChallengeCard extends ConsumerWidget {
                     icon: Icons.repeat,
                     label: '${challenge.checkinsPerPeriod}x/'
                         '${challenge.checkinPeriod == CheckinPeriod.weekly ? 'week' : 'month'}',
-                    color: AppColors.neonPink,
+                    color: AppColors.socialText,
                   ),
                 // Rest days change when the quest is due, so they
                 // belong on the card even for a daily quest.
@@ -180,7 +180,7 @@ class ChallengeCard extends ConsumerWidget {
                   _StatChip(
                     icon: Icons.event_repeat,
                     label: challenge.weekdayLabel,
-                    color: AppColors.neonPink,
+                    color: AppColors.socialText,
                   ),
                 // Owned shop gear, right in the overview.
                 for (final title in challenge.ownedBenefits)
