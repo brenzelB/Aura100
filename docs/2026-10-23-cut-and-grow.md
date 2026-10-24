@@ -67,9 +67,11 @@ It was installed as an update on `emulator-5554` without clearing app data.
 The normal sign-in screen was visually verified in Cut & Grow Light, and the
 emulator is back at 1080 × 2424, density 420, system font scale 1.0.
 
-This implementation does not publish a store release. The existing store test
-channels still carry build 19 from the preceding UI/UX refinement release; the
-selected redesign requires a subsequent store build to reach those testers.
+Build 20 (version 1.0.3) is now available in the existing Google Play internal
+test track and the existing internal TestFlight group. Distribution evidence,
+tester links and binary hashes are recorded in
+`2026-10-23-cut-and-grow-test-release.md`. The public store version remains
+unchanged; physical-device acceptance of build 20 is still open.
 
 ## Design documentation
 
