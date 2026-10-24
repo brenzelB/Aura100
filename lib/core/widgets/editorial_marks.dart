@@ -9,12 +9,14 @@ class EditorialMarks extends StatelessWidget {
       required this.completed,
       required this.total,
       this.width = 138,
-      this.height = 62});
+      this.height = 62,
+      this.semanticsLabel});
   final int completed, total;
   final double width, height;
+  final String? semanticsLabel;
   @override
   Widget build(BuildContext context) => Semantics(
-        label: '$completed of $total quests confirmed today',
+        label: semanticsLabel ?? '$completed of $total quests confirmed today',
         image: true,
         child: RepaintBoundary(
             child: SizedBox(

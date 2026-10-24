@@ -554,9 +554,36 @@ class _TodayHeader extends StatelessWidget {
     final accent = allDone ? AppColors.neonGreen : AppColors.neonCyan;
 
     if (AppColors.activeType == AppThemeType.editorial) {
+      final activeItems = [...agenda.open, ...agenda.done];
+      final avoidItems = activeItems
+          .where((item) => item.challenge.isAvoid)
+          .toList(growable: false);
+      final actionTotal = agenda.totalRunning - avoidItems.length;
+      final actionDone =
+          (agenda.done.where((item) => !item.challenge.isAvoid).length -
+                  pendingCount)
+              .clamp(0, actionTotal);
+      final avoidOnly = avoidItems.isNotEmpty && actionTotal == 0;
+      final heading = avoidItems.isEmpty
+          ? '$confirmed of ${agenda.totalRunning} complete'
+          : avoidOnly
+              ? '${avoidItems.length} avoid '
+                  '${avoidItems.length == 1 ? 'goal' : 'goals'} in progress'
+              : '$actionDone of $actionTotal action quests complete';
+      final subtitle = pendingCount > 0
+          ? avoidItems.isNotEmpty
+              ? '$pendingCount saved on this device · ${_avoidHomeSummary(avoidItems)}'
+              : '$pendingCount saved on this device · waiting to sync'
+          : avoidItems.isNotEmpty
+              ? _avoidHomeSummary(avoidItems)
+              : agenda.totalRunning == 0
+                  ? 'Your next chapter starts with a quest.'
+                  : allDone
+                      ? 'Everything done today. Legend.'
+                      : "Nice start. Don't get smug.";
       final copy =
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('$confirmed of ${agenda.totalRunning} complete',
+        Text(heading,
             style: textTheme.titleLarge?.copyWith(
                 fontFamily: 'Editorial Body',
                 fontWeight: FontWeight.w800,
@@ -564,14 +591,7 @@ class _TodayHeader extends StatelessWidget {
                     ? AppColors.successText
                     : AppColors.textPrimary)),
         const SizedBox(height: 4),
-        Text(
-            pendingCount > 0
-                ? '$pendingCount saved on this device · waiting to sync'
-                : agenda.totalRunning == 0
-                    ? 'Your next chapter starts with a quest.'
-                    : allDone
-                        ? 'Everything done today. Legend.'
-                        : "Nice start. Don't get smug.",
+        Text(subtitle,
             style:
                 textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
       ]);
@@ -580,9 +600,27 @@ class _TodayHeader extends StatelessWidget {
         decoration: BoxDecoration(
             border: Border(bottom: BorderSide(color: AppColors.outline))),
         child: LayoutBuilder(builder: (context, box) {
-          final marks =
-              EditorialMarks(completed: confirmed, total: agenda.totalRunning);
-          if (box.maxWidth < 340 ||
+          final markWidth = avoidItems.isEmpty
+              ? 138.0
+              : actionTotal > 2
+                  ? 104.0
+                  : 88.0;
+          final marks = Row(mainAxisSize: MainAxisSize.min, children: [
+            if (actionTotal > 0 || avoidItems.isEmpty)
+              EditorialMarks(
+                completed: avoidItems.isEmpty ? confirmed : actionDone,
+                total: avoidItems.isEmpty ? agenda.totalRunning : actionTotal,
+                width: markWidth,
+                semanticsLabel: avoidItems.isEmpty
+                    ? null
+                    : '$actionDone of $actionTotal action quests confirmed today',
+              ),
+            if (avoidItems.isNotEmpty) ...[
+              if (actionTotal > 0) const SizedBox(width: 8),
+              _EditorialAvoidMark(quests: avoidItems),
+            ],
+          ]);
+          if (box.maxWidth < 380 ||
               MediaQuery.textScalerOf(context).scale(1) > 1.3) {
             return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1403,6 +1441,106 @@ class _CheckInButtonState extends ConsumerState<_CheckInButton> {
   }
 }
 
+String _avoidHomeSummary(List<AgendaItem> quests) {
+  if (quests.length == 1) {
+    final item = quests.single;
+    final challenge = item.challenge;
+    if (challenge.slipLimitBroken) {
+      return 'Limit exceeded · the next period is a fresh start.';
+    }
+    final slipCount = challenge.dailyAllowance == 0
+        ? '${challenge.slipsInPeriod} slips so far'
+        : '${challenge.slipsInPeriod}/${challenge.dailyAllowance} slips this period';
+    if (item.previousAvoidPeriodProtected) {
+      return 'Last period protected · current period: $slipCount';
+    }
+    return 'Avoid goal in progress · $slipCount';
+  }
+
+  final protected =
+      quests.where((item) => item.previousAvoidPeriodProtected).length;
+  final overLimit =
+      quests.where((item) => item.challenge.slipLimitBroken).length;
+  final onTrack = quests.length - overLimit;
+  final details = <String>[
+    '$onTrack on track',
+    if (protected > 0) '$protected last period protected',
+    if (overLimit > 0) '$overLimit over limit',
+  ];
+  return '${quests.length} avoid goals tracked separately · ${details.join(' · ')}';
+}
+
+class _EditorialAvoidMark extends StatelessWidget {
+  const _EditorialAvoidMark({required this.quests});
+
+  final List<AgendaItem> quests;
+
+  @override
+  Widget build(BuildContext context) {
+    final protected =
+        quests.where((item) => item.previousAvoidPeriodProtected).length;
+    final overLimit =
+        quests.where((item) => item.challenge.slipLimitBroken).length;
+    final allProtected = protected == quests.length;
+    final color = overLimit > 0
+        ? AppColors.danger
+        : allProtected
+            ? AppColors.successText
+            : AppColors.accentText;
+    final icon = overLimit > 0
+        ? Icons.gpp_bad_outlined
+        : allProtected
+            ? Icons.verified_user_outlined
+            : Icons.shield_outlined;
+    final label = _avoidHomeSummary(quests);
+
+    return Tooltip(
+      message: label,
+      child: Semantics(
+        label: label,
+        image: true,
+        child: Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: color.withValues(alpha: 0.7), width: 1.5),
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Icon(icon, size: 23, color: color),
+              if (quests.length > 1)
+                Positioned(
+                  right: 1,
+                  top: 1,
+                  child: Container(
+                    constraints:
+                        const BoxConstraints(minWidth: 15, minHeight: 15),
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '${quests.length}',
+                      style: TextStyle(
+                        color: AppColors.background,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// A quest that still needs a check-in in the current period.
 class _AgendaCard extends ConsumerWidget {
   const _AgendaCard({super.key, required this.item});
@@ -1418,6 +1556,22 @@ class _AgendaCard extends ConsumerWidget {
 
     final editorial = AppColors.activeType == AppThemeType.editorial;
     final featured = editorial && item.challenge.isProgress;
+    final avoidGoal = editorial && item.challenge.isAvoid;
+    final avoidStatusColor = item.challenge.slipLimitBroken
+        ? AppColors.danger
+        : item.challenge.slipNearLimit
+            ? AppColors.warningText
+            : AppColors.successText;
+    final avoidStatusIcon = item.challenge.slipLimitBroken
+        ? Icons.gpp_bad_outlined
+        : item.previousAvoidPeriodProtected
+            ? Icons.verified_user_outlined
+            : Icons.shield_outlined;
+    final avoidStatusText = item.challenge.slipLimitBroken
+        ? 'Limit exceeded · the next period is a fresh start'
+        : item.previousAvoidPeriodProtected
+            ? 'Last period protected · this period is in progress'
+            : 'No check-in needed · this goal is in progress';
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: EdgeInsets.all(featured ? 16 : 14),
@@ -1518,7 +1672,7 @@ class _AgendaCard extends ConsumerWidget {
             runSpacing: 4,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text(item.demandLabel,
+              Text(avoidGoal ? 'Avoid · in progress' : item.demandLabel,
                   style: textTheme.bodySmall
                       ?.copyWith(color: AppColors.accentText)),
               Text(
@@ -1529,6 +1683,26 @@ class _AgendaCard extends ConsumerWidget {
                       ?.copyWith(color: AppColors.successText)),
             ],
           ),
+          if (avoidGoal) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(avoidStatusIcon, size: 17, color: avoidStatusColor),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    avoidStatusText,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: avoidStatusColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 5),
+            SlipMeter(challenge: item.challenge, compact: true),
+          ],
           if (item.challenge.isProgress) ...[
             const SizedBox(height: 8),
             QuestProgressBar(challenge: item.challenge, compact: true),

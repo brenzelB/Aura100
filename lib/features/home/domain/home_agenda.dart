@@ -13,6 +13,7 @@ class AgendaItem {
     required this.daysLeftInPeriod,
     required this.strikesUsed,
     required this.checkedInToday,
+    this.previousAvoidPeriodProtected = false,
   });
 
   final Challenge challenge;
@@ -36,6 +37,12 @@ class AgendaItem {
   /// Already logged today. Only one check-in per day is possible; the
   /// database enforces it with a unique constraint.
   final bool checkedInToday;
+
+  /// The immediately preceding avoid period was settled successfully by the
+  /// server. Avoid settlements use a synthetic check-in on that period's
+  /// start date, so this is history only; it never marks the current period
+  /// complete before its deadline.
+  final bool previousAvoidPeriodProtected;
 
   /// Nothing left to do TODAY — either the period is complete, or today's
   /// one allowed check-in is already used.
@@ -119,6 +126,7 @@ class HomeAgenda {
               daysLeftInPeriod: item.daysLeftInPeriod,
               strikesUsed: item.strikesUsed,
               checkedInToday: true,
+              previousAvoidPeriodProtected: item.previousAvoidPeriodProtected,
             ),
       ],
       upcoming: upcoming,
@@ -175,6 +183,11 @@ class HomeAgenda {
       final daysIn = todayDate.difference(start).inDays;
       final periodStart =
           start.add(Duration(days: (daysIn ~/ periodLen) * periodLen));
+      final previousPeriodStart =
+          periodStart.subtract(Duration(days: periodLen));
+      final previousAvoidPeriodProtected = challenge.isAvoid &&
+          !previousPeriodStart.isBefore(start) &&
+          checkIns.containsKey(previousPeriodStart);
       var periodEnd = periodStart.add(Duration(days: periodLen));
       if (endExclusive != null && periodEnd.isAfter(endExclusive)) {
         periodEnd = endExclusive;
@@ -193,6 +206,7 @@ class HomeAgenda {
         // because shields absorb strikes and only the server knows.
         strikesUsed: challenge.strikesUsed,
         checkedInToday: checkIns.containsKey(todayDate),
+        previousAvoidPeriodProtected: previousAvoidPeriodProtected,
       );
       (item.doneForToday ? done : open).add(item);
     }
