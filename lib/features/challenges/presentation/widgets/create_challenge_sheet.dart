@@ -23,7 +23,10 @@ import '../../../../core/text/dates.dart';
 /// Bottom-sheet form for forging a new challenge: title, flexible
 /// schedule (custom duration + start date), stakes and strikes.
 class CreateChallengeSheet extends ConsumerStatefulWidget {
-  const CreateChallengeSheet({super.key});
+  const CreateChallengeSheet({super.key, this.now = DateTime.now});
+
+  /// Keep every schedule control on the same clock, including date pickers.
+  final DateTime Function() now;
 
   static Future<void> show(BuildContext context) {
     return showModalBottomSheet(
@@ -57,8 +60,11 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
   final _descriptionController = TextEditingController();
   final _auraGainController = TextEditingController(text: '100');
   final _auraPenaltyController = TextEditingController(text: '25');
-  static DateTime _initialStartDate() {
-    final now = DateTime.now();
+  DateTime _initialStartDate() {
+    // Quest days are shared UTC days on both platforms and on the server.
+    // Taking the device's calendar fields first can make "Today" tomorrow
+    // on the server just after local midnight.
+    final now = widget.now().toUtc();
     return DateTime.utc(now.year, now.month, now.day);
   }
 
@@ -76,7 +82,7 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
         _attacksEnabled = preset.attacks;
       });
   late DateTime _startsOn = _initialStartDate();
-  late DateTime _endsOn = _initialStartDate().add(const Duration(days: 6));
+  late DateTime _endsOn = _startsOn.add(const Duration(days: 6));
   CheckinPeriod _period = CheckinPeriod.daily;
   int _perPeriod = 3;
   QuestMode _mode = QuestMode.solo;
@@ -123,6 +129,7 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
         'custom': _customBalance,
         'attacks': _attacksEnabled,
         'strikes': _maxStrikes,
+        'schedule_utc': true,
         'starts': _startsOn.toIso8601String(),
         'ends': _endsOn.toIso8601String(),
         'period': _period.name,
@@ -167,11 +174,24 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
     _attacksEnabled = d['attacks'] is bool ? d['attacks'] as bool : true;
     _maxStrikes = number('strikes', 3, 10);
     final today = _initialStartDate();
-    final start = DateTime.tryParse(text('starts', 40))?.toUtc();
+    final savedStart = DateTime.tryParse(text('starts', 40))?.toUtc();
+    var start = savedStart;
+    // Old drafts used local "today" even though quest dates are UTC. Repair
+    // that default while preserving explicitly scheduled dates in new drafts.
+    final deviceNow = widget.now();
+    if (d['schedule_utc'] != true &&
+        start != null &&
+        start.year == deviceNow.year &&
+        start.month == deviceNow.month &&
+        start.day == deviceNow.day) {
+      start = today;
+    }
     _startsOn = start == null || start.isBefore(today) ? today : start;
     final latestStart = today.add(const Duration(days: 365));
     if (_startsOn.isAfter(latestStart)) _startsOn = latestStart;
-    final end = DateTime.tryParse(text('ends', 40))?.toUtc();
+    final shift =
+        savedStart == null ? Duration.zero : _startsOn.difference(savedStart);
+    final end = DateTime.tryParse(text('ends', 40))?.toUtc().add(shift);
     _endsOn = end == null || end.isBefore(_startsOn)
         ? _startsOn.add(const Duration(days: 6))
         : end;
@@ -343,11 +363,13 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
   }
 
   Future<void> _pickStartDate() async {
+    final today = _initialStartDate();
     final picked = await showDatePicker(
       context: context,
-      initialDate: _startsOn,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: _startsOn.isBefore(today) ? today : _startsOn,
+      currentDate: today,
+      firstDate: today,
+      lastDate: today.add(const Duration(days: 365)),
     );
     if (picked == null) return;
     _edit(() {
@@ -362,6 +384,7 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
   Future<void> _pickEndDate() async {
     final picked = await showDatePicker(
       context: context,
+      currentDate: _initialStartDate(),
       initialDate: _endsOn.isBefore(_startsOn) ? _startsOn : _endsOn,
       // The pickers enforce the 1-365 day window — no validator needed.
       firstDate: _startsOn,
@@ -374,7 +397,7 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
   }
 
   String _dateLabel(DateTime d, {required bool todayAllowed}) {
-    final now = DateTime.now().toUtc();
+    final now = _initialStartDate();
     final isToday =
         d.year == now.year && d.month == now.month && d.day == now.day;
     if (isToday && todayAllowed) return 'Today';
@@ -383,6 +406,15 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // A sheet left open across the shared daily reset must still start now.
+    final today = _initialStartDate();
+    if (_startsOn.isBefore(today)) {
+      _edit(() {
+        _endsOn = _endsOn.add(today.difference(_startsOn));
+        _startsOn = today;
+      });
+    }
 
     final messenger = ScaffoldMessenger.of(context);
 
@@ -834,6 +866,12 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
                           _endless
                               ? 'Runs forever — no end date.'
                               : '$_durationDays day${_durationDays == 1 ? '' : 's'} total',
+                          style: textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textSecondary),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Daily reset: ${formatTime(_initialStartDate().add(const Duration(days: 1)))} your time (00:00 UTC).',
                           style: textTheme.bodySmall
                               ?.copyWith(color: AppColors.textSecondary),
                         ),
