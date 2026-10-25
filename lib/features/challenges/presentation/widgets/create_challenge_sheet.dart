@@ -811,6 +811,14 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
                       const SizedBox(height: 16),
                     ],
                     if (_step == 1) ...[
+                      // Choose duration before asking for an end date.
+                      _EndlessTile(
+                        value: _endless,
+                        locked: _isLms,
+                        enabled: !isLoading,
+                        onChanged: (v) => _edit(() => _isEndless = v),
+                      ),
+                      const SizedBox(height: 12),
                       // ── Schedule: start always; end only for fixed quests ─
                       // Last Man Standing has no start date either — it starts
                       // when the creator hits START in the lobby.
@@ -1075,14 +1083,6 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
                         onChanged: () => _edit(() {}),
                       ),
 
-                      // ── Endless toggle (forced on for Last Standing) ─
-                      const SizedBox(height: 8),
-                      _EndlessTile(
-                        value: _endless,
-                        locked: _isLms,
-                        enabled: !isLoading,
-                        onChanged: (v) => _edit(() => _isEndless = v),
-                      ),
                       const SizedBox(height: 16),
 
                       Text('BALANCE', style: textTheme.titleSmall),
