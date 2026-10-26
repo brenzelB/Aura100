@@ -64,3 +64,16 @@ dist/
 
 # Generated golden-test difference images
 /test/failures/
+
+# Scratch space — throwaway experiments, node_modules and renders.
+# Nothing in here is part of the app; it is routinely a gigabyte.
+scratch/
+
+# Local agent/assistant tooling state — machine-specific, not shared.
+.agents/
+.codex/
+
+# Impeccable design-tool renders. The DECISIONS it makes are tracked
+# (design.json, surfaces/); these are just the pictures it drew to get
+# there and are regenerated on the next run.
+.impeccable/mocks/
