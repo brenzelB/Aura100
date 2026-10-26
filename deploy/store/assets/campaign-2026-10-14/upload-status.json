@@ -1,0 +1,209 @@
+{
+  "checkedAt": "2026-10-15T20:49:58.106Z",
+  "campaignRevision": 2,
+  "uploadedImages": 28,
+  "submittedByThisTask": false,
+  "publicReleaseByThisTask": false,
+  "apple": {
+    "appId": "6821149239",
+    "version": "1.0.2",
+    "state": "PREPARE_FOR_SUBMISSION",
+    "verification": "Official read-only API: exact MD5, image order, all COMPLETE",
+    "sets": [
+      {
+        "locale": "de-DE",
+        "platform": "Apple_iPhone",
+        "displayType": "APP_IPHONE_61",
+        "setId": "c0a2c680-eba5-4bf8-85f0-a9c015060099",
+        "images": [
+          {
+            "file": "Apple_iPhone/de/01_alltag.png",
+            "fileName": "01_alltag.png",
+            "id": "a98ee1c3-eb3f-4eea-ab01-1d8afe223cfd",
+            "md5": "e18be7a090b0080bbbf67ac31aebe98a",
+            "order": 1,
+            "state": "COMPLETE"
+          },
+          {
+            "file": "Apple_iPhone/de/02_zusammen.png",
+            "fileName": "02_zusammen.png",
+            "id": "1781a59f-912c-41d5-a46d-8260c69f9595",
+            "md5": "d7b943bc755bea49eb960ff605d58249",
+            "order": 2,
+            "state": "COMPLETE"
+          },
+          {
+            "file": "Apple_iPhone/de/03_fortschritt.png",
+            "fileName": "03_fortschritt.png",
+            "id": "1138d4d0-6808-4e6a-ab31-b5dfb7785c1d",
+            "md5": "54e45e3506f219bbc866fc0d8647c73f",
+            "order": 3,
+            "state": "COMPLETE"
+          },
+          {
+            "file": "Apple_iPhone/de/04_checkins.png",
+            "fileName": "04_checkins.png",
+            "id": "4ba4ab5d-06cb-4116-b358-f31bbb8b7015",
+            "md5": "f1ebbf84fe0b12c9846bb436136b21cb",
+            "order": 4,
+            "state": "COMPLETE"
+          }
+        ]
+      },
+      {
+        "locale": "de-DE",
+        "platform": "Apple_iPad",
+        "displayType": "APP_IPAD_PRO_3GEN_129",
+        "setId": "0e25dbd7-7aa0-4e8d-b3b4-4b6b2036d666",
+        "images": [
+          {
+            "file": "Apple_iPad/de/01_alltag.png",
+            "fileName": "Apple_iPad_de_01_alltag.png",
+            "id": "d5faf403-8f5f-4382-b0b2-181baf8f5deb",
+            "md5": "45f813d8df95000b198e12940cfe6983",
+            "order": 1,
+            "state": "COMPLETE"
+          },
+          {
+            "file": "Apple_iPad/de/02_zusammen.png",
+            "fileName": "Apple_iPad_de_02_zusammen.png",
+            "id": "d6ffe6db-a32d-4c17-b1b8-15184eaf4954",
+            "md5": "0e9e00e69537e44e60ac310e79dd88ca",
+            "order": 2,
+            "state": "COMPLETE"
+          },
+          {
+            "file": "Apple_iPad/de/03_fortschritt.png",
+            "fileName": "Apple_iPad_de_03_fortschritt.png",
+            "id": "7d42418d-410a-43f4-8cfd-3b2e4fe6e3bf",
+            "md5": "6bbcd9b81763f8f24baae113cd7c17ec",
+            "order": 3,
+            "state": "COMPLETE"
+          },
+          {
+            "file": "Apple_iPad/de/04_checkins.png",
+            "fileName": "Apple_iPad_de_04_checkins.png",
+            "id": "f6e8d761-a24b-48e7-91f8-e73e85d91653",
+            "md5": "f534d503e96fb6416bc3a39178e7af9b",
+            "order": 4,
+            "state": "COMPLETE"
+          }
+        ]
+      },
+      {
+        "locale": "en-US",
+        "platform": "Apple_iPhone",
+        "displayType": "APP_IPHONE_61",
+        "setId": "c34656ac-4557-4e47-89f0-bdf9e323fdcd",
+        "images": [
+          {
+            "file": "Apple_iPhone/en/01_alltag.png",
+            "fileName": "Apple_iPhone_en_01_alltag.png",
+            "id": "c4b0ee03-08a2-4622-b452-5a3e6ed9e6a1",
+            "md5": "76eef060abae736cd822a988a3429233",
+            "order": 1,
+            "state": "COMPLETE"
+          },
+          {
+            "file": "Apple_iPhone/en/02_zusammen.png",
+            "fileName": "Apple_iPhone_en_02_zusammen.png",
+            "id": "6182883c-c391-4579-81b8-212da731edc6",
+            "md5": "5f7b0a7249ac36a0ce85fe8913b1998c",
+            "order": 2,
+            "state": "COMPLETE"
+          },
+          {
+            "file": "Apple_iPhone/en/03_fortschritt.png",
+            "fileName": "Apple_iPhone_en_03_fortschritt.png",
+            "id": "1a3cc9c3-3a1b-47e3-85b3-4ea65ad62998",
+            "md5": "75940387f50f1843e2e1b5ee4b997e07",
+            "order": 3,
+            "state": "COMPLETE"
+          },
+          {
+            "file": "Apple_iPhone/en/04_checkins.png",
+            "fileName": "Apple_iPhone_en_04_checkins.png",
+            "id": "534520ba-5736-44ba-9cdd-a8c60b50cd9c",
+            "md5": "bf21d135607341d5e47f9cd6cbd765eb",
+            "order": 4,
+            "state": "COMPLETE"
+          }
+        ]
+      },
+      {
+        "locale": "en-US",
+        "platform": "Apple_iPad",
+        "displayType": "APP_IPAD_PRO_3GEN_129",
+        "setId": "a8e036cd-1940-48c1-8e4f-c1f1a011ecba",
+        "images": [
+          {
+            "file": "Apple_iPad/en/01_alltag.png",
+            "fileName": "Apple_iPad_en_01_alltag.png",
+            "id": "2023aacb-b367-4fd7-8343-91eade1b3b8c",
+            "md5": "c51a62bfede0298736a3c1d94e972fba",
+            "order": 1,
+            "state": "COMPLETE"
+          },
+          {
+            "file": "Apple_iPad/en/02_zusammen.png",
+            "fileName": "Apple_iPad_en_02_zusammen.png",
+            "id": "e997417c-832e-4cc7-a4da-c6fb10f26c2e",
+            "md5": "1a0f2dd1b063fe4b8f6c5d5062dede4c",
+            "order": 2,
+            "state": "COMPLETE"
+          },
+          {
+            "file": "Apple_iPad/en/03_fortschritt.png",
+            "fileName": "Apple_iPad_en_03_fortschritt.png",
+            "id": "3438fbc0-103e-437b-9aa2-223223bdfac2",
+            "md5": "cf5d6e7160b9912ffb59ac820c4f8588",
+            "order": 3,
+            "state": "COMPLETE"
+          },
+          {
+            "file": "Apple_iPad/en/04_checkins.png",
+            "fileName": "Apple_iPad_en_04_checkins.png",
+            "id": "cc317b9f-0555-4a81-aa3f-8943ad094ed9",
+            "md5": "64d3724607ffb8ccca2eef76264592a8",
+            "order": 4,
+            "state": "COMPLETE"
+          }
+        ]
+      }
+    ]
+  },
+  "google": {
+    "checkedAt": "2026-10-15T20:47:01.250Z",
+    "provider": "Google Play Console",
+    "appId": "4973931530614115903",
+    "publicRelease": false,
+    "languageAdded": "de-DE",
+    "textChange": "Existing German text copied exactly into new de-DE locale; en-US texts unchanged.",
+    "localizations": [
+      {
+        "locale": "en-US",
+        "files": [
+          "feature_1024x500.png",
+          "Google_Play_en_01_alltag.png",
+          "Google_Play_en_02_fortschritt.png",
+          "Google_Play_en_03_zusammen.png",
+          "Google_Play_en_04_deine_ziele.png",
+          "Google_Play_en_05_perks.png"
+        ],
+        "saved": true
+      },
+      {
+        "locale": "de-DE",
+        "files": [
+          "Feature_Graphic_de_feature_1024x500.png",
+          "Google_Play_de_01_alltag.png",
+          "Google_Play_de_02_fortschritt.png",
+          "Google_Play_de_03_zusammen.png",
+          "Google_Play_de_04_deine_ziele.png",
+          "Google_Play_de_05_perks.png"
+        ],
+        "saved": true
+      }
+    ]
+  }
+}
