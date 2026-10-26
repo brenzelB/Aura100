@@ -1,9 +1,16 @@
 # Google-Anmeldung: iOS-Browser bleibt offen
 
-**Aktueller Stand:** Der Nutzer korrigiert den Test von Build 13 ausdrücklich:
-Anmeldung erfolgreich, Fenster bleibt offen. Die öffentliche Einreichung ist
-gestoppt. Der nachträgliche `url_launcher`-Schließversuch wird durch Apples
-`ASWebAuthenticationSession` ersetzt; ein neuer signierter Testbuild ist erforderlich.
+**Aktueller Stand:** Der Nutzer bestätigt den erneuten iPhone-Test mit Build 14:
+„das hat wunderbar mit der google anmeldung funktioniert“. Damit ist die zuvor
+ausdrücklich angefragte Google-Anmeldung einschließlich automatischem Schließen
+bestanden; der Google-Fehler blockiert die Einreichung nicht mehr. Build 13 bleibt
+als fehlgeschlagener Schließversuch dokumentiert. Der nachträgliche
+`url_launcher`-Schließversuch ist durch Apples
+`ASWebAuthenticationSession` ersetzt. Der neue signierte Build 14 ist erstellt,
+geprüft, erfolgreich hochgeladen und von Apple als `VALID` verarbeitet.
+Exportbestätigung und interne Freigabe sind inzwischen abgeschlossen:
+**1.0.2 (14) ist in Aura Quest iOS intern „Im Test“**. Den aktuellen Apple-
+Einreichungsstatus enthält [der Checkpoint](2026-10-16-apple-launch-completion.md).
 
 ## Befund
 
@@ -125,6 +132,93 @@ gesondert berichtet. Die erfolgreiche Kontolöschung bleibt bestätigt; der
 Anmeldeanbieter ist nicht angegeben.
 Nachweise: `build/audit/proofs/apple-build-13-internal-test-2026-10-16.png` und
 `build/audit/proofs/apple-submission-draft-build-13-ready-2026-10-16.png`.
+
+## Ersatzbuild 14: erstellt und hochgeladen
+
+- Commit `01710583204d7438fe3d7445498298fae2ca06fe` ist nach `main` gepusht.
+- [Release-Lauf 38907755246](https://github.com/brenzelB/Aura100/actions/runs/38907755246):
+  alle vier Jobs erfolgreich, einschließlich 384 Unit-/Widgettests und acht
+  exakten Theme-Goldens; native Swift-Kompilierung, Signierung und IPA-Prüfung bestanden.
+- Apples Upload-Server meldete mehrfach HTTP 500. Der bestehende Uploader hat
+  selbst erneut versucht und am 16. Oktober um **13:39:20 UTC** erfolgreich mit
+  `UPLOAD SUCCEEDED with no errors` abgeschlossen. Kein zweiter Upload gestartet.
+- Signiertes Artefakt `ios-app-store-ipa-14`, ID `12048958490`, Herkunftsdatei
+  bestätigt Commit, Build 14 und `signing=true`.
+- IPA-SHA256: `111153701ceedb07eb42bb96e92c2af64348f356eaaf58b8baeaace33a1dba18`.
+- Tatsächliches IPA bestätigt Bundle `com.auraquest.auraQuest`, Version 1.0.2,
+  Build 14, iOS 15, SDK iphoneos26.5, dieselben 22 Privacy-Manifeste und 13
+  Datentypen ohne Tracking; keine Analytics-/Ads-Bibliothek und keine Store-Fixtures.
+- Bericht: `build/audit/ios-build-14-privacy-report-2026-10-16.json`.
+  Build-Nachweis: `build/audit/proofs/google-ios-native-build-14-success-2026-10-16.png`.
+
+Upload-Erfolg ist noch keine interne TestFlight-Verfügbarkeit. Nach dem Upload
+zeigte App Store Connect auch nach erneutem Laden „Anscheinend hat etwas nicht
+richtig funktioniert“; zwei getrennte read-only API-Abfragen liefen nach jeweils
+20 Sekunden in ein Timeout. Build 14 konnte deshalb noch nicht als verarbeitet
+bestätigt oder der internen Gruppe zugeordnet werden. Keine zweite Übertragung
+und keine Änderung an Apple-Zugangsdaten oder Freigaben durchgeführt.
+Nachweis: `build/audit/proofs/apple-build-14-processing-server-error-2026-10-16.png`.
+Beim ersten Abschluss blieben Apple-Verarbeitung und Gruppenzuordnung offen. Eine öffentliche Einreichung bleibt
+gestoppt, bis der Nutzer das tatsächliche Schließen des neuen Fensters bestätigt.
+
+### Fortsetzung: Apple-Verarbeitung abgeschlossen, Anmeldung erforderlich
+
+Apple bestätigt inzwischen Build 14 als **VALID**, ID
+`8832e3cb-a8e4-4d14-9ad1-841ab13dad98`. Die Browser-Sitzung ist abgelaufen.
+Der vorhandene Entwickler-API-Schlüssel konnte Identität, Build, bestehende Gruppe
+und Versionsentwurf lesen. Build 14 zeigt noch `MISSING_EXPORT_COMPLIANCE`.
+Der von Apple nach den bestätigten Standardverschlüsselung-/Ohne-Frankreich-
+Antworten gespeicherte effektive Wert von Build 13 ist
+`usesNonExemptEncryption=false`, ohne separate Encryption Declaration.
+Vor dem vorgesehenen unveränderten Übernehmen wurden Quellcommit, signierte
+IPA-Prüfsumme, App-ID, Gruppenidentität und unveränderter Prüfentwurf geprüft.
+
+Apple verweigerte die entsprechende `PATCH /v1/builds/{build14}`-Anfrage mit
+**403 FORBIDDEN_ERROR**. Der Schlüssel darf diese Exportangabe nicht ändern.
+Die folgende Gruppenänderung wurde deshalb gar nicht ausgeführt. Die Kontrolle
+danach bestätigt: Build 14 weiter mit fehlender Exportbestätigung; Gruppe weiterhin
+mit Builds 9, 11 und 13; öffentlicher Versionsentwurf weiterhin Build 13,
+`READY_FOR_REVIEW`, Veröffentlichung `MANUAL`. Keine Einreichung.
+Der ebenfalls verweigerte read-only Zugriff auf Länder-Verfügbarkeit wurde nicht
+wiederholt; es erfolgte keine Länderänderung. Die bereits geprüfte Frankreich-
+Auswahl wurde in dieser Fortsetzung nicht live erneut bestätigt.
+
+Der Nutzer wurde gebeten, sich ausschließlich direkt bei Apple erneut anzumelden,
+damit die bestätigten Exportangaben über seinen bestehenden Browser-Zugang
+gespeichert und Build 14 intern freigegeben werden können. Keine neuen Schlüssel
+oder erweiterten Rechte angelegt.
+
+### Abgeschlossen nach erneuter Browser-Anmeldung
+
+Der Nutzer bestätigt die erneute Anmeldung. Im bestehenden Chrome-Konto wurde
+für Build 14 der bekannte Exportdialog ausgefüllt: Standardverschlüsselung
+außerhalb bzw. zusätzlich zum Apple-Betriebssystem, **kein Vertrieb in Frankreich**.
+Nach dem Speichern zeigt Build 14 **Bereit zur Übermittlung**, ohne fehlende
+Compliance. Anschließend wurde ausschließlich die bestehende interne Gruppe
+**Aura Quest iOS intern** hinzugefügt. Deren Builds-Ansicht bestätigt
+**1.0.2 (14): Im Test**, weiterhin einen bestehenden Tester und nun vier Builds
+(14, 13, 11, 9). Kein neuer Tester, kein öffentlicher Test und keine Einreichung.
+Der öffentliche Versionsentwurf wurde in dieser Fortsetzung nicht verändert.
+
+Nachweis: `build/audit/proofs/apple-build-14-internal-test-2026-10-16.png`.
+Nach dieser internen Freigabe wurde der Nutzer ausdrücklich aufgefordert, in
+TestFlight auf **1.0.2 (14)** zu aktualisieren, erneut Google zu verwenden und das
+automatische Schließen zu prüfen. Seine anschließende Bestätigung am 16. Oktober
+lautet: „das hat wunderbar mit der google anmeldung funktioniert“. Dieser Test
+ist bestanden. Abbruch, Wiederholung, Apple-Anmeldung und Push wurden damit nicht
+zusätzlich als auf einem echten Gerät geprüft bestätigt.
+
+### Zur App Review eingereicht
+
+Nach der Nutzerbestätigung wurde Build 13 aus dem ungesendeten Entwurf gelöst und
+durch Build 14 ersetzt. Der Review-Login und die drei Beispielquests wurden über
+die öffentliche HTTPS-API erneut erfolgreich geprüft. Apple akzeptierte die
+Version zur Übermittlung; anschließend wurde die finale Einreichung abgesendet.
+Die Übermittlungsdetailseite bestätigt **1.0.2 (14), Warten auf Prüfung**, Datum
+**16. Oktober 2026, 20:31 Uhr**, Kennung
+`eaa11e08-627f-4c8e-8e4c-3b67607eb19f`. Die Veröffentlichung bleibt manuell und
+Frankreich ausgeschlossen. Noch keine Apple-Genehmigung oder öffentliche Freigabe.
+Nachweis: `build/audit/proofs/apple-build-14-submitted-review-2026-10-16.png`.
 
 Quellen:
 

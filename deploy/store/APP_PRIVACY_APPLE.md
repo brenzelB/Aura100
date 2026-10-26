@@ -1,6 +1,6 @@
 # Apple App Store — App-Datenschutzangaben (App Privacy)
 
-Leitfaden zum Ausfüllen des Bereichs **"App-Datenschutz" (App Privacy)** in **App Store Connect** für **Aura Quest**.
+Bestätigte Angaben im Bereich **"App-Datenschutz" (App Privacy)** in **App Store Connect** für **Aura Quest**. Am 16. Oktober 2026 nach ausdrücklicher Nutzerfreigabe mit allen 13 Datentypen gespeichert und bei Apple veröffentlicht. Das ist keine öffentliche Veröffentlichung der App.
 
 ---
 
@@ -85,6 +85,6 @@ Diese Deklaration muss vor dem Upload gegen den finalen iOS-Build und alle einge
 - Die öffentlich verlinkte Datenschutzerklärung muss diese Dienste, Aufbewahrung, Löschung und Kontakt aktuell erklären.
 - Keine Tracking-Aussage bestätigen, bevor die finalen SDKs und deren Konfiguration geprüft wurden.
 
-Abgleich am 10.10.2026: Firebase-iOS-Konfiguration hat Analytics und Ads deaktiviert. Das App-Privacy-Formular in App Store Connect ist noch offen. Maßgeblich sind [Apples Datentypen und Freitext-Hinweise](https://developer.apple.com/app-store/app-privacy-details/); das finale Xcode-Privacy-Report muss vor der Einreichung gegen diese Angaben geprüft werden.
+Erneuter Abgleich am 16.10.2026: Firebase-iOS-Konfiguration hat Analytics und Ads deaktiviert. Das App-Privacy-Formular in App Store Connect ist vollständig gespeichert und veröffentlicht. Maßgeblich sind [Apples Datentypen und Freitext-Hinweise](https://developer.apple.com/app-store/app-privacy-details/). Die eigene Prüfung des tatsächlichen IPA ist kein von Xcode erzeugter Privacy Report.
 
 Exportprüfung des tatsächlichen IPA 1.0.2 (11): 22 eingebettete Privacy-Dateien, 13 deklarierte Datentypen in der Vereinigung, kein Tracking. Die zwölf eigenen App-Datentypen stehen im Runner-Manifest; die zusätzliche technische Firebase-Deklaration steht im SDK-Manifest. Prüfdatei: ignoriert `build/audit/ios-build-11-privacy-report.json`. Diese eigene Archivprüfung ist kein von Xcode erzeugter Privacy Report und ersetzt keinen Gerätetest.

@@ -1,5 +1,9 @@
 # Apple-Start: erneute Prüfung am 14. Oktober 2026
 
+Historischer Prüfstand. Der aktuelle Stand mit NAS-Aktivierung, Apple-Upload und
+gespeicherten Store-Deklarationen steht im
+[Checkpoint vom 16. Oktober](2026-10-16-apple-launch-completion.md).
+
 Die App ist noch nicht zur App Review eingereicht und nicht öffentlich veröffentlicht.
 Der signierte Kandidat bleibt **1.0.2 (11)** aus Release-Run
 [38075183018](https://github.com/brenzelB/Aura100/actions/runs/38075183018), Quellstand `423dad4`.

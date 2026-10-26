@@ -1,8 +1,11 @@
 # Apple encryption review — build 1.0.2 (11)
 
-Technical preparation only. No export declaration, exemption or French filing
-has been submitted. The app's operator must confirm the applicable declaration
-before the public release.
+On 16 October 2026, after explicit user approval, France was removed from the
+initial country selection. The build-level answers **standard encryption outside
+or in addition to Apple's operating system** and **no distribution in France**
+were saved in App Store Connect. Build 11 cleared Missing Compliance and is now
+testing in the existing internal group. No French filing has been submitted;
+the app has not been publicly released.
 
 ## Verified package
 
@@ -28,21 +31,20 @@ There is no user-facing custom encrypted messaging, VPN or general-purpose
 encryption feature. No proprietary encryption algorithm has been intentionally
 implemented. These technical findings alone are not a legal exemption decision.
 
-## Public-release decision still needed
+## Saved initial distribution decision
 
 Apple's published table distinguishes OS-only encryption from industry-standard
 encryption implemented outside the Apple OS. The latter requires a French
-encryption declaration when the app is distributed in France. The draft country
-selection includes France, so this must be resolved before worldwide submission.
+encryption declaration when the app is distributed in France. For the initial
+release the user chose to exclude France. App Store Connect shows France as
+unavailable and 174 selected countries/regions. All other country selections
+remain unchanged; local age/content restrictions still apply separately.
 
-1. Confirm the shipped networking implementation and the applicable export
-   classification/documentation using this build's evidence.
-2. If France requires a filing, prepare and obtain the actual declaration and
-   upload it in App Store Connect. A technical draft is not a filing receipt.
-3. If the operator chooses to launch elsewhere first, obtain explicit approval
-   to exclude France from availability and use the matching declaration.
-4. Only then save the accurate build-level answers or exemption key. Never reuse
-   build 9's internal no-France answer for the worldwide Store release.
+The existing build was declared independently using its verified technical
+evidence. No OS-only/no-encryption claim or exemption Info.plist flag was added.
+Before adding France later, prepare and obtain the actual required documentation,
+upload it for Apple's approval, and update availability and build declarations
+consistently. A technical draft is not a filing receipt.
 
 Sources checked 10 October 2026:
 
@@ -52,6 +54,6 @@ Sources checked 10 October 2026:
 - [ANSSI control procedures and consumer-product classification](https://cyber.gouv.fr/reglementation/reglementation-identite-confiance-numerique/controles-reglementaires-cryptographie/controle-moyen-de-cryptologie/controle-rglementaire-cryptographie-demarches/)
 - [ANSSI filing process](https://cyber.gouv.fr/reglementation/reglementation-identite-confiance-numerique/controles-reglementaires-cryptographie/controle-moyen-de-cryptologie/)
 
-The current draft remains unsubmitted. Neither a French government response nor
-Apple approval is available. ANSSI's published consumer-product classification
+No French government response or French-document approval is available.
+ANSSI's published consumer-product classification
 procedure requires validation; the app has not received such a classification.
