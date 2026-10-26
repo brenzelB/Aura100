@@ -120,6 +120,14 @@ einen Abzug in `backups/` ab und behält die **14 jüngsten**. Das Skript dazu i
 [`backup-loop.sh`](backup-loop.sh); es wird schreibgeschützt in den Container
 eingehängt.
 
+Die Rotation fasst ausschließlich das Muster `auraquest-*.dump` an. Von Hand
+angelegte Sicherungen (`…-before-*.dump`, `vor-*.dump`) bleiben absichtlich
+liegen — sie sind Rollback-Punkte vor riskanten Migrationen und sollen nicht
+wegrotiert werden. Dafür wachsen sie unbegrenzt und brauchen gelegentlich
+einen Blick von Hand; am 26.10.2026 wurden zehn reine Wiederholungsabzüge
+entfernt (je Traube blieb der jüngste), das verbleibende Verzeichnis liegt
+bei 90 MB.
+
 Seit dem Audit vom 07.09.2026 werden Dumps mit `umask 077` geschrieben und
 dem NAS-Besitzer `1000:10` zugeordnet (über `BACKUP_UID`/`BACKUP_GID`
 überschreibbar). Projekt- und Backup-Verzeichnis sind 700, `.env`, Compose-Datei
@@ -146,6 +154,21 @@ Nachsehen:
 docker logs auraquest-backup | tail -20
 ls -lht /volume2/Datenbanken/AuraQuest/backups/*.dump | head
 ```
+
+**Nicht auf dem NAS-Host prüfen.** Der Host bringt die PostgreSQL-**15**-
+Clients mit (`/usr/bin/pg_restore`), die Abzüge schreibt der Container mit
+PostgreSQL **17**. Ein `pg_restore` auf dem Host scheitert deshalb mit
+`unsupported version (1.16) in file header`. Das ist **kein** Defekt der
+Sicherung — nur ein zu alter Client. Im Ernstfall führt diese Meldung sonst
+zu dem Schluss, die Datensicherung sei unbrauchbar. Immer im Container
+nachsehen:
+
+```bash
+docker exec auraquest-backup sh -c \
+  'pg_restore -l /backups/auraquest-20261026-0315.dump | grep -c "^[0-9]"'
+```
+
+Geprüft am 26.10.2026: die drei jüngsten Abzüge liefern je 1175 Einträge.
 
 ---
 
