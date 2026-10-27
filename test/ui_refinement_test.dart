@@ -57,6 +57,34 @@ Challenge _quest() => Challenge(
     maxStrikes: 3,
     myAura: 200);
 
+Challenge _bonusQuest() {
+  final now = DateTime.now().toUtc();
+  final start = DateTime.utc(now.year, now.month, now.day)
+      .subtract(const Duration(days: 4));
+  return Challenge(
+      id: 'q',
+      creatorId: 'a',
+      title: 'Training with a long title',
+      description: '',
+      startsOn: start,
+      createdAt: start,
+      durationDays: 21,
+      auraGain: 100,
+      auraPenalty: 25,
+      maxStrikes: 3,
+      checkinPeriod: CheckinPeriod.weekly,
+      checkinsPerPeriod: 3,
+      checkInsInPeriod: 4);
+}
+
+Map<DateTime, DateTime> _bonusHistory() {
+  final start = _bonusQuest().startsOn;
+  return {
+    for (var i = 0; i < 4; i++)
+      start.add(Duration(days: i)): start.add(Duration(days: i))
+  };
+}
+
 double contrast(Color a, Color b) {
   final x = a.computeLuminance(), y = b.computeLuminance();
   return ((x > y ? x : y) + .05) / ((x < y ? x : y) + .05);
@@ -121,6 +149,8 @@ void main() {
             ('create', const Scaffold(body: CreateChallengeSheet())),
             ('home', const HomeScreen()),
             ('detail', const ChallengeDetailScreen(challengeId: 'q')),
+            ('bonus home', const HomeScreen()),
+            ('bonus detail', const ChallengeDetailScreen(challengeId: 'q')),
             (
               'duel',
               Scaffold(
@@ -157,16 +187,19 @@ void main() {
                     duelStateProvider.overrideWith(
                         (ref, id) => throw Exception('offline fixture')),
                     currentUserProvider.overrideWithValue(null),
-                    myChallengesProvider.overrideWith((ref) => [
-                          'home',
-                          'detail',
-                          'shop',
-                          'populated quests'
-                        ].contains(label)
-                            ? [_quest()]
-                            : []),
-                    myCheckInsProvider.overrideWith((ref) => {}),
-                    checkInsProvider.overrideWith((ref, id) => {}),
+                    myChallengesProvider.overrideWith((ref) =>
+                        label.startsWith('bonus')
+                            ? [_bonusQuest()]
+                            : ['home', 'detail', 'shop', 'populated quests']
+                                    .contains(label)
+                                ? [_quest()]
+                                : []),
+                    myCheckInsProvider.overrideWith((ref) =>
+                        label.startsWith('bonus')
+                            ? {'q': _bonusHistory()}
+                            : {}),
+                    checkInsProvider.overrideWith((ref, id) =>
+                        label.startsWith('bonus') ? _bonusHistory() : {}),
                     questMembersProvider.overrideWith((ref, id) => []),
                     questDuelsProvider.overrideWith((ref, id) => []),
                     questActivityProvider.overrideWith((ref, id) => []),

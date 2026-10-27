@@ -114,6 +114,7 @@ class Challenge {
     this.slipsInPeriod = 0,
     this.progressInPeriod = 0,
     this.checkedInToday = false,
+    this.checkInsInPeriod = 0,
     this.myAura = 0,
     this.strikesUsed = 0,
     this.periodsMissed = 0,
@@ -252,6 +253,27 @@ class Challenge {
   /// Whether the logged-in user already checked in today (UTC day).
   final bool checkedInToday;
 
+  /// Includes optional bonus days; rewards and the quota remain capped.
+  final int checkInsInPeriod;
+
+  int periodTargetFor(DateTime day) {
+    if (isProgress || isAvoid || checkinPeriod == CheckinPeriod.daily) return 1;
+    final start = periodStartFor(day);
+    var end = start.add(Duration(days: checkinPeriod.lengthDays));
+    if (!isEndless && endsAt.isBefore(end)) end = endsAt;
+    var active = 0;
+    for (var d = start; d.isBefore(end); d = d.add(const Duration(days: 1))) {
+      if (runsOn(d)) active++;
+    }
+    return checkinsPerPeriod < active ? checkinsPerPeriod : active;
+  }
+
+  bool get bonusCheckInAvailable =>
+      !isAvoid &&
+      !checkedInToday &&
+      checkinPeriod != CheckinPeriod.daily &&
+      checkInsInPeriod >= periodTargetFor(DateTime.now().toUtc());
+
   /// The logged-in user's aura earned INSIDE this challenge
   /// (challenge_participants.challenge_aura) — the shop currency.
   final int myAura;
@@ -373,6 +395,7 @@ class Challenge {
 
   Challenge copyWith({
     bool? checkedInToday,
+    int? checkInsInPeriod,
     int? myAura,
     bool? comebackNeeded,
     int? strikesUsed,
@@ -414,6 +437,7 @@ class Challenge {
         slipsInPeriod: slipsInPeriod ?? this.slipsInPeriod,
         progressInPeriod: progressInPeriod ?? this.progressInPeriod,
         checkedInToday: checkedInToday ?? this.checkedInToday,
+        checkInsInPeriod: checkInsInPeriod ?? this.checkInsInPeriod,
         myAura: myAura ?? this.myAura,
         strikesUsed: strikesUsed ?? this.strikesUsed,
         periodsMissed: periodsMissed ?? this.periodsMissed,

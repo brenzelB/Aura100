@@ -1343,7 +1343,8 @@ class _CheckInButtonState extends ConsumerState<_CheckInButton> {
     // No extra round trip or blocking reveal before confirming the user's action.
     // Heist details remain available in Activity; zero payout displays no reward.
     showActionFeedback(messenger,
-        message: '${item.challenge.title} · check-in confirmed',
+        message:
+            '${item.challenge.title} · ${item.canLogBonus ? 'Bonus recorded' : 'check-in confirmed'}',
         confirmedAura: gained);
   }
 
@@ -1436,7 +1437,7 @@ class _CheckInButtonState extends ConsumerState<_CheckInButton> {
               child: CircularProgressIndicator(
                   strokeWidth: 2, color: AppColors.background),
             )
-          : const Text('CHECK-IN'),
+          : Text(item.canLogBonus ? 'BONUS' : 'CHECK-IN'),
     );
   }
 }
@@ -1931,15 +1932,25 @@ class _DoneRow extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              item.challenge.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: AppColors.textSecondary),
-            ),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(item.challenge.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: AppColors.textSecondary)),
+              if (!isPending &&
+                  item.challenge.checkinPeriod != CheckinPeriod.daily)
+                Text(
+                    '${item.doneInPeriod.clamp(0, item.target)}/${item.target}'
+                    '${item.bonusCount > 0 ? ' · +${item.bonusCount} Bonus' : ''}',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: AppColors.successText)),
+            ]),
           ),
           if (isPending)
             Container(
@@ -1959,15 +1970,11 @@ class _DoneRow extends ConsumerWidget {
                   color: AppColors.warningText,
                 ),
               ),
-            )
-          else if (item.challenge.checkinPeriod != CheckinPeriod.daily)
-            Text(
-              '${item.doneInPeriod}/${item.target}',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppColors.successText),
             ),
+          if (!isPending && item.canLogBonus) ...[
+            const SizedBox(width: 8),
+            _CheckInButton(item: item, color: AppColors.neonPurple),
+          ],
         ],
       ),
     );

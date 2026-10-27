@@ -485,8 +485,10 @@ class _DetailBody extends StatelessWidget {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
               sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                   maxCrossAxisExtent: 56, // grows column count on tablets
+                  mainAxisExtent:
+                      32 + MediaQuery.textScalerOf(context).scale(30),
                   mainAxisSpacing: 8,
                   crossAxisSpacing: 8,
                 ),
@@ -790,12 +792,13 @@ class _HeaderCard extends StatelessWidget {
               children: [
                 Icon(Icons.repeat, size: 16, color: AppColors.socialText),
                 const SizedBox(width: 6),
-                Text(
+                Flexible(
+                    child: Text(
                   '${challenge.checkinsPerPeriod}x per '
                   '${challenge.checkinPeriod == CheckinPeriod.weekly ? 'week' : 'month'}',
                   style: textTheme.bodyMedium
                       ?.copyWith(color: AppColors.socialText),
-                ),
+                )),
               ],
             ),
           ],
@@ -1851,6 +1854,7 @@ class _Legend extends StatelessWidget {
       runSpacing: 6,
       children: [
         _LegendItem(color: AppColors.neonGreen, label: 'done'),
+        _LegendItem(color: AppColors.neonPurple, label: 'Bonus'),
         _LegendItem(color: AppColors.danger, label: 'missed'),
         _LegendItem(color: AppColors.neonCyan, label: 'today'),
         _LegendItem(color: AppColors.surfaceLight, label: 'upcoming'),
@@ -1899,9 +1903,10 @@ class _DayCell extends StatelessWidget {
 
   (Color, Color, IconData?) get _style => switch (day.status) {
         DayStatus.done => (
-            AppColors.neonGreen.withValues(alpha: 0.18),
-            AppColors.neonGreen,
-            Icons.check,
+            (day.isBonus ? AppColors.neonPurple : AppColors.neonGreen)
+                .withValues(alpha: 0.18),
+            day.isBonus ? AppColors.neonPurple : AppColors.neonGreen,
+            day.isBonus ? Icons.star_outline : Icons.check,
           ),
         DayStatus.missed => (
             AppColors.danger.withValues(alpha: 0.15),
@@ -1955,6 +1960,16 @@ class _DayCell extends StatelessWidget {
               ),
             ),
             if (icon != null) Icon(icon, size: 12, color: accent),
+            if (day.isBonus && day.checkedAt != null)
+              FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text('Bonus',
+                      style: TextStyle(
+                          fontSize: 10,
+                          height: 1.1,
+                          letterSpacing: 0,
+                          color: accent,
+                          fontWeight: FontWeight.w700))),
           ],
         ),
       ),
@@ -2031,13 +2046,19 @@ class _DayDetailsSheetState extends ConsumerState<_DayDetailsSheet> {
     navigator.pop();
     if (robbed != null) return;
     messenger.showSnackBar(AppSnackBar(
-      content: Text('⚡ +$gained Aura! Quest checked in.'),
+      content: Text(day.isBonus
+          ? 'Bonus recorded. Goal already met — extra effort, no extra Aura or XP.'
+          : '⚡ +$gained Aura! Quest checked in.'),
       backgroundColor: AppColors.neonGreen,
     ));
   }
 
   (String, Color, IconData) get _statusInfo => switch (day.status) {
-        DayStatus.done => ('Done', AppColors.neonGreen, Icons.check_circle),
+        DayStatus.done => (
+            day.isBonus ? 'Bonus' : 'Done',
+            day.isBonus ? AppColors.neonPurple : AppColors.neonGreen,
+            day.isBonus ? Icons.star_outline : Icons.check_circle
+          ),
         DayStatus.missed => ('Missed', AppColors.danger, Icons.cancel),
         DayStatus.today => (
             'Today - check-in pending',
@@ -2097,6 +2118,13 @@ class _DayDetailsSheetState extends ConsumerState<_DayDetailsSheet> {
                   ?.copyWith(color: AppColors.textSecondary),
             ),
           ],
+          if (day.isBonus && !widget.challenge.isAvoid) ...[
+            const SizedBox(height: 8),
+            Text(
+                'Goal already met. Extra days are optional and do not add Aura or XP.',
+                textAlign: TextAlign.center,
+                style: textTheme.bodySmall),
+          ],
           // Progress quests are satisfied by logging amounts, never by
           // a manual tick — point at the bar instead.
           if (day.status == DayStatus.today && widget.challenge.isProgress) ...[
@@ -2138,7 +2166,11 @@ class _DayDetailsSheetState extends ConsumerState<_DayDetailsSheet> {
             ),
           ]
           // Today, still pending → check in right from the timeline.
-          else if (day.status == DayStatus.today) ...[
+          else if (day.status == DayStatus.today &&
+              !widget.challenge.isAvoid &&
+              !widget.challenge.isFinished &&
+              !widget.challenge.isLobby &&
+              widget.challenge.hasStarted) ...[
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
@@ -2156,7 +2188,9 @@ class _DayDetailsSheetState extends ConsumerState<_DayDetailsSheet> {
                             strokeWidth: 2, color: AppColors.background),
                       )
                     : const Icon(Icons.bolt),
-                label: Text('CHECK IN NOW  (+${widget.challenge.auraGain})'),
+                label: Text(day.isBonus
+                    ? 'LOG BONUS'
+                    : 'CHECK IN NOW  (+${widget.challenge.auraGain})'),
               ),
             ),
           ],

@@ -34,6 +34,9 @@ class AgendaItem {
   /// The period's quota is full — nothing left to do until it resets.
   bool get goalMet => doneInPeriod >= target;
 
+  int get bonusCount => (doneInPeriod - target).clamp(0, doneInPeriod);
+  bool get canLogBonus => goalMet && !checkedInToday && !challenge.isAvoid;
+
   /// Already logged today. Only one check-in per day is possible; the
   /// database enforces it with a unique constraint.
   final bool checkedInToday;
@@ -175,9 +178,7 @@ class HomeAgenda {
 
       final checkIns = checkInsByQuest[challenge.id] ?? const {};
       final periodLen = challenge.checkinPeriod.lengthDays;
-      final target = challenge.checkinPeriod == CheckinPeriod.daily
-          ? 1
-          : challenge.checkinsPerPeriod;
+      final target = challenge.periodTargetFor(todayDate);
 
       // Current period, anchored to the start date (mirrors the server).
       final daysIn = todayDate.difference(start).inDays;

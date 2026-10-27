@@ -33,6 +33,7 @@ class TimelineDay {
     required this.status,
     required this.isToday,
     this.checkedAt,
+    this.isBonus = false,
   });
 
   final DateTime date;
@@ -44,6 +45,7 @@ class TimelineDay {
 
   /// When the check-in happened (for the day-details sheet).
   final DateTime? checkedAt;
+  final bool isBonus;
 }
 
 class ChallengeStats {
@@ -116,11 +118,24 @@ class ChallengeTimeline {
 
     // ── Day-by-day grid ─────────────────────────────────────────
     final days = <TimelineDay>[];
+    final countsByPeriod = <DateTime, int>{};
+    // Include days before an endless quest's visible window too.
+    for (final date in checkIns.keys) {
+      if (date.isBefore(windowStart)) {
+        final period = challenge.periodStartFor(date);
+        countsByPeriod[period] = (countsByPeriod[period] ?? 0) + 1;
+      }
+    }
     for (var date = windowStart;
         date.isBefore(endExclusive);
         date = date.add(const Duration(days: 1))) {
       final checkedAt = checkIns[date];
       final isToday = date == todayDate;
+      final period = challenge.periodStartFor(date);
+      final count = countsByPeriod[period] ?? 0;
+      final isBonus =
+          !challenge.isAvoid && count >= challenge.periodTargetFor(date);
+      if (checkedAt != null) countsByPeriod[period] = count + 1;
 
       final DayStatus status;
       if (checkedAt != null) {
@@ -144,13 +159,16 @@ class ChallengeTimeline {
         status: status,
         isToday: isToday,
         checkedAt: checkedAt,
+        isBonus: isBonus,
       ));
     }
 
     // ── Stats: units are days (daily) or periods (weekly/monthly) ──
     // One unified pass over anchored periods; for daily quests the
     // period length is 1, which reproduces the per-day semantics.
-    final target = daily ? 1 : challenge.checkinsPerPeriod;
+    final target = challenge.isProgress || challenge.isAvoid
+        ? 1
+        : (daily ? 1 : challenge.checkinsPerPeriod);
 
     var done = 0;
     var missed = 0;

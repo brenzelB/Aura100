@@ -56,7 +56,9 @@ class ChallengeCard extends ConsumerWidget {
     }
 
     messenger.showSnackBar(AppSnackBar(
-      content: Text('⚡ +$gained Aura! Quest checked in.'),
+      content: Text(challenge.bonusCheckInAvailable
+          ? 'Bonus recorded. Goal already met — extra effort, no extra Aura or XP.'
+          : '⚡ +$gained Aura! Quest checked in.'),
       backgroundColor: AppColors.neonGreen,
     ));
   }
@@ -311,6 +313,7 @@ class ChallengeCard extends ConsumerWidget {
                 else
                   _CheckInButton(
                     checkedInToday: challenge.checkedInToday,
+                    bonus: challenge.bonusCheckInAvailable,
                     isLoading: checkInState.isLoading,
                     onPressed: () => _checkIn(context, ref),
                   ),
@@ -384,11 +387,13 @@ class _AddProgressButton extends StatelessWidget {
 class _CheckInButton extends StatelessWidget {
   const _CheckInButton({
     required this.checkedInToday,
+    this.bonus = false,
     required this.isLoading,
     required this.onPressed,
   });
 
   final bool checkedInToday;
+  final bool bonus;
   final bool isLoading;
   final VoidCallback onPressed;
 
@@ -437,7 +442,7 @@ class _CheckInButton extends StatelessWidget {
                 color: AppColors.background,
               ),
             )
-          : const Text('CHECK-IN'),
+          : Text(bonus ? 'BONUS' : 'CHECK-IN'),
     );
   }
 }

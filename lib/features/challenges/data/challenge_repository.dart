@@ -112,6 +112,7 @@ class ChallengeRepository {
           comebackNeeded: row['comeback_needed'] as bool? ?? false,
           memberCount: membersByQuest[challenge.id] ?? 1,
           checkedInToday: checkedIds.contains(challenge.id),
+          checkInsInPeriod: (total?['check_ins'] as num?)?.toInt() ?? 0,
           joinedOn: DateTime.parse(row['created_at'] as String).toUtc(),
           myTeam: row['team'] as String?,
           ownedBenefits: (ownedByChallenge[challenge.id] ?? const {}).toList()
@@ -602,6 +603,7 @@ class ChallengeRepository {
       final checkRows = await _readAll(() => _client
           .from('check_ins')
           .select('user_id, checked_on')
+          .eq('is_bonus', false)
           .eq('challenge_id', challenge.id)
           .order('id'));
       final countByUser = <String, int>{};
