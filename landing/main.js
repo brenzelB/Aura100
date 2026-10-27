@@ -7,25 +7,28 @@
      3. Die Sabotage-Demo — der einzige echte Effekt der Seite
    ═══════════════════════════════════════════════════════════ */
 
-/* ── Hier spaeter die echten Store-Adressen eintragen ─────
-   Sonst nichts aendern: Alle Knoepfe mit .js-store holen sich
-   ihr Ziel von hier. */
-const APP_STORE_URL   = '#';   // Apple App Store
-const GOOGLE_PLAY_URL = '#';   // Google Play Store
+/* ── Store-Adressen ───────────────────────────────────────
+   Alle Knoepfe mit .js-store holen sich ihr Ziel von hier.
+
+   Ein Knopf, dessen Adresse noch '#' ist, wird AUSGEBLENDET und
+   nicht grau angezeigt. Ein sichtbarer toter Knopf kostet
+   Vertrauen, und "bald verfuegbar" beantwortet keine Frage, die
+   der Besucher gerade hat. Sobald Google Play freigegeben ist,
+   hier die Adresse eintragen - das Markup steht bereits, der
+   Knopf erscheint dann von allein. */
+const APP_STORE_URL   = 'https://apps.apple.com/app/id6821149239';
+const GOOGLE_PLAY_URL = '#';   // noch nicht veroeffentlicht
 
 (function wireStoreLinks() {
   const map = { ios: APP_STORE_URL, play: GOOGLE_PLAY_URL };
   document.querySelectorAll('.js-store').forEach((el) => {
     const url = map[el.dataset.store];
     if (!url || url === '#') {
-      // Solange es keinen Link gibt, ist der Knopf kein Link.
-      // Ein Verweis, der nirgendwohin fuehrt, ist schlechter als
-      // einer, der sichtbar noch nicht bereit ist.
-      el.setAttribute('aria-disabled', 'true');
-      el.addEventListener('click', (e) => {
-        if (el.getAttribute('href') === '#get') return; // Ankersprung erlauben
-        e.preventDefault();
-      });
+      // hidden allein genuegt nicht: .btn setzt display:inline-flex,
+      // und eine Klasse schlaegt die Vorgabe des Browsers fuer
+      // [hidden]. Die Inline-Angabe gewinnt gegen beide.
+      el.hidden = true;
+      el.style.display = 'none';
       return;
     }
     el.href = url;
