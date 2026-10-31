@@ -303,16 +303,20 @@ class PushService {
 
   /// What the system currently says, without asking anything.
   Future<AuthorizationStatus> permissionStatus() async {
-    if (!_firebaseReady) {
-      final enabled = await _local
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.areNotificationsEnabled();
-      return enabled == true
-          ? AuthorizationStatus.authorized
-          : AuthorizationStatus.notDetermined;
-    }
+    // Must never throw. Two screens call this from initState, and in a
+    // widget test no notification plugin is registered at all - the
+    // platform instance is a late field that blows up on first touch.
+    // A question about the system's opinion is not worth a crash.
     try {
+      if (!_firebaseReady) {
+        final enabled = await _local
+            .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin>()
+            ?.areNotificationsEnabled();
+        return enabled == true
+            ? AuthorizationStatus.authorized
+            : AuthorizationStatus.notDetermined;
+      }
       final settings =
           await FirebaseMessaging.instance.getNotificationSettings();
       return settings.authorizationStatus;
@@ -327,11 +331,17 @@ class PushService {
   /// Call this only after the player has been told what it is for.
   Future<bool> askPermission() async {
     if (!_firebaseReady) {
-      return await _local
-              .resolvePlatformSpecificImplementation<
-                  AndroidFlutterLocalNotificationsPlugin>()
-              ?.requestNotificationsPermission() ??
-          false;
+      // Same reasoning as permissionStatus: no plugin, no permission,
+      // but also no exception thrown at the caller.
+      try {
+        return await _local
+                .resolvePlatformSpecificImplementation<
+                    AndroidFlutterLocalNotificationsPlugin>()
+                ?.requestNotificationsPermission() ??
+            false;
+      } catch (_) {
+        return false;
+      }
     }
     try {
       final settings = await FirebaseMessaging.instance.requestPermission();

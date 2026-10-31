@@ -238,6 +238,8 @@ class HomeScreen extends ConsumerWidget {
                         _AgendaCard(
                             key: ValueKey(item.challenge.id), item: item),
 
+                const PushPermissionCard(),
+
                 // ── Done ──────────────────────────────────────
                 if (agenda.done.isNotEmpty) ...[
                   const SizedBox(height: 24),
@@ -257,7 +259,6 @@ class HomeScreen extends ConsumerWidget {
                 _ActivitySection(key: ValueKey(profile?.id)),
                 const SizedBox(height: 12),
                 const WeeklyRecapCard(compact: true),
-                const PushPermissionCard(),
 
                 // ── Upcoming ──────────────────────────────────
                 if (agenda.upcoming.isNotEmpty) ...[

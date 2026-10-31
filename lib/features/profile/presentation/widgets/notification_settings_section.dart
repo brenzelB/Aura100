@@ -1,9 +1,14 @@
 import 'package:aura_quest/core/widgets/app_states.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
 import '../../../../core/config/supabase_config.dart';
+import '../../../../core/push/push_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/application/auth_providers.dart';
 import '../../../challenges/application/challenge_providers.dart';
@@ -132,6 +137,7 @@ class _NotificationSettingsSectionState
           style: textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
         ),
         const SizedBox(height: 8),
+        const _PermissionGate(),
         if (settings == null)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 20),
@@ -340,6 +346,139 @@ class _Toggle extends StatelessWidget {
             onChanged: enabled ? onChanged : null,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The system permission, made reachable.
+///
+/// Every switch above is a preference, not a permission: the operating
+/// system has the last word, and until it says yes none of them decide
+/// anything. There used to be exactly one place in the app that could
+/// ask — a card on the home screen that vanished for good once it had
+/// been answered or waved away. Whoever tapped "Not now" was out of
+/// options, because iOS lists an app under Settings > Notifications
+/// only AFTER that app has asked at least once. Until then the row the
+/// player was being sent to does not exist, and the snack bar promising
+/// it was simply wrong.
+class _PermissionGate extends StatefulWidget {
+  const _PermissionGate();
+
+  @override
+  State<_PermissionGate> createState() => _PermissionGateState();
+}
+
+class _PermissionGateState extends State<_PermissionGate> {
+  /// null while the system is still being asked what it thinks.
+  AuthorizationStatus? _status;
+  bool _busy = false;
+
+  /// The system was asked and said no. Asking again opens nothing —
+  /// from here the only route is the system settings themselves.
+  bool _refused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final status = await PushService.instance.permissionStatus();
+    if (mounted) setState(() => _status = status);
+  }
+
+  Future<void> _ask() async {
+    setState(() => _busy = true);
+    final granted = await PushService.instance.askPermission();
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _refused = !granted;
+    });
+    await _load();
+  }
+
+  Future<void> _openSystemSettings() async {
+    // iOS exposes its per-app page as a URL scheme. Deliberately not
+    // guarded by canLaunchUrl: that needs the scheme declared up front
+    // and answers false without it, which would hide the only way out.
+    try {
+      await launchUrl(Uri.parse('app-settings:'));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(AppSnackBar(
+        content: const Text('Open Settings › Aura Quest › Notifications.'),
+        backgroundColor: AppColors.surfaceLight,
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final status = _status;
+    if (status == null) return const SizedBox.shrink();
+    if (status == AuthorizationStatus.authorized ||
+        status == AuthorizationStatus.provisional) {
+      return const SizedBox.shrink();
+    }
+
+    final textTheme = Theme.of(context).textTheme;
+    final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
+    // Android can be asked again; iOS cannot, once it has been refused.
+    final toSettings = _refused && isIOS;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: AppColors.panelDecoration(accent: AppColors.warningText),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.notifications_off_outlined,
+                    size: 18, color: AppColors.warningText),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('NOTHING CAN REACH YOU',
+                      style: textTheme.headlineSmall?.copyWith(
+                          color: AppColors.warningText, fontSize: 15)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _refused && !isIOS
+                  ? 'Your phone is still blocking notifications. The switches '
+                      'below take effect once it allows them.'
+                  : toSettings
+                      ? 'Your phone is blocking notifications. Allow them under '
+                          'Settings › Aura Quest › Notifications; the switches '
+                          'below take effect from then on.'
+                      : 'Your phone has not allowed notifications yet, so none '
+                          'of the switches below can do anything. One tap fixes '
+                          'that.',
+              style: textTheme.bodySmall
+                  ?.copyWith(color: AppColors.textSecondary, height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed:
+                  _busy ? null : (toSettings ? _openSystemSettings : _ask),
+              icon: _busy
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : Icon(toSettings ? Icons.open_in_new : Icons.check,
+                      size: 18),
+              label: Text(toSettings ? 'OPEN SETTINGS' : 'ALLOW NOTIFICATIONS'),
+            ),
+          ],
+        ),
       ),
     );
   }
