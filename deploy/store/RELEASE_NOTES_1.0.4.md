@@ -21,7 +21,6 @@ Some habits are measured in time.
 - Play it with friends: whoever held out longest leads the party.
 - Forgot to start or to stop the timer? Correct both times before you bank the session.
 - Fixed: notifications could not be switched on if the very first prompt was missed. You can now allow them at any time from your Profile.
-- Fixed: on Android, the button to allow notifications no longer sits there doing nothing once the system has stopped asking.
 
 ## Apple App Store — Deutsch (de-DE)
 
@@ -32,7 +31,14 @@ Manche Gewohnheiten misst man in Zeit.
 - Spiel es mit Freunden: Wer länger durchhält, steht vorne.
 - Start oder Stopp vergessen? Du kannst beide Zeiten korrigieren, bevor du die Sitzung verbuchst.
 - Behoben: Mitteilungen ließen sich nicht mehr einschalten, wenn die allererste Abfrage verpasst wurde. Jetzt geht das jederzeit im Profil.
-- Behoben: Unter Android steht der Knopf für Mitteilungen nicht mehr wirkungslos herum, sobald das System nicht mehr nachfragt.
+
+## Nicht in den Apple-Texten
+
+Der Android-Fix (der Mitteilungs-Knopf, der nach der zweiten Ablehnung
+wirkungslos herumstand) steht bewusst **nicht** in den App-Store-Texten — er
+betrifft keinen einzigen Apple-Nutzer. Er gehört in die Play-Store-Notizen,
+sobald die Android-Fassung veröffentlicht wird; bis dahin ist er nur hier und
+im Commit `4d20199` festgehalten.
 
 ## Was diese Fassung NICHT enthält
 
