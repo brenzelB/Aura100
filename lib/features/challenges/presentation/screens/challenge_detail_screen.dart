@@ -12,11 +12,11 @@ import '../../../../core/realtime/realtime_sync.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/motion.dart';
 import '../../../../core/text/dates.dart';
-import '../../../../core/text/quantity.dart';
 import '../../../../core/text/roasts.dart';
 import '../../../auth/application/auth_providers.dart';
 import '../../application/challenge_providers.dart';
 import '../../domain/challenge.dart';
+import '../quest_amount.dart';
 import '../../domain/challenge_timeline.dart';
 import '../../domain/progress_entry.dart';
 import '../../domain/quest_member.dart';
@@ -1029,7 +1029,7 @@ class _ProgressSection extends ConsumerWidget {
                       const Spacer(),
                       if (!done)
                         Text(
-                          '${formatQuantity(challenge.progressRemaining)} to go',
+                          '${challenge.amount(challenge.progressRemaining)} to go',
                           style: textTheme.bodySmall
                               ?.copyWith(color: AppColors.textSecondary),
                         ),
@@ -1045,8 +1045,8 @@ class _ProgressSection extends ConsumerWidget {
                       const SizedBox(width: 6),
                       Text(
                         challenge.overshoot > 0
-                            ? 'Target reached · +${formatQuantity(challenge.overshoot)} '
-                                '${challenge.unit ?? ''} beyond'
+                            ? 'Target reached · '
+                                '+${challenge.amountWithUnit(challenge.overshoot)} beyond'
                             : 'Target reached — keep going for bonus',
                         style: textTheme.bodySmall?.copyWith(
                             color: AppColors.successText,
@@ -1237,7 +1237,7 @@ class _PeriodHistoryTile extends ConsumerWidget {
                 ),
               ),
               Text(
-                '${formatProgress(period.total, period.target, unit)}'
+                '${challenge.progressLabel(period.total, period.target)}'
                 ' · ${period.percent}%',
                 style: textTheme.bodySmall
                     ?.copyWith(color: color, fontWeight: FontWeight.w700),
@@ -1266,7 +1266,7 @@ class _PeriodHistoryTile extends ConsumerWidget {
                 child: Row(
                   children: [
                     Text(
-                      '+${formatQuantity(entry.amount)}',
+                      challenge.addedLabel(entry.amount),
                       style: textTheme.bodyMedium?.copyWith(
                         color: AppColors.neonPurple,
                         fontWeight: FontWeight.w700,
@@ -1439,13 +1439,15 @@ class _CumulativeTotals extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                formatQuantity(value),
+                challenge.amount(value),
                 style: textTheme.headlineSmall?.copyWith(
                   color: lead ? AppColors.successText : AppColors.textPrimary,
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              if (unit.isNotEmpty)
+              // A formatted span already says what it is; "16h 10m min"
+              // would be the exact noise this formatting exists to remove.
+              if (unit.isNotEmpty && !challenge.isClock)
                 Text(
                   unit,
                   style: textTheme.bodySmall
@@ -1474,7 +1476,7 @@ class _CumulativeTotals extends StatelessWidget {
               Icon(Icons.insights, size: 16, color: AppColors.successText),
               const SizedBox(width: 6),
               Text(
-                'TOTAL REPS',
+                challenge.isClock ? 'TOTAL TIME' : 'TOTAL REPS',
                 style: textTheme.labelMedium?.copyWith(
                   color: AppColors.successText,
                   letterSpacing: 1,
@@ -1487,9 +1489,17 @@ class _CumulativeTotals extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              tile('ALL-TIME', totals.lifetime, lead: true),
-              tile('THIS MONTH', totals.thisMonth),
-              tile('THIS WEEK', totals.thisWeek),
+              // A clock quest is asked "how long today?" first; a reps
+              // quest is asked "how much ever?" first.
+              if (challenge.isClock) ...[
+                tile('TODAY', totals.today, lead: true),
+                tile('THIS WEEK', totals.thisWeek),
+                tile('THIS MONTH', totals.thisMonth),
+              ] else ...[
+                tile('ALL-TIME', totals.lifetime, lead: true),
+                tile('THIS MONTH', totals.thisMonth),
+                tile('THIS WEEK', totals.thisWeek),
+              ],
             ],
           ),
         ],
@@ -1596,9 +1606,11 @@ class _StakesSection extends StatelessWidget {
             ),
             if (challenge.isProgress)
               _InfoChip(
-                icon: Icons.trending_up,
-                label: '${formatQuantity(challenge.targetValue ?? 0)} '
-                    '${challenge.unit ?? ''} per '
+                icon: challenge.isClock
+                    ? Icons.timer_outlined
+                    : Icons.trending_up,
+                label:
+                    '${challenge.amountWithUnit(challenge.targetValue ?? 0)} per '
                     '${challenge.checkinPeriod.name.replaceAll('daily', 'day').replaceAll('weekly', 'week').replaceAll('monthly', 'month')}',
                 color: AppColors.neonPurple,
               ),

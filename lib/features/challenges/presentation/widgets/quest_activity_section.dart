@@ -3,11 +3,11 @@ import '../../../../core/text/game_roasts.dart';
 import '../../../../core/widgets/editorial_cover.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/text/quantity.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/aura_avatar.dart';
 import '../../application/challenge_providers.dart';
 import '../../domain/challenge.dart';
+import '../quest_amount.dart';
 import '../../domain/quest_activity.dart';
 
 /// ACTIVITY — the party's shared record for this quest: who hit their
@@ -140,14 +140,13 @@ class _ActivityRow extends StatelessWidget {
 
   /// Icon, colour and the sentence itself, per kind.
   (IconData, Color, String) _describe() {
-    final unit = challenge.unit ?? '';
     final amount = item.amount;
 
     return switch (item.kind) {
       'progress' => (
           Icons.add_circle_outline,
           AppColors.neonPurple,
-          'logged +${formatQuantity(amount ?? 0)} $unit',
+          'logged ${challenge.addedLabel(amount ?? 0)}',
         ),
       'check_in' => (
           Icons.check_circle,

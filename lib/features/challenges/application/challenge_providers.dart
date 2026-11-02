@@ -15,6 +15,7 @@ import '../data/challenge_repository.dart';
 import '../domain/benefit.dart';
 import '../domain/blackout.dart';
 import '../domain/challenge.dart';
+import '../domain/clock_session.dart';
 import '../domain/duel.dart';
 import '../domain/progress_entry.dart';
 import '../domain/quest_activity.dart';
@@ -445,6 +446,115 @@ class ProgressController extends AutoDisposeFamilyAsyncNotifier<void, String> {
   /// The bar, the history and — when a goal crossing changes — the aura,
   /// timeline and event feed all move.
   void _refreshAfterProgress() {
+    ref.invalidate(myChallengesProvider);
+    ref.invalidate(progressEntriesProvider(arg));
+    ref.invalidate(checkInsProvider(arg));
+    ref.invalidate(myCheckInsProvider);
+    ref.invalidate(settlementEventsProvider);
+    ref.invalidate(activityByDayProvider);
+  }
+}
+
+/// The clock currently running in ONE quest (family arg = challenge
+/// id), or null when none is. The running time is NOT in here — only
+/// the start instant is, and the widget ticks against it.
+final openClockSessionProvider = FutureProvider.autoDispose
+    .family<ClockSession?, String>((ref, challengeId) {
+  if (!SupabaseConfig.isConfigured) return null;
+  ref.watch(authStateChangesProvider);
+  return ref
+      .watch(challengeRepositoryProvider)
+      .fetchOpenClockSession(challengeId);
+});
+
+/// Every session the user logged in ONE quest, newest first — the
+/// history and the "longest single" record.
+final clockSessionsProvider = FutureProvider.autoDispose
+    .family<List<ClockSession>, String>((ref, challengeId) {
+  if (!SupabaseConfig.isConfigured) return const [];
+  ref.watch(authStateChangesProvider);
+  return ref.watch(challengeRepositoryProvider).fetchClockSessions(challengeId);
+});
+
+/// Starts, stops and discards the clock on ONE quest (family arg =
+/// challenge id) so each quest keeps its own busy state.
+final clockControllerProvider = AsyncNotifierProvider.autoDispose
+    .family<ClockController, void, String>(ClockController.new);
+
+class ClockController extends AutoDisposeFamilyAsyncNotifier<void, String> {
+  @override
+  FutureOr<void> build(String arg) {
+    // Action-only notifier; `arg` is the challenge id.
+  }
+
+  /// Starts the clock. Returns the open session, or null on refusal.
+  Future<ClockSession?> start() async {
+    final pending = ref.keepAlive();
+    try {
+      final repo = ref.read(challengeRepositoryProvider);
+      state = const AsyncLoading();
+      ClockSession? session;
+      state = await AsyncValue.guard(() async {
+        session = await repo.startClock(arg);
+      });
+      if (state.hasError) return null;
+      ref.invalidate(openClockSessionProvider(arg));
+      return session;
+    } finally {
+      pending.close();
+    }
+  }
+
+  /// Stops the clock and banks the elapsed time. [endedAt] corrects a
+  /// clock that was left running; null means "now".
+  Future<ClockStopResult?> stop({DateTime? endedAt}) async {
+    final pending = ref.keepAlive();
+    try {
+      return await _stop(endedAt);
+    } finally {
+      pending.close();
+    }
+  }
+
+  Future<ClockStopResult?> _stop(DateTime? endedAt) async {
+    final repo = ref.read(challengeRepositoryProvider);
+    final auth = ref.read(authRepositoryProvider);
+    final owner = ref.read(currentUserProvider)?.id;
+    state = const AsyncLoading();
+    ClockStopResult? result;
+    state = await AsyncValue.guard(() async {
+      result = await repo.stopClock(challengeId: arg, endedAt: endedAt);
+    });
+    if (state.hasError) return null;
+
+    if (owner != null && auth.currentUser?.id == owner && result != null) {
+      ref.read(interactionFeedbackProvider).play(
+          result!.completed && !result!.overshoot
+              ? FeedbackCue.milestone
+              : FeedbackCue.progress);
+    }
+    _refreshAfterClock();
+    return result;
+  }
+
+  /// Drops a clock started by accident. Nothing is scored.
+  Future<bool> discard() async {
+    final repo = ref.read(challengeRepositoryProvider);
+    state = const AsyncLoading();
+    var dropped = false;
+    state = await AsyncValue.guard(() async {
+      dropped = await repo.discardClock(arg);
+    });
+    if (state.hasError) return false;
+    ref.invalidate(openClockSessionProvider(arg));
+    return dropped;
+  }
+
+  /// Stopping banks real progress, so everything a logged amount moves
+  /// has to move here too — plus the session list itself.
+  void _refreshAfterClock() {
+    ref.invalidate(openClockSessionProvider(arg));
+    ref.invalidate(clockSessionsProvider(arg));
     ref.invalidate(myChallengesProvider);
     ref.invalidate(progressEntriesProvider(arg));
     ref.invalidate(checkInsProvider(arg));
@@ -934,6 +1044,7 @@ class CreateChallengeController extends AutoDisposeAsyncNotifier<void> {
     required int checkinsPerPeriod,
     QuestMode mode = QuestMode.solo,
     GoalType goalType = GoalType.check,
+    QuestTracking tracking = QuestTracking.manual,
     double? targetValue,
     String? unit,
     bool isEndless = false,
@@ -961,6 +1072,7 @@ class CreateChallengeController extends AutoDisposeAsyncNotifier<void> {
         checkinsPerPeriod: checkinsPerPeriod,
         mode: mode,
         goalType: goalType,
+        tracking: tracking,
         targetValue: targetValue,
         unit: unit,
         isEndless: isEndless,

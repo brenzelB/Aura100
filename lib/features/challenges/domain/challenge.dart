@@ -86,6 +86,25 @@ enum GoalType {
   String get dbValue => name;
 }
 
+/// How a progress quest's amounts are captured.
+///
+/// This is deliberately NOT a fourth [GoalType]. A clock quest *is* a
+/// progress quest — you collect towards a target per period. The only
+/// difference is that a stopwatch measures the amount instead of the
+/// player typing it, so the whole game engine treats both the same.
+enum QuestTracking {
+  /// The player enters the amount ("+20 reps").
+  manual,
+
+  /// A stopwatch does: start it, stop it, the elapsed minutes count.
+  clock;
+
+  static QuestTracking fromDb(String? value) =>
+      value == 'clock' ? clock : manual;
+
+  String get dbValue => name;
+}
+
 /// One habit challenge — mirrors a row of the `challenges` table plus
 /// the logged-in user's participant state (aura, checked-in flag).
 class Challenge {
@@ -108,6 +127,7 @@ class Challenge {
     this.isEndless = false,
     this.startedAt,
     this.goalType = GoalType.check,
+    this.tracking = QuestTracking.manual,
     this.targetValue,
     this.unit,
     this.dailyAllowance = 0,
@@ -178,6 +198,13 @@ class Challenge {
 
   /// Checked off, or collected towards a target.
   final GoalType goalType;
+
+  /// Typed in by hand, or measured by a stopwatch.
+  final QuestTracking tracking;
+
+  /// A CLOCK quest: amounts are minutes produced by the timer, and
+  /// every number belonging to it is shown as a span of time.
+  bool get isClock => tracking == QuestTracking.clock;
 
   /// The amount to reach per period — progress quests only.
   final double? targetValue;
@@ -380,6 +407,8 @@ class Challenge {
             ? null
             : DateTime.parse(json['started_at'] as String),
         goalType: GoalType.fromDb(json['goal_type'] as String?),
+        // Rows created before clock quests existed carry no column.
+        tracking: QuestTracking.fromDb(json['tracking'] as String?),
         targetValue: (json['target_value'] as num?)?.toDouble(),
         unit: json['unit'] as String?,
         dailyAllowance: (json['daily_allowance'] ?? 0) as int,
@@ -431,6 +460,7 @@ class Challenge {
         isEndless: isEndless,
         startedAt: startedAt,
         goalType: goalType,
+        tracking: tracking,
         targetValue: targetValue,
         unit: unit,
         dailyAllowance: dailyAllowance,

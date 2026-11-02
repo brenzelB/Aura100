@@ -10,6 +10,7 @@ import '../../../home/presentation/widgets/targeted_roast_gate.dart';
 import '../../application/challenge_providers.dart';
 import '../../domain/challenge.dart';
 import '../../domain/progress_presets.dart';
+import 'clock_controls.dart';
 import 'progress_feedback.dart';
 
 /// Direct, server-confirmed writes; all shortcuts share the quest's controller.
@@ -54,7 +55,7 @@ class _QuickProgressActionsState extends ConsumerState<QuickProgressActions> {
                 : 'Could not log progress. Check your connection and try again.');
       } else {
         showProgressFeedback(messenger,
-            result: result, added: amount, unit: challenge.unit ?? '');
+            result: result, added: amount, challenge: challenge);
         // Keep shortcuts locked until the card has the new remainder.
         // A refresh failure must not turn a confirmed write into an error.
         try {
@@ -83,6 +84,11 @@ class _QuickProgressActionsState extends ConsumerState<QuickProgressActions> {
     if (remaining <= 0) return const SizedBox.shrink();
     final busy = _submitting ||
         ref.watch(progressControllerProvider(challenge.id)).isLoading;
+    // Nothing to shortcut on a clock quest: the only two actions are
+    // start and stop, and they belong in one control.
+    if (challenge.isClock) {
+      return ClockControls(challenge: challenge, compact: true);
+    }
     final presets = progressPresets(challenge.targetValue ?? 0);
     // Two shortcuts plus the exact remainder; don't duplicate the final amount.
     final amounts = [

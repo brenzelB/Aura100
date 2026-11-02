@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../../../core/config/supabase_config.dart';
 import '../../../../core/content/community_content_filter.dart';
+import '../../../../core/text/durations.dart';
 import '../../../../core/text/quantity.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/motion.dart';
@@ -87,9 +88,18 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
   int _perPeriod = 3;
   QuestMode _mode = QuestMode.solo;
   GoalType _goalType = GoalType.check;
+
+  /// Typed in by hand, or measured by a stopwatch. A clock quest is a
+  /// progress quest underneath, so this rides alongside [_goalType]
+  /// rather than being a fourth value of it.
+  QuestTracking _tracking = QuestTracking.manual;
   bool _isEndless = false;
   final _invitees = <String>{};
   final _targetController = TextEditingController();
+
+  /// A clock target is set in hours AND minutes: [_targetController]
+  /// holds the hours, this one the rest. Stored as plain minutes.
+  final _targetMinutesController = TextEditingController();
   final _unitController = TextEditingController();
 
   /// Slips permitted per period on an avoid quest (0 = cold turkey).
@@ -124,6 +134,7 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
         'gain': _auraGainController.text,
         'penalty': _auraPenaltyController.text,
         'target': _targetController.text,
+        'targetMinutes': _targetMinutesController.text,
         'unit': _unitController.text,
         'preset': _preset.name,
         'custom': _customBalance,
@@ -136,6 +147,7 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
         'perPeriod': _perPeriod,
         'mode': _mode.name,
         'goal': _goalType.name,
+        'tracking': _tracking.name,
         'endless': _isEndless,
         'allowance': _allowance,
         'weekdays': _weekdays.toList(),
@@ -166,6 +178,7 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
     _auraPenaltyController.text =
         d['penalty'] is String ? text('penalty', 16) : '25';
     _targetController.text = text('target', 24);
+    _targetMinutesController.text = text('targetMinutes', 4);
     _unitController.text = text('unit', 24);
     _preset =
         QuestPreset.values.where((x) => x.name == d['preset']).firstOrNull ??
@@ -207,6 +220,10 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
         QuestMode.solo;
     _goalType = GoalType.values.where((x) => x.name == d['goal']).firstOrNull ??
         GoalType.check;
+    _tracking = QuestTracking.values
+            .where((x) => x.name == d['tracking'])
+            .firstOrNull ??
+        QuestTracking.manual;
     _isEndless = d['endless'] == true;
     _allowance = number('allowance', 0, 20);
     _weekdays
@@ -281,7 +298,110 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
     if (mounted) setState(() => _draftReady = true);
   }
 
+  /// The clock target, in hours and minutes.
+  ///
+  /// Nobody sets a fasting goal of "960". They set sixteen hours, and
+  /// the app does the arithmetic — then stores minutes, which is what
+  /// every total and every leaderboard is counted in.
+  int get _clockTargetMinutes {
+    final hours = int.tryParse(_targetController.text.trim()) ?? 0;
+    final mins = int.tryParse(_targetMinutesController.text.trim()) ?? 0;
+    return hours * 60 + mins;
+  }
+
+  /// The most time the chosen period can physically hold.
+  int get _clockCeilingMinutes => 1440 * _period.lengthDays;
+
+  List<Widget> _clockTargetFields(bool isLoading, TextTheme textTheme) {
+    final total = _clockTargetMinutes;
+    final period = switch (_period) {
+      CheckinPeriod.daily => 'a day',
+      CheckinPeriod.weekly => 'a week',
+      CheckinPeriod.monthly => 'a month',
+    };
+    // Both halves share one rule, so both must be re-checked whenever
+    // either changes — otherwise a stale error sits under a fixed field.
+    String? validate(String? _) {
+      if (!_isClock) return null;
+      if (total <= 0) return 'Set a time';
+      if (total > _clockCeilingMinutes) return 'Longer than $period';
+      return null;
+    }
+
+    return [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: TextFormField(
+              controller: _targetController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Hours',
+                hintText: 'e.g. 16',
+                labelStyle: TextStyle(color: AppColors.neonPurple),
+              ),
+              onChanged: (_) => _edit(() {}),
+              validator: validate,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextFormField(
+              controller: _targetMinutesController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Minutes',
+                hintText: '0',
+                labelStyle: TextStyle(color: AppColors.neonPurple),
+              ),
+              onChanged: (_) => _edit(() {}),
+              validator: validate,
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 10),
+      Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          for (final preset in const [
+            ('16h fast', 16 * 60),
+            ('18h fast', 18 * 60),
+            ('24h fast', 24 * 60),
+            ('30 min', 30),
+            ('1h', 60),
+            ('2h', 120),
+          ])
+            if (preset.$2 <= _clockCeilingMinutes)
+              _UnitChip(
+                label: preset.$1,
+                selected: total == preset.$2,
+                onTap: isLoading
+                    ? null
+                    : () => _edit(() {
+                          _targetController.text = '${preset.$2 ~/ 60}';
+                          _targetMinutesController.text = '${preset.$2 % 60}';
+                        }),
+              ),
+        ],
+      ),
+      const SizedBox(height: 6),
+      Text(
+        total > 0
+            ? 'Goal: ${formatMinutes(total)} per $period. '
+                'Start the clock when you begin, stop it when you stop.'
+            : 'How much time counts as a win per $period?',
+        style: textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+      ),
+    ];
+  }
+
   bool get _isProgress => _goalType == GoalType.progress;
+
+  /// Filled by the stopwatch. Always a progress quest, always minutes.
+  bool get _isClock => _tracking == QuestTracking.clock;
 
   /// Negative quest: the win is not doing the thing.
   bool get _isAvoid => _goalType == GoalType.avoid;
@@ -351,6 +471,7 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
     _auraGainController.dispose();
     _auraPenaltyController.dispose();
     _targetController.dispose();
+    _targetMinutesController.dispose();
     _unitController.dispose();
     super.dispose();
   }
@@ -445,9 +566,19 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
                       : _perPeriod,
               mode: _mode,
               goalType: _goalType,
-              targetValue:
-                  _isProgress ? parseQuantity(_targetController.text) : null,
-              unit: _isProgress ? _unitController.text.trim() : null,
+              tracking: _tracking,
+              // A clock target is entered as hours + minutes and stored
+              // as minutes; the server forces the unit either way.
+              targetValue: _isClock
+                  ? _clockTargetMinutes.toDouble()
+                  : _isProgress
+                      ? parseQuantity(_targetController.text)
+                      : null,
+              unit: _isClock
+                  ? 'min'
+                  : _isProgress
+                      ? _unitController.text.trim()
+                      : null,
               isEndless: _endless,
               dailyAllowance: _isAvoid ? _allowance : 0,
               activeWeekdays: _weekdays.toList()..sort(),
@@ -593,7 +724,9 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
                       ),
                       const SizedBox(height: 16),
 
-                      // ── Goal type: tick it off, collect a target, or avoid ──
+                      // ── Goal type: tick it off, collect a target,
+                      //    run a clock, or avoid. Four cards in two rows:
+                      //    squeezed into one, none of the labels fit.
                       Row(
                         children: [
                           Expanded(
@@ -604,8 +737,10 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
                               selected: _goalType == GoalType.check,
                               onTap: isLoading
                                   ? null
-                                  : () =>
-                                      _edit(() => _goalType = GoalType.check),
+                                  : () => _edit(() {
+                                        _goalType = GoalType.check;
+                                        _tracking = QuestTracking.manual;
+                                      }),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -614,11 +749,36 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
                               label: 'PROGRESS',
                               detail: 'Collect up to a target',
                               icon: Icons.trending_up,
-                              selected: _isProgress,
+                              selected: _isProgress && !_isClock,
                               onTap: isLoading
                                   ? null
-                                  : () => _edit(
-                                      () => _goalType = GoalType.progress),
+                                  : () => _edit(() {
+                                        _goalType = GoalType.progress;
+                                        _tracking = QuestTracking.manual;
+                                      }),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _GoalTypeCard(
+                              label: 'CLOCK',
+                              detail: 'Run a timer, collect time',
+                              icon: Icons.timer_outlined,
+                              selected: _isClock,
+                              onTap: isLoading
+                                  ? null
+                                  : () => _edit(() {
+                                        // A clock quest IS a progress
+                                        // quest; the stopwatch only
+                                        // supplies the amount.
+                                        _goalType = GoalType.progress;
+                                        _tracking = QuestTracking.clock;
+                                        _unitController.text = 'min';
+                                      }),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -630,8 +790,10 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
                               selected: _isAvoid,
                               onTap: isLoading
                                   ? null
-                                  : () =>
-                                      _edit(() => _goalType = GoalType.avoid),
+                                  : () => _edit(() {
+                                        _goalType = GoalType.avoid;
+                                        _tracking = QuestTracking.manual;
+                                      }),
                             ),
                           ),
                         ],
@@ -725,88 +887,93 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
                       // ── Target + unit (progress quests only) ─────────
                       if (_isProgress) ...[
                         const SizedBox(height: 16),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: TextFormField(
-                                controller: _targetController,
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                        decimal: true),
-                                decoration: InputDecoration(
-                                  labelText: 'Target',
-                                  hintText: 'e.g. 100',
-                                  labelStyle:
-                                      TextStyle(color: AppColors.neonPurple),
+                        if (_isClock)
+                          ..._clockTargetFields(isLoading, textTheme),
+                        if (!_isClock) ...[
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: TextFormField(
+                                  controller: _targetController,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                          decimal: true),
+                                  decoration: InputDecoration(
+                                    labelText: 'Target',
+                                    hintText: 'e.g. 100',
+                                    labelStyle:
+                                        TextStyle(color: AppColors.neonPurple),
+                                  ),
+                                  validator: (value) {
+                                    if (!_isProgress) return null;
+                                    final parsed = parseQuantity(value ?? '');
+                                    if (parsed == null || parsed <= 0) {
+                                      return 'Enter a target > 0';
+                                    }
+                                    if (parsed > 1000000) {
+                                      return 'Keep it under 1 000 000';
+                                    }
+                                    return null;
+                                  },
                                 ),
-                                validator: (value) {
-                                  if (!_isProgress) return null;
-                                  final parsed = parseQuantity(value ?? '');
-                                  if (parsed == null || parsed <= 0) {
-                                    return 'Enter a target > 0';
-                                  }
-                                  if (parsed > 1000000) {
-                                    return 'Keep it under 1 000 000';
-                                  }
-                                  return null;
-                                },
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              flex: 3,
-                              child: TextFormField(
-                                controller: _unitController,
-                                maxLength: 24,
-                                decoration: InputDecoration(
-                                  labelText: 'Unit',
-                                  hintText: 'e.g. Reps',
-                                  counterText: '',
-                                  labelStyle:
-                                      TextStyle(color: AppColors.neonPurple),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                flex: 3,
+                                child: TextFormField(
+                                  controller: _unitController,
+                                  maxLength: 24,
+                                  decoration: InputDecoration(
+                                    labelText: 'Unit',
+                                    hintText: 'e.g. Reps',
+                                    counterText: '',
+                                    labelStyle:
+                                        TextStyle(color: AppColors.neonPurple),
+                                  ),
+                                  validator: (value) {
+                                    if (!_isProgress) return null;
+                                    return (value?.trim().isEmpty ?? true)
+                                        ? 'Name the unit'
+                                        : null;
+                                  },
                                 ),
-                                validator: (value) {
-                                  if (!_isProgress) return null;
-                                  return (value?.trim().isEmpty ?? true)
-                                      ? 'Name the unit'
-                                      : null;
-                                },
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: [
-                            for (final unit in _showAllUnits
-                                ? _unitSuggestions
-                                : const ['Reps', 'Minutes', 'Pages'])
-                              _UnitChip(
-                                label: unit,
-                                selected: _unitController.text.trim() == unit,
-                                onTap: isLoading
-                                    ? null
-                                    : () => _edit(() {
-                                          _unitController.text = unit;
-                                        }),
-                              ),
-                          ],
-                        ),
-                        TextButton(
-                            onPressed: () =>
-                                setState(() => _showAllUnits = !_showAllUnits),
-                            child: Text(
-                                _showAllUnits ? 'FEWER UNITS' : 'MORE UNITS')),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Anything works — type your own unit if none fits.',
-                          style: textTheme.bodySmall
-                              ?.copyWith(color: AppColors.textSecondary),
-                        ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              for (final unit in _showAllUnits
+                                  ? _unitSuggestions
+                                  : const ['Reps', 'Minutes', 'Pages'])
+                                _UnitChip(
+                                  label: unit,
+                                  selected: _unitController.text.trim() == unit,
+                                  onTap: isLoading
+                                      ? null
+                                      : () => _edit(() {
+                                            _unitController.text = unit;
+                                          }),
+                                ),
+                            ],
+                          ),
+                          TextButton(
+                              onPressed: () => setState(
+                                  () => _showAllUnits = !_showAllUnits),
+                              child: Text(_showAllUnits
+                                  ? 'FEWER UNITS'
+                                  : 'MORE UNITS')),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Anything works — type your own unit if none fits.',
+                            style: textTheme.bodySmall
+                                ?.copyWith(color: AppColors.textSecondary),
+                          ),
+                        ],
                       ],
                       const SizedBox(height: 16),
                     ],

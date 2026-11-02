@@ -6,6 +6,7 @@ import '../domain/aura_heist.dart';
 import '../domain/benefit.dart';
 import '../domain/blackout.dart';
 import '../domain/challenge.dart';
+import '../domain/clock_session.dart';
 import '../domain/duel.dart';
 import '../domain/progress_entry.dart';
 import '../domain/quest_activity.dart';
@@ -40,7 +41,7 @@ class ChallengeRepository {
               'challenges('
               'id, creator_id, title, description, duration_days, aura_gain, '
               'aura_penalty, max_strikes, starts_on, checkin_period, '
-              'checkins_per_period, mode, goal_type, target_value, unit, '
+              'checkins_per_period, mode, goal_type, tracking, target_value, unit, '
               'daily_allowance, active_weekdays, balance_preset, attacks_enabled, '
               'lifecycle, is_endless, started_at, created_at)')
           .eq('user_id', userId)
@@ -223,6 +224,7 @@ class ChallengeRepository {
     required int checkinsPerPeriod,
     QuestMode mode = QuestMode.solo,
     GoalType goalType = GoalType.check,
+    QuestTracking tracking = QuestTracking.manual,
     double? targetValue,
     String? unit,
     bool isEndless = false,
@@ -246,6 +248,7 @@ class ChallengeRepository {
         'p_checkins_per_period': checkinsPerPeriod,
         'p_mode': mode.dbValue,
         'p_goal_type': goalType.dbValue,
+        'p_tracking': tracking.dbValue,
         'p_target_value': targetValue,
         'p_unit': unit,
         'p_is_endless': isEndless,
@@ -422,6 +425,112 @@ class ChallengeRepository {
       return result;
     } on PostgrestException catch (e) {
       _log('addProgress', e);
+      rethrow;
+    }
+  }
+
+  // ── CLOCK quests ────────────────────────────────────────────────
+  //
+  // A clock quest is a progress quest whose amounts come from a
+  // stopwatch. The running clock lives in the database as a row with
+  // no end yet; the app only ever renders `now - started_at`.
+
+  static const _clockColumns =
+      'id, challenge_id, user_id, started_at, ended_at, entry_id';
+
+  /// The clock currently running in this quest, or null if none is.
+  Future<ClockSession?> fetchOpenClockSession(String challengeId) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return null;
+
+    try {
+      final rows = await _client
+          .from('clock_sessions')
+          .select(_clockColumns)
+          .eq('challenge_id', challengeId)
+          .eq('user_id', userId)
+          .isFilter('ended_at', null)
+          .limit(1);
+      if (rows.isEmpty) return null;
+      return ClockSession.fromJson(rows.first);
+    } on PostgrestException catch (e) {
+      _log('fetchOpenClockSession', e);
+      rethrow;
+    }
+  }
+
+  /// Every session the user has logged in this quest, newest first.
+  /// Feeds the "longest single" record and the session history.
+  Future<List<ClockSession>> fetchClockSessions(String challengeId) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return const [];
+
+    try {
+      final rows = await _readAll(() => _client
+          .from('clock_sessions')
+          .select(_clockColumns)
+          .eq('challenge_id', challengeId)
+          .eq('user_id', userId)
+          .order('started_at', ascending: false));
+      return rows.map(ClockSession.fromJson).toList();
+    } on PostgrestException catch (e) {
+      _log('fetchClockSessions', e);
+      rethrow;
+    }
+  }
+
+  /// Starts the clock. Nothing is scored until it is stopped.
+  Future<ClockSession> startClock(String challengeId) async {
+    try {
+      final json = await _client.rpc<Map<String, dynamic>>('clock_start',
+          params: {'p_challenge_id': challengeId});
+      debugPrint('✅ [ChallengeRepository.startClock] running on $challengeId');
+      return ClockSession(
+        id: json['id'] as String,
+        challengeId: challengeId,
+        userId: _client.auth.currentUser?.id ?? '',
+        startedAt: DateTime.parse(json['started_at'] as String),
+      );
+    } on PostgrestException catch (e) {
+      _log('startClock', e);
+      rethrow;
+    }
+  }
+
+  /// Stops the clock and files the elapsed minutes as progress.
+  ///
+  /// [endedAt] exists because forgetting to stop is the normal way this
+  /// goes wrong: you break the fast at 13:00 and remember at 22:00.
+  /// Leaving it null means "now".
+  Future<ClockStopResult> stopClock({
+    required String challengeId,
+    DateTime? endedAt,
+  }) async {
+    try {
+      final json =
+          await _client.rpc<Map<String, dynamic>>('clock_stop', params: {
+        'p_challenge_id': challengeId,
+        'p_ended_at': endedAt?.toUtc().toIso8601String(),
+      });
+      final result = ClockStopResult.fromJson(json);
+      debugPrint('✅ [ChallengeRepository.stopClock] ${result.minutes} min → '
+          '${result.total}/${result.target} (done: ${result.completed})');
+      return result;
+    } on PostgrestException catch (e) {
+      _log('stopClock', e);
+      rethrow;
+    }
+  }
+
+  /// Throws away a clock started by accident. Nothing is scored.
+  Future<bool> discardClock(String challengeId) async {
+    try {
+      final dropped = await _client
+          .rpc<bool>('clock_discard', params: {'p_challenge_id': challengeId});
+      debugPrint('✅ [ChallengeRepository.discardClock] dropped: $dropped');
+      return dropped;
+    } on PostgrestException catch (e) {
+      _log('discardClock', e);
       rethrow;
     }
   }

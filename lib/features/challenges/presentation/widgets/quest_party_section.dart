@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../../../core/text/dates.dart';
-import '../../../../core/text/quantity.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/motion.dart';
 import '../../../../core/widgets/aura_avatar.dart';
@@ -13,6 +12,7 @@ import '../../../friends/presentation/widgets/user_safety_sheet.dart';
 import '../../application/challenge_providers.dart';
 import '../../domain/benefit.dart';
 import '../../domain/challenge.dart';
+import '../quest_amount.dart';
 import '../../domain/quest_member.dart';
 import 'benefit_chip.dart';
 import 'roast_duel.dart';
@@ -141,10 +141,27 @@ class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
         membersAsync.when(
           // Keep the party on screen through the 8s auto-refresh.
           skipLoadingOnReload: true,
-          data: (members) {
+          data: (rawMembers) {
+            // "Whoever held out longer is in front" is the whole point
+            // of a clock quest, so its party is a ranking rather than a
+            // roster. Every other mode keeps the order it arrived in.
+            final members = widget.challenge.isClock
+                ? ([...rawMembers]..sort((a, b) {
+                    final byTime =
+                        b.progressInPeriod.compareTo(a.progressInPeriod);
+                    if (byTime != 0) return byTime;
+                    return a.username
+                        .toLowerCase()
+                        .compareTo(b.username.toLowerCase());
+                  }))
+                : rawMembers;
+
             Widget tile(QuestMember member, {Color? teamColor}) => _MemberTile(
                   member: member,
                   challenge: widget.challenge,
+                  rank: widget.challenge.isClock
+                      ? members.indexOf(member) + 1
+                      : null,
                   teamColor: teamColor,
                   isNudging: _nudgingUserId == member.userId,
                   onNudge: () => _nudge(member),
@@ -542,11 +559,16 @@ class _MemberTile extends ConsumerWidget {
     required this.isNudging,
     required this.onNudge,
     required this.onDuel,
+    this.rank,
     this.teamColor,
   });
 
   final QuestMember member;
   final Challenge challenge;
+
+  /// Position in the standings, 1-based. Null where the party is not
+  /// a ranking.
+  final int? rank;
   final bool isNudging;
   final VoidCallback onNudge;
   final VoidCallback? onDuel;
@@ -581,6 +603,24 @@ class _MemberTile extends ConsumerWidget {
         children: [
           Row(
             children: [
+              // Standing, where the party is a ranking. The leader is
+              // worth marking; everyone else just needs a number.
+              if (rank != null) ...[
+                SizedBox(
+                  width: 22,
+                  child: Text(
+                    '$rank',
+                    textAlign: TextAlign.center,
+                    style: textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: rank == 1
+                          ? AppColors.neonYellow
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+              ],
               // Avatar; team colour wins, otherwise gold for the owner.
               AuraAvatar(
                 emoji: member.avatarEmoji,
@@ -744,10 +784,9 @@ class _MemberTile extends ConsumerWidget {
                           // Progress quests show the real numbers, so the
                           // party sees exactly where everyone stands.
                           challenge.isProgress
-                              ? formatProgress(
+                              ? challenge.progressLabel(
                                   member.progressInPeriod,
                                   challenge.targetValue ?? 0,
-                                  challenge.unit ?? '',
                                 )
                               : (member.doneThisPeriod
                                   ? 'checked in'

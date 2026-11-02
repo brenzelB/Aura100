@@ -12,8 +12,10 @@ import '../../../../core/widgets/editorial_marks.dart';
 import '../../application/challenge_providers.dart';
 import '../../../auth/application/auth_providers.dart';
 import '../../domain/challenge.dart';
+import '../quest_amount.dart';
 import '../../domain/progress_entry.dart';
 import '../../domain/progress_presets.dart';
+import 'clock_controls.dart';
 import 'progress_feedback.dart';
 
 /// The progress read-out: "72 / 100 Reps", a percentage and
@@ -45,8 +47,7 @@ class QuestProgressBar extends StatelessWidget {
         CheckinPeriod.monthly => 'This month',
       };
       final fraction = Text(
-          formatProgress(
-              challenge.progressInPeriod, target, challenge.unit ?? ''),
+          challenge.progressLabel(challenge.progressInPeriod, target),
           style: textTheme.titleLarge?.copyWith(
               fontFamily: 'Editorial Body',
               fontSize: 32,
@@ -74,12 +75,12 @@ class QuestProgressBar extends StatelessWidget {
           Text(
               done
                   ? '$period · target reached'
-                  : '$period · ${formatQuantity(challenge.progressRemaining)} to go',
+                  : '$period · ${challenge.amount(challenge.progressRemaining)} to go',
               style: textTheme.bodySmall
                   ?.copyWith(color: AppColors.textSecondary)),
           Text(
               challenge.overshoot > 0
-                  ? '+${formatQuantity(challenge.overshoot)} over'
+                  ? '+${challenge.amount(challenge.overshoot)} over'
                   : '${challenge.progressPercent} %',
               style: textTheme.bodySmall?.copyWith(
                   color: AppColors.successText, fontWeight: FontWeight.w700)),
@@ -100,11 +101,7 @@ class QuestProgressBar extends StatelessWidget {
             ],
             Expanded(
               child: Text(
-                formatProgress(
-                  challenge.progressInPeriod,
-                  target,
-                  challenge.unit ?? '',
-                ),
+                challenge.progressLabel(challenge.progressInPeriod, target),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: (AppColors.activeType == AppThemeType.editorial
@@ -129,7 +126,7 @@ class QuestProgressBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  '+${formatQuantity(challenge.overshoot)} over',
+                  '+${challenge.amount(challenge.overshoot)} over',
                   style: (compact ? textTheme.bodySmall : textTheme.bodyMedium)
                       ?.copyWith(
                           color: AppColors.successText,
@@ -178,6 +175,19 @@ Future<void> showAddProgressSheet(
   WidgetRef ref,
   Challenge challenge,
 ) async {
+  // A clock quest has no amount to type. Everything that used to open
+  // the keypad opens the stopwatch instead, so there is exactly one
+  // place in the app that decides this.
+  if (challenge.isClock) {
+    final running =
+        ref.read(openClockSessionProvider(challenge.id)).valueOrNull;
+    if (running == null) {
+      await ref.read(clockControllerProvider(challenge.id).notifier).start();
+      return;
+    }
+    if (!context.mounted) return;
+    return showClockStopSheet(context, ref, challenge);
+  }
   final messenger = ScaffoldMessenger.of(context);
   final owner = ref.read(currentUserProvider)?.id;
   final container = ProviderScope.containerOf(context, listen: false);
@@ -204,7 +214,7 @@ Future<void> showAddProgressSheet(
         overshoot: result.overshoot,
         gained: result.gained),
     added: result.added,
-    unit: challenge.unit ?? '',
+    challenge: challenge,
   );
 }
 
@@ -440,11 +450,10 @@ Future<void> showCorrectEntrySheet(
   );
   if (outcome == null) return;
 
-  final unit = challenge.unit ?? '';
   messenger.showSnackBar(AppSnackBar(
     content: Text(outcome.deleted
         ? '🗑️ Entry removed'
-        : '✏️ Updated to ${formatQuantity(outcome.amount)} $unit'),
+        : '✏️ Updated to ${challenge.amountWithUnit(outcome.amount)}'),
     backgroundColor: AppColors.neonPurple,
   ));
 }

@@ -112,11 +112,16 @@ class ProgressTotals {
     required this.lifetime,
     required this.thisMonth,
     required this.thisWeek,
+    required this.today,
   });
 
   final double lifetime;
   final double thisMonth;
   final double thisWeek;
+
+  /// Since local midnight. A clock quest leads with this one, because
+  /// "how long did I fast today" is the question being asked of it.
+  final double today;
 
   /// [now] is local time so "this week/month" match the player's calendar.
   static ProgressTotals from(List<ProgressEntry> entries, DateTime now) {
@@ -125,14 +130,16 @@ class ProgressTotals {
     final weekStart = today.subtract(Duration(days: now.weekday - 1));
     final monthStart = DateTime(now.year, now.month, 1);
 
-    var life = 0.0, month = 0.0, week = 0.0;
+    var life = 0.0, month = 0.0, week = 0.0, day_ = 0.0;
     for (final e in entries) {
       final t = e.createdAt.toLocal();
       final day = DateTime(t.year, t.month, t.day);
       life += e.amount;
       if (!day.isBefore(monthStart)) month += e.amount;
       if (!day.isBefore(weekStart)) week += e.amount;
+      if (!day.isBefore(today)) day_ += e.amount;
     }
-    return ProgressTotals(lifetime: life, thisMonth: month, thisWeek: week);
+    return ProgressTotals(
+        lifetime: life, thisMonth: month, thisWeek: week, today: day_);
   }
 }
