@@ -113,6 +113,88 @@ erkennt die vorhandene Konfiguration und bietet an, sie zu übernehmen.
 
 ---
 
+## Migrationen einspielen
+
+Es gibt **keine Buchführung** auf dem NAS — die Tabelle
+`supabase_migrations.schema_migrations` existiert hier nicht. Migrationen werden
+von Hand eingespielt, und welche schon drauf sind, steht nur in diesem Dokument
+und in den Prüfberichten unter `docs/`. Wer eine Datei zweimal einspielt, muss
+sich darauf verlassen, dass sie das aushält; die Migrationen im Projekt sind
+deshalb durchgehend mit `if not exists` / `drop … if exists` / `create or
+replace` geschrieben.
+
+Immer in **einer** Transaktion, sonst bleibt bei einem Fehler in Zeile 300 die
+Hälfte der Änderung liegen:
+
+```bash
+ssh -i ~/.ssh/auraquest_nas denzel@192.168.178.123 \
+  "docker exec -i auraquest-db psql -v ON_ERROR_STOP=1 --single-transaction -U postgres -d postgres" \
+  < supabase/migrations/<datei>.sql
+```
+
+`--single-transaction` zusammen mit `ON_ERROR_STOP=1` heißt: alles oder nichts.
+
+**Vorher trocken testen.** Dieselbe Zeile mit einem erzwungenen Rollback
+drumherum prüft die Migration gegen das echte Schema, ohne etwas zu verändern —
+das findet Tippfehler, fehlende Spalten und falsche Signaturen, die ein Blick
+auf die Datei nicht findet:
+
+```bash
+{ echo "begin;"; echo "set local lock_timeout='3s';"; \
+  cat supabase/migrations/<datei>.sql; echo "rollback;"; } \
+| ssh -i ~/.ssh/auraquest_nas denzel@192.168.178.123 \
+  "docker exec -i auraquest-db psql -v ON_ERROR_STOP=1 -U postgres -d postgres"
+```
+
+**Danach den Schema-Zwischenspeicher auffrischen.** PostgREST (`auraquest-rest`)
+hält das Schema im Speicher und sieht neue Spalten, Tabellen und Funktionen
+sonst nicht — die App bekommt dann Fehler, obwohl die Datenbank in Ordnung ist:
+
+```bash
+ssh -i ~/.ssh/auraquest_nas denzel@192.168.178.123 \
+  "docker exec -i auraquest-db psql -U postgres -d postgres -c \"notify pgrst, 'reload schema'\""
+```
+
+Dass es gegriffen hat, steht im Log: `docker logs --tail 20 auraquest-rest`
+zeigt dann `Received a schema cache reload message on the "pgrst" channel`
+gefolgt von `Schema cache loaded …`. Die Zeitstempel dort sind **UTC**, nicht
+NAS-Ortszeit.
+
+**Reihenfolge gegenüber einem App-Build.** Die Migration muss **vor** dem Build
+drauf, nicht danach. Fragt eine neue App-Fassung eine Spalte ab, die auf dem NAS
+fehlt, bricht die Abfrage komplett weg — bei einer Spalte in der Questliste also
+die Questliste. Umgekehrt ist eine rein additive Migration für die bereits
+veröffentlichte Fassung harmlos: sie liest die neue Spalte nicht.
+
+Wird dabei eine RPC-Signatur erweitert, muss die alte Fassung **weg**
+(`drop function if exists …` mit der alten Argumentliste). Zwei Überladungen mit
+Vorgabewerten machen den Aufruf mehrdeutig, und PostgREST kann ihn dann nicht
+mehr auflösen — auch nicht für die alte App. Zur Gegenprobe:
+
+```sql
+select proname, pg_get_function_arguments(oid) from pg_proc p
+ join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public' and proname = '<name>';
+```
+
+**Rollback-Punkt vorher anlegen** — das ist der Grund, warum es die
+`vor-*.dump`-Dateien gibt, die die Rotation absichtlich nicht anfasst:
+
+```bash
+ssh -i ~/.ssh/auraquest_nas denzel@192.168.178.123 \
+  "docker exec auraquest-backup sh -c 'umask 077; pg_dump -Fc > /backups/vor-<thema>-<datum>.dump'"
+```
+
+Angewendet am 02.11.2026: `20261102120000_clock_quests.sql` (CLOCK-Quests —
+Spalte `challenges.tracking`, Tabelle `clock_sessions`, RPCs `clock_start` /
+`clock_stop` / `clock_discard`, `create_challenge` um `p_tracking` erweitert).
+Rollback-Punkt: `vor-clock-quests-20261102.dump`. Nachgeprüft: Spalte mit
+Vorgabe `'manual'`, RLS aktiv, der partielle Unique-Index
+`clock_sessions_one_open` vorhanden, `create_challenge` genau **einmal**
+definiert, 21 bestehende Quests unverändert auf `manual`.
+
+---
+
 ## Backups
 
 Läuft automatisch. Der Container **`auraquest-backup`** legt täglich um **03:15**
