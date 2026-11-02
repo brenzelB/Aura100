@@ -1,4 +1,4 @@
-# Aura Quest 1.0.4 — Build 25
+# Aura Quest 1.0.4 — Build 26
 
 Die beiden Apple-Abschnitte unten sind **wortgleich** mit dem, was am
 02.11.2026 in App Store Connect gesichert wurde — inklusive der schlichten
@@ -10,12 +10,42 @@ Zwei Dinge: die neue Zielart CLOCK, und die Reparatur der Mitteilungen.
 Zur Buildnummer: 1.0.3 lief als Build **24** (freigegeben am 28.10.2026,
 14:49 Uhr). `pubspec.yaml` stand zu dem Zeitpunkt noch auf `+20`, weil die
 Builds 21–24 über `--build-number` gebaut wurden. Mit 1.0.4 ist die Nummer
-wieder im Projekt verankert: `1.0.4+25`.
+wieder im Projekt verankert.
+
+Build **25** wurde am 02.11.2026 hochgeladen, aber keiner Testergruppe
+zugewiesen — niemand hat ihn je geöffnet. Build **26** ersetzt ihn, bevor das
+passiert ist. Die Apple-Texte unten bleiben dabei **unverändert**: 26 ändert
+keine Zusage, sondern löst eine ein, die 25 nur halb gehalten hat (siehe
+unten).
 
 **Vor dem Build:** Die Migration `20261102120000_clock_quests.sql` muss auf dem
 NAS liegen, sonst bricht die Questliste weg — diese Fassung fragt die Spalte
 `challenges.tracking` ab. Angewendet am 02.11.2026, siehe
 [NAS-Dokumentation](../nas/README.md#migrationen-einspielen).
+
+## Was Build 26 gegenüber 25 ändert
+
+Zwei Stellen, an denen die Uhr zwar maß, aber nichts Lesbares daraus machte.
+
+- **Ein gemessener Lauf wird nach seinem Tag datiert, nicht nach dem Alter der
+  Zeile.** Der Verlauf stempelte jeden Eintrag mit `1d` — für alles, was
+  zwischen 24 und 48 Stunden her war. Niemand fastet in Zeilenaltern. Jetzt
+  steht dort `yesterday` und darunter die beiden Enden: `Mon 20:00 → Tue 06:00`.
+  Datiert wird nach dem **Ende** des Laufs, nicht nach dem Verbuchen.
+- **Die Mitspielerliste ist eine Rangliste geworden.** Sortiert wird nach der
+  Woche, mit heute / Woche / Monat unter jedem Namen. Vorher entschied der
+  laufende Zeitraum — bei täglicher Quest standen damit um Mitternacht alle
+  auf null, und Platz 1 ging an den, der zuerst verbuchte. Der Satz *„Spiel es
+  mit Freunden: Wer länger durchhält, steht vorne“* aus den Apple-Texten
+  stimmt erst ab diesem Build.
+
+Keine Migration nötig. Die Zeilen waren immer lesbar — `progress_entries` und
+`clock_sessions` lassen Questmitglieder einander sehen —, die Abfragen haben
+die Geschichte nur weggeworfen, bevor sie auf den Bildschirm kam.
+
+Tagesnamen im Verlauf rechnen in **Ortszeit**, die Summen in **UTC**. Das ist
+Absicht: die Summen müssen zu der Aura passen, die der Server ausgezahlt hat,
+und der rechnet in UTC. Commit `7ec6318`.
 
 ## Apple App Store — English (en-US)
 
@@ -54,7 +84,7 @@ Ehrlichkeitshalber festgehalten, damit es niemand für geprüft hält:
   zeigt zugestellte iOS-Nachrichten), aber die Erlaubnis war auf keinem Telefon
   je erteilt — genau das repariert diese Fassung. Ob danach wirklich eine
   Mitteilung aufploppt, ist offen und muss am Gerät geprüft werden.
-- **Die Uhr lief auf keinem Gerät.** 531 Tests laufen durch; das ist keine
+- **Die Uhr lief auf keinem Gerät.** 547 Tests laufen durch; das ist keine
   Benutzung.
 - **Kein eigener Weg, eine Sitzung komplett nachträglich einzutragen** — der
   korrigierbare Start deckt den Fall ab, aber es gibt keinen Knopf „Sitzung von
