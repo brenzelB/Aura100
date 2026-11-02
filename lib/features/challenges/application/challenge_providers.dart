@@ -506,24 +506,29 @@ class ClockController extends AutoDisposeFamilyAsyncNotifier<void, String> {
   }
 
   /// Stops the clock and banks the elapsed time. [endedAt] corrects a
-  /// clock that was left running; null means "now".
-  Future<ClockStopResult?> stop({DateTime? endedAt}) async {
+  /// clock left running, [startedAt] one that was never started; null
+  /// leaves that end alone.
+  Future<ClockStopResult?> stop({
+    DateTime? endedAt,
+    DateTime? startedAt,
+  }) async {
     final pending = ref.keepAlive();
     try {
-      return await _stop(endedAt);
+      return await _stop(endedAt, startedAt);
     } finally {
       pending.close();
     }
   }
 
-  Future<ClockStopResult?> _stop(DateTime? endedAt) async {
+  Future<ClockStopResult?> _stop(DateTime? endedAt, DateTime? startedAt) async {
     final repo = ref.read(challengeRepositoryProvider);
     final auth = ref.read(authRepositoryProvider);
     final owner = ref.read(currentUserProvider)?.id;
     state = const AsyncLoading();
     ClockStopResult? result;
     state = await AsyncValue.guard(() async {
-      result = await repo.stopClock(challengeId: arg, endedAt: endedAt);
+      result = await repo.stopClock(
+          challengeId: arg, endedAt: endedAt, startedAt: startedAt);
     });
     if (state.hasError) return null;
 

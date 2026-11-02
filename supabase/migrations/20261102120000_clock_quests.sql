@@ -163,9 +163,12 @@ grant  execute on function public.clock_start(uuid) to authenticated;
 --  at 13:00 and remember at 22:00. Without a correctable end time the
 --  data is worthless inside a week.
 -- ─────────────────────────────────────────────────────────────────
+drop function if exists public.clock_stop(uuid, timestamptz);
+
 create or replace function public.clock_stop(
   p_challenge_id uuid,
-  p_ended_at timestamptz default null
+  p_ended_at timestamptz default null,
+  p_started_at timestamptz default null
 )
 returns jsonb
 language plpgsql
@@ -173,12 +176,14 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_user_id uuid := (select auth.uid());
-  v_session public.clock_sessions%rowtype;
-  v_end     timestamptz := coalesce(p_ended_at, now());
-  v_minutes numeric;
-  v_result  jsonb;
-  v_entry   uuid;
+  v_user_id   uuid := (select auth.uid());
+  v_session   public.clock_sessions%rowtype;
+  v_challenge public.challenges%rowtype;
+  v_end       timestamptz := coalesce(p_ended_at, now());
+  v_start     timestamptz;
+  v_minutes   numeric;
+  v_result    jsonb;
+  v_entry     uuid;
 begin
   perform public.lock_game_state();
   if v_user_id is null then
@@ -195,11 +200,29 @@ begin
     raise exception 'The clock is not running.';
   end if;
 
+  -- The START is correctable too, and that is not a nicety. Forgetting
+  -- to START is the other half of the same mistake: you ate at 14:00
+  -- and never began the clock last night. Without this, that fast
+  -- cannot be entered at all - a clock quest has no keypad, and the
+  -- history can only correct entries that already exist.
+  v_start := coalesce(p_started_at, v_session.started_at);
+
   if v_end > now() then
     raise exception 'The clock cannot stop in the future.';
   end if;
-  if v_end <= v_session.started_at then
+  if v_start > now() then
+    raise exception 'The clock cannot start in the future.';
+  end if;
+  if v_end <= v_start then
     raise exception 'The end has to come after the start.';
+  end if;
+
+  select * into v_challenge
+  from public.challenges where id = p_challenge_id;
+  -- Time logged before the quest existed would count towards a period
+  -- that was never played.
+  if v_start < (v_challenge.starts_on::timestamp at time zone 'utc') then
+    raise exception 'That start is before the quest began.';
   end if;
 
   -- The entry is filed on the day it ENDED, and add_progress always
@@ -211,13 +234,15 @@ begin
       'That end time is on an earlier day. Stop the clock, then correct the entry in the history.';
   end if;
 
-  v_minutes := round(extract(epoch from (v_end - v_session.started_at)) / 60.0, 2);
+  v_minutes := round(extract(epoch from (v_end - v_start)) / 60.0, 2);
   if v_minutes > 43200 then
     raise exception 'A single session cannot be longer than 30 days.';
   end if;
 
+  -- The stored interval has to match what was banked, or "longest
+  -- single hold" would be read off a span nobody actually logged.
   update public.clock_sessions
-  set ended_at = v_end
+  set ended_at = v_end, started_at = v_start
   where id = v_session.id;
 
   -- Everything downstream - the period total, the check-in, the aura
@@ -242,14 +267,14 @@ begin
     || jsonb_build_object(
          'minutes', v_minutes,
          'session_id', v_session.id,
-         'started_at', v_session.started_at,
+         'started_at', v_start,
          'ended_at', v_end
        );
 end;
 $$;
 
-revoke execute on function public.clock_stop(uuid, timestamptz) from public, anon;
-grant  execute on function public.clock_stop(uuid, timestamptz) to authenticated;
+revoke execute on function public.clock_stop(uuid, timestamptz, timestamptz) from public, anon;
+grant  execute on function public.clock_stop(uuid, timestamptz, timestamptz) to authenticated;
 
 -- ─────────────────────────────────────────────────────────────────
 -- 5. DISCARD - started by accident. Nothing is scored, nothing kept.

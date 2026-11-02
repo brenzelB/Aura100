@@ -4,6 +4,7 @@ import 'package:aura_quest/features/challenges/domain/challenge.dart';
 import 'package:aura_quest/features/challenges/domain/clock_session.dart';
 import 'package:aura_quest/features/challenges/domain/progress_entry.dart';
 import 'package:aura_quest/features/challenges/presentation/quest_amount.dart';
+import 'package:aura_quest/features/challenges/presentation/widgets/clock_controls.dart';
 import 'package:aura_quest/features/challenges/presentation/widgets/quick_progress_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -257,6 +258,86 @@ void main() {
       ]);
 
       expect(find.textContaining('Running for over a day'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox());
+    });
+  });
+
+  group('a forgotten start is still enterable', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+      GoogleFonts.config.allowRuntimeFetching = false;
+    });
+
+    /// Opening the stop sheet needs a real context, and the sheet is
+    /// private, so it is reached the way the app reaches it.
+    Future<void> openSheet(WidgetTester tester, ClockSession session) async {
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          openClockSessionProvider('q').overrideWith((ref) async => session),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => Consumer(
+                builder: (context, ref, _) => TextButton(
+                  onPressed: () => showClockStopSheet(context, ref, _quest()),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+    }
+
+    ClockSession running() => ClockSession(
+          id: 's',
+          challengeId: 'q',
+          userId: 'u',
+          startedAt:
+              DateTime.now().toUtc().subtract(const Duration(minutes: 20)),
+        );
+
+    testWidgets('the start can be corrected, not only the stop',
+        (tester) async {
+      // Forgetting to START is the half that used to be unfixable: a
+      // clock quest has no keypad, and the history can only correct
+      // entries that already exist. If this control disappears, that
+      // fast cannot be entered at all.
+      await openSheet(tester, running());
+
+      expect(find.text('STARTED'), findsOneWidget);
+      expect(find.text('STOPPED'), findsOneWidget);
+      // Two rows, each with its own CHANGE.
+      expect(find.text('CHANGE'), findsNWidgets(2));
+
+      // The day only gets asked about once a start has been named.
+      expect(find.text('YESTERDAY'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('naming a start time asks which day it was on', (tester) async {
+      await openSheet(tester, running());
+
+      // The first CHANGE belongs to STARTED.
+      await tester.tap(find.text('CHANGE').first);
+      await tester.pumpAndSettle();
+      // Accepting the picker's initial value is enough; the point is
+      // that a start has now been named by hand.
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('TODAY'), findsOneWidget);
+      expect(find.text('YESTERDAY'), findsOneWidget,
+          reason: 'a fast across midnight started yesterday');
+      expect(find.text('2 DAYS AGO'), findsOneWidget);
+      // And a way back to the clock's own start.
+      expect(find.text('RESET'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
     });

@@ -499,18 +499,23 @@ class ChallengeRepository {
 
   /// Stops the clock and files the elapsed minutes as progress.
   ///
-  /// [endedAt] exists because forgetting to stop is the normal way this
-  /// goes wrong: you break the fast at 13:00 and remember at 22:00.
-  /// Leaving it null means "now".
+  /// Both ends are correctable, because both get forgotten. [endedAt]
+  /// covers the clock left running: you broke the fast at 13:00 and
+  /// remembered at 22:00. [startedAt] covers the clock never started:
+  /// you ate at 14:00 having never begun it last night, and without
+  /// this that fast could not be entered at all - a clock quest has no
+  /// keypad. Null means "leave that end as it is".
   Future<ClockStopResult> stopClock({
     required String challengeId,
     DateTime? endedAt,
+    DateTime? startedAt,
   }) async {
     try {
       final json =
           await _client.rpc<Map<String, dynamic>>('clock_stop', params: {
         'p_challenge_id': challengeId,
         'p_ended_at': endedAt?.toUtc().toIso8601String(),
+        'p_started_at': startedAt?.toUtc().toIso8601String(),
       });
       final result = ClockStopResult.fromJson(json);
       debugPrint('✅ [ChallengeRepository.stopClock] ${result.minutes} min → '

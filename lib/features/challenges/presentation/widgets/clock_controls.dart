@@ -234,6 +234,18 @@ class _ClockStopSheetState extends ConsumerState<_ClockStopSheet> {
   /// Null means "now" — and keeps meaning now as the seconds pass,
   /// which a timestamp captured on open would not.
   TimeOfDay? _endsAt;
+
+  /// A corrected START. Null means "leave the clock's own start alone".
+  ///
+  /// This is what makes a forgotten START enterable at all: begin the
+  /// clock now, stop it, then say it really ran from yesterday 20:00.
+  /// A clock quest has no keypad, so without this that fast is lost.
+  TimeOfDay? _startsAt;
+
+  /// How many days back [_startsAt] sits. A fast crossing midnight
+  /// started yesterday, and a long one the day before.
+  int _startDaysAgo = 0;
+
   String? _error;
   Timer? _tick;
 
@@ -260,6 +272,37 @@ class _ClockStopSheetState extends ConsumerState<_ClockStopSheet> {
     return DateTime(now.year, now.month, now.day, picked.hour, picked.minute);
   }
 
+  /// The chosen start as a real instant, or the clock's own.
+  DateTime _resolveStart(DateTime now, ClockSession session) {
+    final picked = _startsAt;
+    if (picked == null) return session.startedAt.toLocal();
+    final today =
+        DateTime(now.year, now.month, now.day, picked.hour, picked.minute);
+    return today.subtract(Duration(days: _startDaysAgo));
+  }
+
+  Future<void> _pickStart(ClockSession session) async {
+    final now = DateTime.now();
+    final picked = await showTimePicker(
+      context: context,
+      initialTime:
+          _startsAt ?? TimeOfDay.fromDateTime(session.startedAt.toLocal()),
+      helpText: 'WHEN DID IT ACTUALLY START?',
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _startsAt = picked;
+      _error = null;
+      // A time later in the day than the end cannot be today, so the
+      // obvious reading is yesterday. The live duration above shows
+      // the result either way, and the day chips can override it.
+      final end = _resolveEnd(now);
+      final asToday =
+          DateTime(now.year, now.month, now.day, picked.hour, picked.minute);
+      _startDaysAgo = asToday.isBefore(end) ? 0 : 1;
+    });
+  }
+
   Future<void> _pickEnd() async {
     final picked = await showTimePicker(
       context: context,
@@ -276,11 +319,13 @@ class _ClockStopSheetState extends ConsumerState<_ClockStopSheet> {
   Future<void> _stop(ClockSession session) async {
     final now = DateTime.now();
     final end = _resolveEnd(now);
-    if (!end.isAfter(session.startedAt.toLocal())) {
-      setState(() => _error = 'That is before the clock even started.');
+    final start = _resolveStart(now, session);
+    if (!end.isAfter(start)) {
+      setState(() => _error = 'The end has to come after the start.');
       return;
     }
-    if (end.isAfter(now.add(const Duration(seconds: 5)))) {
+    if (end.isAfter(now.add(const Duration(seconds: 5))) ||
+        start.isAfter(now)) {
       setState(() => _error = 'That is still in the future.');
       return;
     }
@@ -290,9 +335,11 @@ class _ClockStopSheetState extends ConsumerState<_ClockStopSheet> {
     final owner = ref.read(currentUserProvider)?.id;
     if (owner == null) return;
 
-    final result = await ref
-        .read(clockControllerProvider(challenge.id).notifier)
-        .stop(endedAt: _endsAt == null ? null : end);
+    final result =
+        await ref.read(clockControllerProvider(challenge.id).notifier).stop(
+              endedAt: _endsAt == null ? null : end,
+              startedAt: _startsAt == null ? null : start,
+            );
     if (!mounted || ref.read(currentUserProvider)?.id != owner) return;
 
     if (result == null) {
@@ -344,9 +391,9 @@ class _ClockStopSheetState extends ConsumerState<_ClockStopSheet> {
 
     final now = DateTime.now();
     final end = _resolveEnd(now);
-    final started = session.startedAt.toLocal();
+    final started = _resolveStart(now, session);
     final span = end.difference(started);
-    final valid = span.inSeconds > 0;
+    final valid = span.inSeconds > 0 && !started.isAfter(now);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -386,8 +433,57 @@ class _ClockStopSheetState extends ConsumerState<_ClockStopSheet> {
               const SizedBox(height: 16),
               _Row(
                 label: 'STARTED',
-                value: TimeOfDay.fromDateTime(started).format(context),
+                value: _startDayLabel(started, now,
+                    TimeOfDay.fromDateTime(started).format(context)),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_startsAt != null)
+                      TextButton(
+                        onPressed: busy
+                            ? null
+                            : () => setState(() {
+                                  _startsAt = null;
+                                  _startDaysAgo = 0;
+                                  _error = null;
+                                }),
+                        child: Text('RESET',
+                            style: TextStyle(color: AppColors.textSecondary)),
+                      ),
+                    TextButton(
+                      onPressed: busy ? null : () => _pickStart(session),
+                      child: Text('CHANGE',
+                          style: TextStyle(color: AppColors.accentText)),
+                    ),
+                  ],
+                ),
               ),
+              // Which day the start sits on. Only worth asking once a
+              // start has been named - a fast across midnight began
+              // yesterday, and the duration above proves it.
+              if (_startsAt != null) ...[
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  children: [
+                    for (final day in const [
+                      (0, 'TODAY'),
+                      (1, 'YESTERDAY'),
+                      (2, '2 DAYS AGO'),
+                    ])
+                      ChoiceChip(
+                        label: Text(day.$2),
+                        selected: _startDaysAgo == day.$1,
+                        onSelected: busy
+                            ? null
+                            : (_) => setState(() {
+                                  _startDaysAgo = day.$1;
+                                  _error = null;
+                                }),
+                      ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 8),
               _Row(
                 label: 'STOPPED',
@@ -420,7 +516,7 @@ class _ClockStopSheetState extends ConsumerState<_ClockStopSheet> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Left it running? Set the time you actually stopped.',
+                'Forgot to start or to stop? Set the real times here.',
                 style: textTheme.bodySmall
                     ?.copyWith(color: AppColors.textSecondary),
               ),
@@ -457,6 +553,19 @@ class _ClockStopSheetState extends ConsumerState<_ClockStopSheet> {
       ),
     );
   }
+}
+
+/// "20:00" today, "yesterday 20:00" before that. A bare time on a row
+/// labelled STARTED would read as today and quietly hide 18 hours.
+String _startDayLabel(DateTime started, DateTime now, String time) {
+  final startDay = DateTime(started.year, started.month, started.day);
+  final today = DateTime(now.year, now.month, now.day);
+  final back = today.difference(startDay).inDays;
+  return switch (back) {
+    <= 0 => time,
+    1 => 'yesterday $time',
+    _ => '$back days ago, $time',
+  };
 }
 
 class _Row extends StatelessWidget {
