@@ -15,6 +15,9 @@ class QuestMember {
     this.team,
     this.totalCheckins = 0,
     this.progressInPeriod = 0,
+    this.progressToday = 0,
+    this.progressThisWeek = 0,
+    this.progressThisMonth = 0,
     this.status = 'active',
     this.lastActivityAt,
   });
@@ -53,6 +56,26 @@ class QuestMember {
   /// How much this member logged towards the CURRENT period's target
   /// (progress quests only) — the party sees each other's numbers.
   final double progressInPeriod;
+
+  /// The same member's totals over three fixed windows, in the quest's
+  /// own unit — minutes on a clock quest, reps or pages elsewhere.
+  ///
+  /// [progressInPeriod] answers "who is winning the period", and on a
+  /// daily quest that resets to nothing every midnight. These three
+  /// answer "who is winning", which is the question a fasting party
+  /// actually argues about. A weak Tuesday should not look like a weak
+  /// month.
+  ///
+  /// All three windows are **UTC** — the day the engine settles on, so
+  /// the standings never disagree with the aura that was paid out. The
+  /// feed's day labels are local; see `formatRunDay`.
+  final double progressToday;
+
+  /// Monday to now, UTC — the same week boundary the weekly recap uses.
+  final double progressThisWeek;
+
+  /// From the 1st of the UTC month to now.
+  final double progressThisMonth;
 
   /// Participation status: 'active' / 'eliminated' / 'completed' /
   /// 'failed'.

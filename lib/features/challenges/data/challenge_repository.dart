@@ -267,7 +267,14 @@ class ChallengeRepository {
   /// The quest's shared activity feed: what every member achieved and
   /// lost in THIS quest, newest first. Merges settlement events,
   /// check-ins and progress entries into one story.
-  Future<List<QuestActivity>> fetchQuestActivity(String challengeId) async {
+  /// [isClock] pulls the matching clock sessions in as well, so each
+  /// logged amount can show the span it was measured over. Off for
+  /// every other quest, where there are no sessions to find and the
+  /// extra round trip would buy nothing.
+  Future<List<QuestActivity>> fetchQuestActivity(
+    String challengeId, {
+    bool isClock = false,
+  }) async {
     final myId = _client.auth.currentUser?.id;
 
     try {
@@ -302,7 +309,7 @@ class ChallengeRepository {
             .limit(40),
         _client
             .from('progress_entries')
-            .select('user_id, amount, created_at')
+            .select('id, user_id, amount, created_at')
             .eq('challenge_id', challengeId)
             .order('created_at', ascending: false)
             .limit(40),
@@ -332,12 +339,39 @@ class ChallengeRepository {
             .limit(40),
       ]);
 
+      // The measured spans behind the logged amounts, keyed by the entry
+      // they banked. Quest-mates may read each other's sessions (see the
+      // "clock: quest members read each other" policy), so this fills in
+      // for the whole party, not only for me.
+      final spanByEntry = <String, (DateTime, DateTime)>{};
+      final entryIds = [for (final row in results[2]) row['id'] as String];
+      if (isClock && entryIds.isNotEmpty) {
+        // Only the entries the feed is actually about. Asking for the
+        // whole quest's sessions would drag a year of fasting across
+        // the wire to annotate forty rows.
+        final sessionRows = await _readAll(() => _client
+            .from('clock_sessions')
+            .select('entry_id, started_at, ended_at')
+            .eq('challenge_id', challengeId)
+            .inFilter('entry_id', entryIds)
+            .order('id'));
+        for (final row in sessionRows) {
+          final ended = row['ended_at'] as String?;
+          if (ended == null) continue; // still running, nothing banked
+          spanByEntry[row['entry_id'] as String] = (
+            DateTime.parse(row['started_at'] as String),
+            DateTime.parse(ended),
+          );
+        }
+      }
+
       QuestActivity? build(
         Map<String, dynamic> row,
         String kind,
         num? amount, {
         String userKey = 'user_id',
         String? detail,
+        (DateTime, DateTime)? span,
       }) {
         final uid = row[userKey] as String;
         final who = names[uid];
@@ -351,6 +385,8 @@ class ChallengeRepository {
           detail: detail,
           roastKey: (row['game_roast_key'] as num?)?.toInt(),
           createdAt: DateTime.parse(row['created_at'] as String),
+          startedAt: span?.$1,
+          endedAt: span?.$2,
         );
       }
 
@@ -366,7 +402,10 @@ class ChallengeRepository {
       addAll(results[0],
           (r) => build(r, r['kind'] as String, r['amount'] as num?));
       addAll(results[1], (r) => build(r, 'check_in', null));
-      addAll(results[2], (r) => build(r, 'progress', r['amount'] as num?));
+      addAll(
+          results[2],
+          (r) => build(r, 'progress', r['amount'] as num?,
+              span: spanByEntry[r['id'] as String]));
       addAll(
           results[3],
           (r) => build(r, 'purchase', null,
@@ -737,20 +776,60 @@ class ChallengeRepository {
         if (day == _todayUtc()) todayByUser.add(uid);
       }
 
-      // Everyone's progress in the CURRENT period (progress quests) —
+      // Everyone's progress, in four windows (progress quests only) —
       // the party is meant to see each other's numbers.
+      //
+      // The current period answers "who is winning the period", and on a
+      // daily quest that is empty again every midnight. Day, week and
+      // month answer "who is winning", which is the argument a party
+      // is actually having.
+      //
+      // The windows are bucketed from `created_at`, not `period_start`:
+      // a weekly quest's `period_start` is the Monday, which says
+      // nothing about today. On a clock quest the two agree anyway,
+      // because `clock_stop` refuses an end time on an earlier day — so
+      // a run is always banked on the day it counts for.
       final progressByUser = <String, double>{};
+      final amountTodayByUser = <String, double>{};
+      final amountWeekByUser = <String, double>{};
+      final amountMonthByUser = <String, double>{};
       if (challenge.isProgress) {
+        final nowUtc = DateTime.now().toUtc();
+        final dayStart = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day);
+        // Monday-based, the same boundary the weekly recap uses.
+        final weekStart =
+            dayStart.subtract(Duration(days: dayStart.weekday - 1));
+        final monthStart = DateTime.utc(nowUtc.year, nowUtc.month);
+        final currentPeriodStart = challenge.currentPeriodStart;
+        // One query serves all four windows, so it starts at whichever
+        // boundary is earliest — a monthly quest's current period can
+        // begin before the 1st.
+        final floor = [weekStart, monthStart, currentPeriodStart]
+            .reduce((a, b) => a.isBefore(b) ? a : b);
         final progressRows = await _readAll(() => _client
             .from('progress_entries')
-            .select('user_id, amount')
+            .select('user_id, amount, period_start, created_at')
             .eq('challenge_id', challenge.id)
-            .eq('period_start', _dateOnly(challenge.currentPeriodStart))
+            .gte('created_at', floor.toIso8601String())
             .order('id'));
+        final currentPeriodStr = _dateOnly(currentPeriodStart);
         for (final row in progressRows) {
           final uid = row['user_id'] as String;
-          progressByUser[uid] =
-              (progressByUser[uid] ?? 0) + (row['amount'] as num).toDouble();
+          final amount = (row['amount'] as num).toDouble();
+          if (row['period_start'] == currentPeriodStr) {
+            progressByUser[uid] = (progressByUser[uid] ?? 0) + amount;
+          }
+          final at = DateTime.parse(row['created_at'] as String).toUtc();
+          // Widest window first; a row in today is also in this week.
+          if (!at.isBefore(monthStart)) {
+            amountMonthByUser[uid] = (amountMonthByUser[uid] ?? 0) + amount;
+          }
+          if (!at.isBefore(weekStart)) {
+            amountWeekByUser[uid] = (amountWeekByUser[uid] ?? 0) + amount;
+          }
+          if (!at.isBefore(dayStart)) {
+            amountTodayByUser[uid] = (amountTodayByUser[uid] ?? 0) + amount;
+          }
         }
       }
 
@@ -803,6 +882,9 @@ class ChallengeRepository {
           team: row['team'] as String?,
           totalCheckins: totalByUser[uid] ?? 0,
           progressInPeriod: progressByUser[uid] ?? 0,
+          progressToday: amountTodayByUser[uid] ?? 0,
+          progressThisWeek: amountWeekByUser[uid] ?? 0,
+          progressThisMonth: amountMonthByUser[uid] ?? 0,
           status: (row['status'] ?? 'active') as String,
           lastActivityAt: lastByUser[uid],
         );

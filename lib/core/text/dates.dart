@@ -55,3 +55,47 @@ String formatLastActivity(DateTime? at) {
   if (dayGap == 1) return 'Yesterday, $clock';
   return '${DateFormat.MMMd().format(local)}, $clock';
 }
+
+/// The day a logged run belongs to, named the way a person would:
+/// `today`, `yesterday`, `Tue`, `Oct 28`.
+///
+/// Deliberately LOCAL. This answers "when did this happen to me", the
+/// same question [formatLastActivity] answers, and a time in the span
+/// beside it is local too — a UTC day label next to a local clock time
+/// reads as a bug. The leaderboard's own day/week/month windows ARE
+/// UTC, because that is the day the engine settles on. The two are
+/// different questions and get different answers on purpose.
+String formatRunDay(DateTime at, {DateTime? now}) {
+  final local = at.toLocal();
+  final today = (now ?? DateTime.now()).toLocal();
+  final thisDay = DateTime(today.year, today.month, today.day);
+  final thatDay = DateTime(local.year, local.month, local.day);
+  final gap = thisDay.difference(thatDay).inDays;
+  if (gap == 0) return 'today';
+  if (gap == 1) return 'yesterday';
+  // Inside the last week a weekday is the most readable handle. Older
+  // than that it stops being one — "Tue" three weeks back is a riddle.
+  if (gap > 1 && gap < 7) return DateFormat.E().format(local);
+  return DateFormat.MMMd().format(local);
+}
+
+/// The two ends of a measured run: `20:00 → 23:30`, or
+/// `Mon 20:00 → Tue 06:00` when it crossed midnight.
+///
+/// The weekday appears only when it has to. A run that stayed inside one
+/// day needs no day markers, and printing them anyway buries the two
+/// numbers that are the point.
+String formatSpan(DateTime from, DateTime to) {
+  final start = from.toLocal();
+  final end = to.toLocal();
+  final clock = DateFormat.Hm();
+  final sameDay = start.year == end.year &&
+      start.month == end.month &&
+      start.day == end.day;
+  if (sameDay) {
+    return '${clock.format(start)} → ${clock.format(end)}';
+  }
+  final day = DateFormat.E();
+  return '${day.format(start)} ${clock.format(start)} → '
+      '${day.format(end)} ${clock.format(end)}';
+}

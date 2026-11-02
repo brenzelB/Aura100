@@ -137,6 +137,18 @@ class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
             ),
           ],
         ),
+        // Say what the order means. A numbered list with no stated
+        // measure invites everyone to assume it is the one they care
+        // about, and then to call the standings broken.
+        if (widget.challenge.isClock)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              'Ranked by this week',
+              style: textTheme.bodySmall
+                  ?.copyWith(color: AppColors.textSecondary, fontSize: 12),
+            ),
+          ),
         const SizedBox(height: 12),
         membersAsync.when(
           // Keep the party on screen through the 8s auto-refresh.
@@ -145,11 +157,22 @@ class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
             // "Whoever held out longer is in front" is the whole point
             // of a clock quest, so its party is a ranking rather than a
             // roster. Every other mode keeps the order it arrived in.
+            //
+            // Ranked by the WEEK, not by the current period. A daily
+            // quest's period empties at midnight, which made the
+            // standings meaningless every morning and handed first
+            // place to whoever logged first. A week is long enough to
+            // be a race and short enough to still be in reach.
             final members = widget.challenge.isClock
                 ? ([...rawMembers]..sort((a, b) {
-                    final byTime =
+                    final byWeek =
+                        b.progressThisWeek.compareTo(a.progressThisWeek);
+                    if (byWeek != 0) return byWeek;
+                    // A fresh week starts everyone at zero; the period
+                    // then decides who is ahead today.
+                    final byPeriod =
                         b.progressInPeriod.compareTo(a.progressInPeriod);
-                    if (byTime != 0) return byTime;
+                    if (byPeriod != 0) return byPeriod;
                     return a.username
                         .toLowerCase()
                         .compareTo(b.username.toLowerCase());
@@ -854,6 +877,61 @@ class _MemberTile extends ConsumerWidget {
               ],
             ),
           ),
+
+          // Day, week and month — the numbers the party actually argues
+          // over. The row above is this member's current period, which
+          // on a daily quest is empty again every midnight; these three
+          // are what makes the list a standing rather than a snapshot.
+          //
+          // Clock quests only. The sums are gathered for every progress
+          // quest, but "today 72 · week 410" without a unit on every
+          // figure reads as a riddle, and with one it does not fit.
+          if (challenge.isClock)
+            Padding(
+              padding: const EdgeInsets.only(left: 52, top: 3),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(Icons.timer_outlined,
+                        size: 11, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text.rich(
+                      TextSpan(
+                        style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary, fontSize: 12),
+                        children: [
+                          const TextSpan(text: 'today '),
+                          TextSpan(
+                            text: challenge.amount(member.progressToday),
+                            style: TextStyle(color: AppColors.textPrimary),
+                          ),
+                          const TextSpan(text: '  ·  week '),
+                          TextSpan(
+                            // The week is what the ranking runs on, so
+                            // it is the one figure allowed to shout.
+                            text: challenge.amount(member.progressThisWeek),
+                            style: TextStyle(
+                              color: AppColors.neonCyan,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const TextSpan(text: '  ·  month '),
+                          TextSpan(
+                            text: challenge.amount(member.progressThisMonth),
+                            style: TextStyle(color: AppColors.textPrimary),
+                          ),
+                        ],
+                      ),
+                      maxLines: 2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
           // The bar spans the whole tile instead of only the middle
           // column. Every member's bar then starts and ends at the same

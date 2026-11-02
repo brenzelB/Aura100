@@ -13,6 +13,8 @@ class QuestActivity {
     this.amount,
     this.detail,
     this.roastKey,
+    this.startedAt,
+    this.endedAt,
   });
 
   /// Settlement kinds ('penalty', 'strike', 'failed', 'completed',
@@ -32,6 +34,26 @@ class QuestActivity {
   /// roasted, the slice of day a lockout covers.
   final String? detail;
   final int? roastKey;
+
+  /// The two ends of a measured run, on a clock quest.
+  ///
+  /// The total alone ("+10h 02m") does not say whether that was
+  /// yesterday evening into this morning or a long afternoon. Null on
+  /// every other kind of row, and on a clock entry whose session row is
+  /// gone.
+  final DateTime? startedAt;
+  final DateTime? endedAt;
+
+  /// Both ends known, so the span can actually be printed.
+  bool get hasSpan => startedAt != null && endedAt != null;
+
+  /// The day this belongs to in a reader's life.
+  ///
+  /// The feed used to stamp every row with the age of the ROW — "1d"
+  /// for anything banked between 24 and 48 hours ago. Nobody fasts in
+  /// row-ages. A measured run is dated by when it ENDED; everything
+  /// else by when it was recorded, which for those is the same moment.
+  DateTime get happenedAt => endedAt ?? createdAt;
 
   /// Good news or bad news? Drives the colour in the feed.
   bool get isPositive => const {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/text/dates.dart';
 import '../../../../core/text/game_roasts.dart';
 import '../../../../core/widgets/editorial_cover.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -276,10 +277,25 @@ class _ActivityRow extends StatelessWidget {
     return '${diff.inDays}d';
   }
 
+  /// A measured run is a thing that happened on a DAY, so it gets one.
+  ///
+  /// Everything else keeps the age of the row, which is the right
+  /// answer for a strike or a roast: those are news, and news is fresh
+  /// or it is not.
+  bool get _isRun => challenge.isClock && item.kind == 'progress';
+
+  String get _stamp => _isRun ? formatRunDay(item.happenedAt) : _timeAgo;
+
+  /// `Mon 20:00 → Tue 06:00` under the sentence, on measured runs only.
+  String? get _span => _isRun && item.hasSpan
+      ? formatSpan(item.startedAt!, item.endedAt!)
+      : null;
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final (icon, color, text) = _describe();
+    final span = _span;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -296,28 +312,47 @@ class _ActivityRow extends StatelessWidget {
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 6),
           Expanded(
-            child: RichText(
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              text: TextSpan(
-                style: textTheme.bodySmall
-                    ?.copyWith(color: AppColors.textSecondary),
-                children: [
-                  TextSpan(
-                    text: item.isMe ? 'You ' : '@${item.username} ',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                RichText(
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  text: TextSpan(
+                    style: textTheme.bodySmall
+                        ?.copyWith(color: AppColors.textSecondary),
+                    children: [
+                      TextSpan(
+                        text: item.isMe ? 'You ' : '@${item.username} ',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      TextSpan(text: text, style: TextStyle(color: color)),
+                    ],
+                  ),
+                ),
+                // The span sits under the sentence rather than inside
+                // it: appended, it was the first thing to be clipped on
+                // a narrow phone, and it is the half that explains the
+                // total.
+                if (span != null)
+                  Text(
+                    span,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
                     ),
                   ),
-                  TextSpan(text: text, style: TextStyle(color: color)),
-                ],
-              ),
+              ],
             ),
           ),
           const SizedBox(width: 6),
           Text(
-            _timeAgo,
+            _stamp,
             style: textTheme.bodySmall
                 ?.copyWith(color: AppColors.textSecondary, fontSize: 12),
           ),

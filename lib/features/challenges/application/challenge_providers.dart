@@ -353,13 +353,20 @@ final checkInsProvider = FutureProvider.autoDispose
 /// The shared activity feed of ONE quest (family arg = challenge id):
 /// every member's wins and losses inside that quest.
 final questActivityProvider = FutureProvider.autoDispose
-    .family<List<QuestActivity>, String>((ref, challengeId) {
+    .family<List<QuestActivity>, String>((ref, challengeId) async {
   if (!SupabaseConfig.isConfigured) return const [];
   ref.watch(authStateChangesProvider);
   // Re-runs whenever the quest list moves, so a check-in or a logged
   // amount shows up without a manual pull.
-  ref.watch(myChallengesProvider);
-  return ref.watch(challengeRepositoryProvider).fetchQuestActivity(challengeId);
+  final challenges = await ref.watch(myChallengesProvider.future);
+  // A quest that is not in the list still gets its feed; it just goes
+  // without the measured spans, which is the honest fallback.
+  final isClock =
+      challenges.where((c) => c.id == challengeId).firstOrNull?.isClock ??
+          false;
+  return ref
+      .watch(challengeRepositoryProvider)
+      .fetchQuestActivity(challengeId, isClock: isClock);
 });
 
 /// Every progress entry of ONE quest (family arg = challenge id) —
