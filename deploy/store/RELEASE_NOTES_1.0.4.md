@@ -1,5 +1,10 @@
 # Aura Quest 1.0.4 — Build 25
 
+Die beiden Apple-Abschnitte unten sind **wortgleich** mit dem, was am
+02.11.2026 in App Store Connect gesichert wurde — inklusive der schlichten
+Bindestriche. Wer sie ändert, muss sie dort mitändern, sonst ist diese Datei
+kein Abbild mehr, sondern eine Behauptung.
+
 Zwei Dinge: die neue Zielart CLOCK, und die Reparatur der Mitteilungen.
 
 Zur Buildnummer: 1.0.3 lief als Build **24** (freigegeben am 28.10.2026,
@@ -16,7 +21,7 @@ NAS liegen, sonst bricht die Questliste weg — diese Fassung fragt die Spalte
 
 Some habits are measured in time.
 
-- New CLOCK quests: start the timer when you begin and stop it when you stop. Fasting, focused work, time away from a screen — anything counted in hours and minutes.
+- New CLOCK quests: start the timer when you begin and stop it when you stop. Fasting, focused work, time away from a screen - anything counted in hours and minutes.
 - See how long you managed today, this week and this month.
 - Play it with friends: whoever held out longest leads the party.
 - Forgot to start or to stop the timer? Correct both times before you bank the session.
@@ -26,11 +31,11 @@ Some habits are measured in time.
 
 Manche Gewohnheiten misst man in Zeit.
 
-- Neue CLOCK-Quests: Uhr starten, wenn du anfängst, stoppen, wenn du aufhörst. Fasten, konzentriertes Arbeiten, Zeit ohne Bildschirm – alles, was sich in Stunden und Minuten zählt.
+- Neue CLOCK-Quests: Uhr starten, wenn du anfängst, stoppen, wenn du aufhörst. Fasten, konzentriertes Arbeiten, Zeit ohne Bildschirm - alles, was sich in Stunden und Minuten zählt.
 - Sieh, wie lange du heute, diese Woche und diesen Monat durchgehalten hast.
 - Spiel es mit Freunden: Wer länger durchhält, steht vorne.
 - Start oder Stopp vergessen? Du kannst beide Zeiten korrigieren, bevor du die Sitzung verbuchst.
-- Behoben: Mitteilungen ließen sich nicht mehr einschalten, wenn die allererste Abfrage verpasst wurde. Jetzt geht das jederzeit im Profil.
+- Behoben: Mitteilungen ließen sich nicht mehr einschalten, wenn die allererste Abfrage verpasst wurde. Jetzt kannst du sie jederzeit im Profil erlauben.
 
 ## Nicht in den Apple-Texten
 
