@@ -429,6 +429,12 @@ class _PermissionGateState extends State<_PermissionGate> {
     // Android can be asked again; iOS cannot, once it has been refused.
     final toSettings = _refused && isIOS;
 
+    // Android has no URL for its per-app notification page, and from the
+    // second refusal onwards asking again opens nothing at all. Leaving
+    // the button there would be precisely the thing this panel exists to
+    // remove, so here it gives the path and no control.
+    final deadEnd = _refused && !isIOS;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Container(
@@ -451,9 +457,11 @@ class _PermissionGateState extends State<_PermissionGate> {
             ),
             const SizedBox(height: 8),
             Text(
-              _refused && !isIOS
-                  ? 'Your phone is still blocking notifications. The switches '
-                      'below take effect once it allows them.'
+              deadEnd
+                  ? 'Your phone is blocking notifications and will not ask '
+                      'again. Allow them under Settings › Apps › Aura Quest › '
+                      'Notifications; the switches below take effect from '
+                      'then on.'
                   : toSettings
                       ? 'Your phone is blocking notifications. Allow them under '
                           'Settings › Aura Quest › Notifications; the switches '
@@ -464,19 +472,22 @@ class _PermissionGateState extends State<_PermissionGate> {
               style: textTheme.bodySmall
                   ?.copyWith(color: AppColors.textSecondary, height: 1.4),
             ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed:
-                  _busy ? null : (toSettings ? _openSystemSettings : _ask),
-              icon: _busy
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2))
-                  : Icon(toSettings ? Icons.open_in_new : Icons.check,
-                      size: 18),
-              label: Text(toSettings ? 'OPEN SETTINGS' : 'ALLOW NOTIFICATIONS'),
-            ),
+            if (!deadEnd) ...[
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed:
+                    _busy ? null : (toSettings ? _openSystemSettings : _ask),
+                icon: _busy
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : Icon(toSettings ? Icons.open_in_new : Icons.check,
+                        size: 18),
+                label:
+                    Text(toSettings ? 'OPEN SETTINGS' : 'ALLOW NOTIFICATIONS'),
+              ),
+            ],
           ],
         ),
       ),
