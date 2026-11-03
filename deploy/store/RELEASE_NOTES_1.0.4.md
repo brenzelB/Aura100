@@ -12,12 +12,20 @@ Zur Buildnummer: 1.0.3 lief als Build **24** (freigegeben am 28.10.2026,
 Builds 21–24 über `--build-number` gebaut wurden. Mit 1.0.4 ist die Nummer
 wieder im Projekt verankert.
 
-Build **25** wurde am 02.11.2026 hochgeladen, aber keiner Testergruppe
-zugewiesen — niemand hat ihn je geöffnet. Build **26** ersetzte ihn und landete
-am 03.11.2026 im selben Nichts. Build **27** ersetzt nun 26, aus demselben
-Grund: solange ein Build bei keinem Tester liegt, ist er gratis zu ersetzen. Die Apple-Texte unten bleiben dabei **unverändert**: 26 ändert
-keine Zusage, sondern löst eine ein, die 25 nur halb gehalten hat (siehe
-unten).
+Build **25** wurde am 02.11.2026 hochgeladen, Build **26** am 03.11.2026. Beide
+sind der Gruppe „Aura Quest iOS intern“ zugewiesen, und der Testereintrag dort
+sagt „Installiert 1.0.4 (26)“ auf einem iPhone 13. Build **27** löst 26 also
+nicht ab, weil 26 niemanden erreicht hätte, sondern weil er den Questfix
+enthält.
+
+Eine frühere Fassung dieser Datei behauptete, die Builds lägen bei keinem
+Tester. Das war falsch; App Store Connect widerlegt es. Festgehalten bleibt
+eine Unstimmigkeit, die dort offen ist: die Build-Tabelle führt für 26 null
+Installationen, die Testeransicht nennt ihn installiert. Welche der beiden
+Zählungen stimmt, ist von hier aus nicht zu entscheiden.
+
+Die Apple-Texte unten bleiben dabei **unverändert**: 27 ändert keine Zusage,
+sondern löst eine ein, die 25 nur halb gehalten hat (siehe unten).
 
 **Vor dem Build:** Die Migration `20261102120000_clock_quests.sql` muss auf dem
 NAS liegen, sonst bricht die Questliste weg — diese Fassung fragt die Spalte
@@ -109,6 +117,30 @@ Manche Gewohnheiten misst man in Zeit.
 - Spiel es mit Freunden: Wer länger durchhält, steht vorne.
 - Start oder Stopp vergessen? Du kannst beide Zeiten korrigieren, bevor du die Sitzung verbuchst.
 - Behoben: Mitteilungen ließen sich nicht mehr einschalten, wenn die allererste Abfrage verpasst wurde. Jetzt kannst du sie jederzeit im Profil erlauben.
+
+## Google Play — geschlossener Test (Build 27)
+
+Play erlaubt 500 Zeichen je Sprache. Diese beiden Texte sind dafür gezählt
+(de-DE 494, en-US 474) und tragen zwei Zeilen, die in den Apple-Texten bewusst
+fehlen: den Android-only Mitteilungs-Fix und den Questfix aus Build 27.
+
+### de-DE
+
+- Neue CLOCK-Quests: Uhr starten und stoppen statt abhaken. Fasten, Fokus, Bildschirmpause.
+- Sieh, wie lange du heute, diese Woche und diesen Monat durchgehalten hast.
+- Wer länger durchhält, steht vorne.
+- Start oder Stopp vergessen? Beide Zeiten lassen sich vor dem Verbuchen korrigieren.
+- Behoben: Mitteilungen ließen sich nicht einschalten, wenn die Abfrage verpasst oder zweimal abgelehnt wurde.
+- Behoben: Eine geschaffte Quest verschwand. Sie bleibt jetzt mit Auswertung und Rangliste.
+
+### en-US
+
+- New CLOCK quests: start and stop a timer instead of ticking a box. Fasting, focus, screen-free time.
+- See how long you managed today, this week and this month.
+- Whoever holds out longest leads the party.
+- Forgot to start or stop? Both times can be corrected before you bank the session.
+- Fixed: notifications could not be switched on if the prompt was missed or refused twice.
+- Fixed: a completed quest used to vanish. It now stays, with a summary and final standing.
 
 ## Nicht in den Apple-Texten
 
