@@ -159,8 +159,9 @@ Ehrlichkeitshalber festgehalten, damit es niemand für geprüft hält:
   zeigt zugestellte iOS-Nachrichten), aber die Erlaubnis war auf keinem Telefon
   je erteilt — genau das repariert diese Fassung. Ob danach wirklich eine
   Mitteilung aufploppt, ist offen und muss am Gerät geprüft werden.
-- **Die Uhr lief auf keinem Gerät.** 561 Tests laufen durch; das ist keine
-  Benutzung.
+- **Die Uhr ist installiert, aber ungeprüft benutzt.** Build 27 liegt seit dem
+  03.11.2026 auf einem iPhone 13. Ob damit je ein Lauf gemessen wurde, steht
+  hier nicht — 561 Tests laufen durch, und das ist keine Benutzung.
 - **Kein eigener Weg, eine Sitzung komplett nachträglich einzutragen** — der
   korrigierbare Start deckt den Fall ab, aber es gibt keinen Knopf „Sitzung von
   gestern hinzufügen".
