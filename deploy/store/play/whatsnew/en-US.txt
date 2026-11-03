@@ -1,0 +1,6 @@
+- New CLOCK quests: start and stop a timer instead of ticking a box. Fasting, focus, screen-free time.
+- See how long you managed today, this week and this month.
+- Whoever holds out longest leads the party.
+- Forgot to start or stop? Both times can be corrected before you bank the session.
+- Fixed: notifications could not be switched on if the prompt was missed or refused twice.
+- Fixed: a completed quest used to vanish. It now stays, with a summary and final standing.

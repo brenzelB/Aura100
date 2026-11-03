@@ -1,0 +1,6 @@
+- Neue CLOCK-Quests: Uhr starten und stoppen statt abhaken. Fasten, Fokus, Bildschirmpause.
+- Sieh, wie lange du heute, diese Woche und diesen Monat durchgehalten hast.
+- Wer länger durchhält, steht vorne.
+- Start oder Stopp vergessen? Beide Zeiten lassen sich vor dem Verbuchen korrigieren.
+- Behoben: Mitteilungen ließen sich nicht einschalten, wenn die Abfrage verpasst oder zweimal abgelehnt wurde.
+- Behoben: Eine geschaffte Quest verschwand. Sie bleibt jetzt mit Auswertung und Rangliste.

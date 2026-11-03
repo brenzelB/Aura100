@@ -19,6 +19,15 @@ on:
         description: 'Upload the signed IPA to TestFlight (does not submit/release the app)'
         type: boolean
         default: false
+      upload_play:
+        description: 'Upload the App Bundle to Google Play (the track below; production is not offered)'
+        type: boolean
+        default: false
+      play_track:
+        description: 'Google Play track to receive the bundle'
+        type: choice
+        options: [internal, alpha, beta]
+        default: alpha
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -164,6 +173,22 @@ jobs:
             build/app/outputs/bundle/release/*.aab
             build/app/outputs/bundle/release/build-info.txt
           if-no-files-found: error
+
+      - name: Upload App Bundle to Google Play
+        if: inputs.upload_play
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          PLAY_PACKAGE: com.auraquest.aura_quest
+          PLAY_TRACK: ${{ inputs.play_track }}
+          PLAY_AAB: build/app/outputs/bundle/release/app-release.aab
+          PLAY_NOTES_DIR: deploy/store/play/whatsnew
+        run: |
+          set -eu
+          test -n "$PLAY_SERVICE_ACCOUNT_JSON" || {
+            echo 'A Google Play service account key is required for the Play upload.'; exit 1;
+          }
+          pip install --quiet --disable-pip-version-check google-auth requests
+          python3 .github/scripts/play_upload.py
 
   build-ios:
     name: Build iOS (${{ inputs.ios_signing == 'app-store' && 'signed IPA' || 'unsigned archive' }})
