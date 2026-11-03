@@ -337,6 +337,27 @@ class Challenge {
   /// the same rule; this is only what the interface goes by.
   bool get amIOut => myStatus == 'failed' || myStatus == 'eliminated';
 
+  /// Settled as a win. The seat is frozen at its final aura.
+  ///
+  /// This is NOT [isFinished]. A solo quest's own lifecycle stays
+  /// `active` after its last participant is settled — there is nobody
+  /// left for it to wait on, so the engine never bothers to close it.
+  /// Going by lifecycle alone would make a won quest look like a
+  /// running one that refuses every action.
+  bool get isWon => myStatus == 'completed';
+
+  /// Over for me, however it went. Nothing scoreable is left to do.
+  ///
+  /// The win arrives BEFORE the last day is up: on a daily quest the
+  /// engine settles as soon as the final check-in makes the outcome
+  /// certain. That is a kindness, not a bug — but it means "over for
+  /// me" and "past its end date" are different questions, and only
+  /// this one decides whether to offer an action.
+  bool get isOver => isWon || amIOut || isFinished;
+
+  /// Its last day is behind us — the calendar, not the scoreboard.
+  bool get isPastEnd => !isEndless && !DateTime.now().toUtc().isBefore(endsAt);
+
   /// The days of the week this quest actually runs on, as ISO numbers
   /// (1 = Monday … 7 = Sunday). All seven unless the creator narrowed it.
   ///
@@ -353,7 +374,7 @@ class Challenge {
 
   /// Next possible comeback date, including rest days and a lost avoid period.
   DateTime? nextComebackDate(DateTime now) {
-    if (amIOut || isFinished || isLobby) return null;
+    if (isOver || isLobby) return null;
     final utc = now.toUtc();
     var day = DateTime.utc(utc.year, utc.month, utc.day);
     if (day.isBefore(startsOn)) day = startsOn;

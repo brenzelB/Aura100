@@ -219,10 +219,38 @@ class ChallengeCard extends ConsumerWidget {
                     ),
                   ],
                 ),
+                // Won and settled. The quest keeps its place in the list
+                // instead of vanishing the moment it is earned; the
+                // action slot becomes the reward, and tapping the card
+                // opens the full scoreboard.
+                if (challenge.isWon)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: AppColors.neonGreen.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: AppColors.neonGreen.withValues(alpha: 0.5)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('🏆', style: TextStyle(fontSize: 12)),
+                        const SizedBox(width: 5),
+                        Text('DONE',
+                            style: TextStyle(
+                              color: AppColors.successText,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            )),
+                      ],
+                    ),
+                  )
                 // Out of the running: the quest stays on the list so the
                 // player can keep watching, but the action slot turns into
                 // a plain marker. Tapping the card still opens everything.
-                if (challenge.amIOut)
+                else if (challenge.amIOut)
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
@@ -319,7 +347,9 @@ class ChallengeCard extends ConsumerWidget {
                   ),
                 // Opens the shop scoped to exactly this challenge.
                 TextButton.icon(
-                  onPressed: challenge.amIOut
+                  // Nothing left to spend it on: a settled seat keeps
+                  // its final aura and takes no more perks.
+                  onPressed: challenge.isOver
                       ? null
                       : () => ChallengeShopSheet.show(context, challenge),
                   style: TextButton.styleFrom(

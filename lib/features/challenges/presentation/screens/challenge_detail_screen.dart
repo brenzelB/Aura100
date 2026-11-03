@@ -379,6 +379,16 @@ class _DetailBody extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             sliver: SliverToBoxAdapter(child: _HeaderCard(challenge)),
           ),
+          // Won: the scoreboard goes above everything else, because it
+          // is the only thing left to read here.
+          if (challenge.isWon)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              sliver: SliverToBoxAdapter(
+                child:
+                    _VerdictCard(challenge: challenge, stats: timeline.stats),
+              ),
+            ),
           // Knocked out but still here: say so once, at the top, instead
           // of leaving the player to wonder why every button is dead.
           if (challenge.amIOut)
@@ -680,6 +690,234 @@ class _SpectatorCard extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The scoreboard a finished quest deserves: what you managed, what it
+/// paid, and — once more than one person played — who came out on top.
+///
+/// It exists because winning used to be invisible. A settled quest left
+/// the list without a word; the only record was a folded-shut trophy
+/// room in another tab. Losing, meanwhile, stayed on screen. This card
+/// is the other half of that fix: the list keeps the quest, and opening
+/// it says what happened.
+class _VerdictCard extends ConsumerWidget {
+  const _VerdictCard({required this.challenge, required this.stats});
+
+  final Challenge challenge;
+  final ChallengeStats stats;
+
+  Future<void> _dismiss(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text('Remove "${challenge.title}"?',
+            style: Theme.of(context).textTheme.titleMedium),
+        // Said plainly: one flag covers both places, so "remove" is not
+        // "tidy away", it is gone. Anything softer would be a lie.
+        content: Text(
+          'It leaves your quest list AND your trophy room. The result '
+          'is not kept anywhere else.',
+          style: Theme.of(context)
+              .textTheme
+              .bodySmall
+              ?.copyWith(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep it'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final ok =
+        await ref.read(trophyControllerProvider.notifier).hide(challenge.id);
+    if (!context.mounted) return;
+    if (ok) {
+      Navigator.of(context).maybePop();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not remove it. Try again.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final textTheme = Theme.of(context).textTheme;
+    final won = challenge.isWon;
+    final accent = won ? AppColors.neonGreen : AppColors.danger;
+    final removing = ref.watch(trophyControllerProvider).isLoading;
+    // The roster is already ordered by final aura, so it IS the
+    // standing — no second query, no second sort.
+    final members = ref.watch(questMembersProvider(challenge.id)).valueOrNull ??
+        const <QuestMember>[];
+    final showRanking = members.length > 1;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: AppColors.panelDecoration(accent: accent, glow: won),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(won ? '🏆' : '☠️', style: const TextStyle(fontSize: 22)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  won ? 'QUEST COMPLETE' : 'QUEST LOST',
+                  style: textTheme.headlineSmall
+                      ?.copyWith(color: accent, fontSize: 17),
+                ),
+              ),
+              Text(
+                '${challenge.myAura >= 0 ? '+' : ''}${challenge.myAura}',
+                style: textTheme.headlineSmall?.copyWith(
+                  color: accent,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _VerdictFigure(
+                  label: stats.unit.toUpperCase(),
+                  value: '${stats.doneCount}/${stats.accountableCount}'),
+              _VerdictFigure(
+                  label: 'BEST STREAK', value: '${stats.longestStreak}'),
+              _VerdictFigure(
+                label: 'STRIKES',
+                value: '${challenge.strikesUsed}/${challenge.maxStrikes}',
+              ),
+            ],
+          ),
+          if (showRanking) ...[
+            const SizedBox(height: 16),
+            Divider(
+                height: 1,
+                color: AppColors.textSecondary.withValues(alpha: 0.2)),
+            const SizedBox(height: 14),
+            Text(
+              'FINAL STANDING',
+              style: textTheme.labelMedium?.copyWith(
+                color: AppColors.textSecondary,
+                letterSpacing: 1,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            for (var i = 0; i < members.length; i++)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 26,
+                      child: Text(
+                        switch (i) { 0 => '🥇', 1 => '🥈', 2 => '🥉', _ => '' },
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        members[i].isMe ? 'You' : '@${members[i].username}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: members[i].isMe
+                              ? AppColors.textPrimary
+                              : AppColors.textSecondary,
+                          fontWeight: members[i].isMe
+                              ? FontWeight.w700
+                              : FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${members[i].questAura}',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: i == 0 ? accent : AppColors.textSecondary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+          const SizedBox(height: 14),
+          // Keeping it is the default: there is no "keep" button,
+          // because doing nothing already keeps it.
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: removing ? null : () => _dismiss(context, ref),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.textSecondary,
+                minimumSize: const Size(0, 44),
+                textStyle:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              ),
+              icon: const Icon(Icons.delete_outline, size: 16),
+              label: const Text('REMOVE FROM MY LIST'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VerdictFigure extends StatelessWidget {
+  const _VerdictFigure({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.headlineSmall?.copyWith(
+                color: AppColors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.labelSmall?.copyWith(
+              color: AppColors.textSecondary,
+              letterSpacing: 0.8,
+              fontSize: 10,
             ),
           ),
         ],
@@ -995,9 +1233,7 @@ class _ProgressSection extends ConsumerWidget {
     final entriesAsync = ref.watch(progressEntriesProvider(challenge.id));
     final target = challenge.targetValue ?? 0;
     final done = challenge.progressInPeriod >= target && target > 0;
-    final ended = challenge.isFinished ||
-        (!challenge.isEndless &&
-            !DateTime.now().toUtc().isBefore(challenge.endsAt));
+    final ended = challenge.isOver || challenge.isPastEnd;
     // A running lockout — null whenever nothing is blocking right now.
     final running = ref.watch(myBlackoutProvider(challenge.id)).valueOrNull;
     final blackout = (running != null && running.isRunning) ? running : null;
@@ -2180,7 +2416,7 @@ class _DayDetailsSheetState extends ConsumerState<_DayDetailsSheet> {
           // Today, still pending → check in right from the timeline.
           else if (day.status == DayStatus.today &&
               !widget.challenge.isAvoid &&
-              !widget.challenge.isFinished &&
+              !widget.challenge.isOver &&
               !widget.challenge.isLobby &&
               widget.challenge.hasStarted) ...[
             const SizedBox(height: 20),

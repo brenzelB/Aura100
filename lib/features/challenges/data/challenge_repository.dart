@@ -37,7 +37,7 @@ class ChallengeRepository {
       final rows = await _readAll(() => _client
           .from('challenge_participants')
           .select('challenge_aura, strikes_used, periods_missed, created_at, '
-              'team, status, comeback_needed, '
+              'team, status, comeback_needed, trophy_hidden_at, '
               'challenges('
               'id, creator_id, title, description, duration_days, aura_gain, '
               'aura_penalty, max_strikes, starts_on, checkin_period, '
@@ -45,7 +45,16 @@ class ChallengeRepository {
               'daily_allowance, active_weekdays, balance_preset, attacks_enabled, '
               'lifecycle, is_endless, started_at, created_at)')
           .eq('user_id', userId)
-          .inFilter('status', const ['active', 'failed', 'eliminated'])
+          // 'completed' used to be missing here, and the effect was
+          // backwards: a quest you FAILED stayed in your list, a quest
+          // you WON vanished the moment the engine settled it. The only
+          // trace was a folded-shut trophy room in another tab.
+          .inFilter(
+              'status', const ['active', 'failed', 'eliminated', 'completed'])
+          // Dismissed from the trophy room means dismissed here too —
+          // one flag, so "take it off my list" means the same thing in
+          // both places instead of hiding it in one and not the other.
+          .isFilter('trophy_hidden_at', null)
           .order('created_at', ascending: false)
           .order('id'));
 

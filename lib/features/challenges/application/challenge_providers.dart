@@ -265,6 +265,10 @@ class TrophyController extends AutoDisposeAsyncNotifier<void> {
       state = result;
       if (result.hasError) return false;
       ref.invalidate(trophiesProvider);
+      // The quest list goes by the same flag now, so dismissing an
+      // entry has to clear both or the quest lingers in one of them
+      // until something else happens to refresh it.
+      ref.invalidate(myChallengesProvider);
       return true;
     } finally {
       pending.close();
