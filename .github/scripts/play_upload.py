@@ -71,6 +71,23 @@ def release_notes(directory):
     return notes
 
 
+def verified_track(session, edits, edit_id, track):
+    """Refuse an unknown track, and say which ones exist.
+
+    A custom closed track carries an id of its own, which the Play Console
+    does not show anywhere in its interface. Pushing to a track that is not
+    there would otherwise either create one nobody is enrolled in or fail
+    with a message that names nothing useful.
+    """
+    tracks = checked(session.get('%s/%s/tracks' % (edits, edit_id),
+                                 timeout=60)).get('tracks', [])
+    names = [entry['track'] for entry in tracks]
+    if track not in names:
+        sys.exit('No track named %r. This app has: %s.'
+                 % (track, ', '.join(names) or 'none'))
+    return track
+
+
 def main():
     package = os.environ['PLAY_PACKAGE']
     track = os.environ['PLAY_TRACK']
@@ -84,6 +101,10 @@ def main():
     edits = '%s/applications/%s/edits' % (API, package)
 
     edit_id = checked(session.post(edits, timeout=60))['id']
+
+    # Checked before the upload, not after: a wrong track id should cost a
+    # request, not 66 MB and ten minutes.
+    verified_track(session, edits, edit_id, track)
 
     with bundle_path.open('rb') as bundle:
         uploaded = checked(session.post(

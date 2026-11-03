@@ -24,9 +24,8 @@ on:
         type: boolean
         default: false
       play_track:
-        description: 'Google Play track to receive the bundle'
-        type: choice
-        options: [internal, alpha, beta]
+        description: 'Google Play track id (a custom closed track has its own id; the run lists them if this one is unknown)'
+        type: string
         default: alpha
 
 concurrency:
