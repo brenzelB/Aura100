@@ -1,13 +1,14 @@
 import 'dart:async';
+import '../../../../core/text/server_message.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../../../core/text/durations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/design_tokens.dart';
 import '../../../../core/widgets/action_feedback.dart';
+import '../../../../core/widgets/app_states.dart';
 import '../../../auth/application/auth_providers.dart';
 import '../../application/challenge_providers.dart';
 import '../../domain/challenge.dart';
@@ -53,24 +54,8 @@ class _ClockControlsState extends ConsumerState<ClockControls> {
     }
   }
 
-  Future<void> _start() async {
-    final messenger = ScaffoldMessenger.of(context);
-    final owner = ref.read(currentUserProvider)?.id;
-    if (owner == null) return;
-    final session = await ref
-        .read(clockControllerProvider(widget.challenge.id).notifier)
-        .start();
-    if (!mounted || ref.read(currentUserProvider)?.id != owner) return;
-    if (session == null) {
-      final error =
-          ref.read(clockControllerProvider(widget.challenge.id)).error;
-      showActionFeedback(messenger,
-          error: true,
-          message: error is PostgrestException
-              ? error.message
-              : 'Could not start the clock. Check your connection and try again.');
-    }
-  }
+  Future<void> _start() =>
+      startClockWithFeedback(context, ref, widget.challenge);
 
   @override
   Widget build(BuildContext context) {
@@ -81,17 +66,35 @@ class _ClockControlsState extends ConsumerState<ClockControls> {
     _syncTicker(session != null);
 
     if (session == null) {
+      // A rest day takes no entries, so a clock started now could not
+      // be banked today. Say so instead of offering the button.
+      final rests = !challenge.runsToday;
       return Padding(
         padding: const EdgeInsets.only(top: 10),
-        child: ElevatedButton.icon(
-          onPressed: busy || challenge.amIOut ? null : _start,
-          icon: const Icon(Icons.play_arrow_rounded, size: 20),
-          label: const Text('START THE CLOCK'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.neonPurple,
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 48),
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ElevatedButton.icon(
+              onPressed: busy || challenge.amIOut || rests ? null : _start,
+              icon: const Icon(Icons.play_arrow_rounded, size: 20),
+              label: Text(rests ? 'RESTS TODAY' : 'START THE CLOCK'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.neonPurple,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 48),
+              ),
+            ),
+            if (rests) ...[
+              const SizedBox(height: 6),
+              Text(
+                clockRestDayHint(challenge),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: AppColors.textSecondary),
+              ),
+            ],
+          ],
         ),
       );
     }
@@ -170,8 +173,8 @@ class _RunningPanel extends ConsumerWidget {
           const SizedBox(height: 4),
           Text(
             suspicious
-                ? 'Running for over a day. If you already stopped, correct '
-                    'the time when you bank it.'
+                ? 'Running for over a day. Stop it now, then correct the '
+                    'entry in the history if it ran too long.'
                 : 'Started ${TimeOfDay.fromDateTime(session.startedAt.toLocal()).format(context)}',
             style: textTheme.bodySmall?.copyWith(
                 color: suspicious ? AppColors.danger : AppColors.textSecondary),
@@ -329,6 +332,17 @@ class _ClockStopSheetState extends ConsumerState<_ClockStopSheet> {
       setState(() => _error = 'That is still in the future.');
       return;
     }
+    // A run is filed on the day it ended, and only the running day
+    // takes entries. Saying so here beats a refusal from the server
+    // that talks about "an earlier day" at half past midnight.
+    final reset = clockDayStart(now);
+    if (end.isBefore(reset)) {
+      setState(() => _error = 'The end has to be after '
+          '${TimeOfDay.fromDateTime(reset).format(context)} today, when the '
+          'quest day began. Stop the clock now, then correct the entry in '
+          'the history.');
+      return;
+    }
 
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
@@ -344,9 +358,8 @@ class _ClockStopSheetState extends ConsumerState<_ClockStopSheet> {
 
     if (result == null) {
       final error = ref.read(clockControllerProvider(challenge.id)).error;
-      setState(() => _error = error is PostgrestException
-          ? error.message
-          : 'Could not stop the clock. Check your connection and try again.');
+      setState(() => _error = serverMessage(error,
+          'Could not stop the clock. Check your connection and try again.'));
       return;
     }
 
@@ -361,18 +374,48 @@ class _ClockStopSheetState extends ConsumerState<_ClockStopSheet> {
     );
   }
 
-  Future<void> _discard() async {
+  Future<void> _discard(ClockSession session) async {
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final elapsed = session.elapsed(DateTime.now());
+    // Seconds on the clock are a mis-tap; hours are somebody's fast.
+    if (elapsed.inMinutes >= 1) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AppDialog(
+          backgroundColor: AppColors.surface,
+          title: const Text('DISCARD THIS RUN?'),
+          content: Text(
+            '${formatStopwatch(elapsed)} on the clock will be thrown away. '
+            'Nothing is logged and this cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text('KEEP IT',
+                  style: TextStyle(color: AppColors.accentText)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text('DISCARD', style: TextStyle(color: AppColors.danger)),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
     final dropped = await ref
         .read(clockControllerProvider(challenge.id).notifier)
         .discard();
     if (!mounted) return;
-    navigator.pop();
-    if (dropped) {
-      showActionFeedback(messenger,
-          message: 'Clock discarded. Nothing logged.');
+    if (!dropped) {
+      final error = ref.read(clockControllerProvider(challenge.id)).error;
+      setState(() => _error = serverMessage(error,
+          'Could not discard the clock. Check your connection and try again.'));
+      return;
     }
+    navigator.pop();
+    showActionFeedback(messenger, message: 'Clock discarded. Nothing logged.');
   }
 
   @override
@@ -520,6 +563,15 @@ class _ClockStopSheetState extends ConsumerState<_ClockStopSheet> {
                 style: textTheme.bodySmall
                     ?.copyWith(color: AppColors.textSecondary),
               ),
+              if (!challenge.runsToday) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'This quest rests today, so nothing can be banked right '
+                  'now. ${clockRestDayHint(challenge)}',
+                  style: textTheme.bodySmall
+                      ?.copyWith(color: AppColors.warningText),
+                ),
+              ],
               if (_error != null) ...[
                 const SizedBox(height: 12),
                 Text(
@@ -529,7 +581,9 @@ class _ClockStopSheetState extends ConsumerState<_ClockStopSheet> {
               ],
               const SizedBox(height: 20),
               ElevatedButton.icon(
-                onPressed: busy || !valid ? null : () => _stop(session),
+                onPressed: busy || !valid || !challenge.runsToday
+                    ? null
+                    : () => _stop(session),
                 icon: const Icon(Icons.check_rounded, size: 20),
                 label: const Text('STOP & BANK'),
                 style: ElevatedButton.styleFrom(
@@ -540,7 +594,7 @@ class _ClockStopSheetState extends ConsumerState<_ClockStopSheet> {
               ),
               const SizedBox(height: 8),
               TextButton(
-                onPressed: busy ? null : _discard,
+                onPressed: busy ? null : () => _discard(session),
                 style: TextButton.styleFrom(
                   minimumSize: const Size(double.infinity, 48),
                 ),
@@ -551,6 +605,148 @@ class _ClockStopSheetState extends ConsumerState<_ClockStopSheet> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Starts the clock and tells the player how it went.
+///
+/// Every START in the app goes through here, so a refused start is
+/// never silent and a successful one is never invisible - which is
+/// what a button that only changes a row in a database would be.
+Future<void> startClockWithFeedback(
+  BuildContext context,
+  WidgetRef ref,
+  Challenge challenge,
+) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final owner = ref.read(currentUserProvider)?.id;
+  if (owner == null) return;
+  if (!challenge.runsToday) {
+    showActionFeedback(messenger,
+        error: true, message: clockRestDayHint(challenge));
+    return;
+  }
+  final session =
+      await ref.read(clockControllerProvider(challenge.id).notifier).start();
+  if (ref.read(currentUserProvider)?.id != owner) return;
+  if (session == null) {
+    final error = ref.read(clockControllerProvider(challenge.id)).error;
+    showActionFeedback(messenger,
+        error: true,
+        message: serverMessage(error,
+            'Could not start the clock. Check your connection and try again.'));
+    return;
+  }
+  showActionFeedback(messenger, message: 'Clock started · ${challenge.title}');
+}
+
+/// The local instant the current quest day began. Quest days are
+/// shared by everyone in a quest and turn over at the same moment
+/// worldwide; this is that moment on this device's clock.
+DateTime clockDayStart(DateTime now) {
+  final utc = now.toUtc();
+  return DateTime.utc(utc.year, utc.month, utc.day).toLocal();
+}
+
+/// "This quest rests today. It runs again on Mon."
+String clockRestDayHint(Challenge challenge) {
+  const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  final today = DateTime.now().toUtc();
+  for (var i = 1; i <= 7; i++) {
+    final day = today.add(Duration(days: i));
+    if (challenge.runsOn(day)) {
+      return 'This quest rests today. It runs again on '
+          '${names[day.weekday - 1]}.';
+    }
+  }
+  return 'This quest rests today.';
+}
+
+/// START / running time for a CLOCK quest in one button-sized control.
+///
+/// Used wherever a progress quest would show "+ ADD": the quest card,
+/// the Home agenda and the done list. While the clock runs it shows the
+/// live time, so a running clock is visible from every list it sits in.
+class ClockQuickButton extends ConsumerStatefulWidget {
+  const ClockQuickButton(
+      {super.key, required this.challenge, this.expand = false});
+
+  final Challenge challenge;
+
+  /// Fill the available width (the featured card on Home).
+  final bool expand;
+
+  @override
+  ConsumerState<ClockQuickButton> createState() => _ClockQuickButtonState();
+}
+
+class _ClockQuickButtonState extends ConsumerState<ClockQuickButton> {
+  Timer? _tick;
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  void _syncTicker(bool running) {
+    if (running && _tick == null) {
+      _tick = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    } else if (!running && _tick != null) {
+      _tick!.cancel();
+      _tick = null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final challenge = widget.challenge;
+    final sessionAsync = ref.watch(openClockSessionProvider(challenge.id));
+    final session = sessionAsync.valueOrNull;
+    final busy = ref.watch(clockControllerProvider(challenge.id)).isLoading;
+    _syncTicker(session != null);
+    final minimum = Size(widget.expand ? double.infinity : 0, 48);
+    const textStyle = TextStyle(fontSize: 12, fontWeight: FontWeight.w700);
+
+    if (session != null) {
+      return ElevatedButton.icon(
+        key: const ValueKey('clock-quick-running'),
+        onPressed:
+            busy ? null : () => showClockStopSheet(context, ref, challenge),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.neonGreen,
+          foregroundColor: Colors.black,
+          minimumSize: minimum,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          textStyle: textStyle
+              .copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+        ),
+        icon: const Icon(Icons.stop_rounded, size: 18),
+        label: Text(formatStopwatch(session.elapsed(DateTime.now()))),
+      );
+    }
+
+    final rests = !challenge.runsToday;
+    // Until the first answer arrives it is unknown whether a clock is
+    // already running, and a second START would only be refused.
+    final unknown = sessionAsync.isLoading && !sessionAsync.hasValue;
+    return ElevatedButton.icon(
+      key: const ValueKey('clock-quick-start'),
+      onPressed: busy || unknown || rests || challenge.amIOut
+          ? null
+          : () => startClockWithFeedback(context, ref, challenge),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.neonPurple,
+        foregroundColor: Colors.white,
+        minimumSize: minimum,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        textStyle: textStyle,
+      ),
+      icon: const Icon(Icons.play_arrow_rounded, size: 18),
+      label: Text(rests ? 'RESTS TODAY' : 'START'),
     );
   }
 }

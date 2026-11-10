@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../../core/text/server_message.dart';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -833,9 +834,7 @@ class CheckInController extends AutoDisposeFamilyAsyncNotifier<void, String> {
       return const CheckInResult(status: CheckInStatus.queuedOffline);
     }
 
-    final message = caughtError is PostgrestException
-        ? caughtError.message
-        : 'Check-in failed - try again.';
+    final message = serverMessage(caughtError, 'Check-in failed - try again.');
     return CheckInResult(
       status: CheckInStatus.failed,
       errorMessage: message,

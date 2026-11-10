@@ -363,14 +363,12 @@ class ProfileScreen extends ConsumerWidget {
           error: (error, _) => ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              Text(
-                'Could not load your profile. Please try again.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: AppColors.danger),
-              ),
+              AppStatePanel(
+                  title: 'Profile unavailable',
+                  message: 'Check your connection and try again.',
+                  icon: Icons.cloud_off,
+                  actionLabel: 'RETRY',
+                  onAction: () => ref.invalidate(currentProfileProvider)),
             ],
           ),
           data: (profile) {

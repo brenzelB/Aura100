@@ -14,20 +14,20 @@ abstract class EmojiUtils {
   static bool isEmoji(String grapheme) {
     if (grapheme.isEmpty) return false;
     return grapheme.runes.any((r) =>
-            // Emoticons, pictographs, transport, supplemental...
-            (r >= 0x1F000 && r <= 0x1FAFF) ||
-            // Regional indicators (flags are two of these).
-            (r >= 0x1F1E6 && r <= 0x1F1FF) ||
-            // Misc symbols + dingbats (☀ ✂ ❤ ...).
-            (r >= 0x2600 && r <= 0x27BF) ||
-            // Misc technical (⌚ ⏳ ...).
-            (r >= 0x2300 && r <= 0x23FF) ||
-            // Arrows / stars / misc symbols-and-arrows (⭐ ⬛ ...).
-            (r >= 0x2B00 && r <= 0x2BFF) ||
-            r == 0x203C || // ‼
-            r == 0x2049 || // ⁉
-            // VS-16: forces emoji presentation (❤️, ™️).
-            r == 0xFE0F);
+        // Emoticons, pictographs, transport, supplemental...
+        (r >= 0x1F000 && r <= 0x1FAFF) ||
+        // Regional indicators (flags are two of these).
+        (r >= 0x1F1E6 && r <= 0x1F1FF) ||
+        // Misc symbols + dingbats (☀ ✂ ❤ ...).
+        (r >= 0x2600 && r <= 0x27BF) ||
+        // Misc technical (⌚ ⏳ ...).
+        (r >= 0x2300 && r <= 0x23FF) ||
+        // Arrows / stars / misc symbols-and-arrows (⭐ ⬛ ...).
+        (r >= 0x2B00 && r <= 0x2BFF) ||
+        r == 0x203C || // ‼
+        r == 0x2049 || // ⁉
+        // VS-16: forces emoji presentation (❤️, ™️).
+        r == 0xFE0F);
   }
 
   /// Picks the emoji a user meant from raw keyboard input: the LAST

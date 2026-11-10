@@ -10,12 +10,14 @@ import '../../../../core/theme/design_tokens.dart';
 import '../../../../core/theme/motion.dart';
 import '../../../../core/widgets/action_feedback.dart';
 import '../../../challenges/presentation/widgets/create_challenge_sheet.dart';
+import '../../../../core/text/dates.dart';
 import '../../../../core/text/roasts.dart';
 import '../../../challenges/application/challenge_providers.dart';
 import '../../../challenges/domain/challenge.dart';
 import '../../../challenges/domain/settlement.dart';
 import '../../../challenges/presentation/widgets/roast_duel.dart';
 import '../../../../core/text/game_roasts.dart';
+import '../../../challenges/presentation/widgets/clock_controls.dart';
 import '../../../challenges/presentation/widgets/progress_widgets.dart';
 import '../../../challenges/presentation/widgets/quick_progress_actions.dart';
 import '../../../challenges/presentation/widgets/slip_widgets.dart';
@@ -226,6 +228,8 @@ class HomeScreen extends ConsumerWidget {
                 if (agenda.open.every((i) => i.isDoomed))
                   _AllDoneCard(
                       hasQuests: agenda.totalRunning > 0,
+                      restingCount: agenda.resting.length,
+                      upcomingCount: agenda.upcoming.length,
                       hasLostQuests: agenda.doomed.isNotEmpty,
                       waitingForSync: agenda.done
                           .any((i) => pendingIds.contains(i.challenge.id)))
@@ -310,9 +314,7 @@ String _comebackMessage(Challenge quest) {
     return 'Start a new quest for your comeback. Your XP stays.';
   }
   final today = DateTime.now().toUtc();
-  final when = DateUtils.isSameDay(next, today)
-      ? 'today'
-      : '${next.day}.${next.month}.${next.year}';
+  final when = DateUtils.isSameDay(next, today) ? 'today' : formatDate(next);
   return quest.isAvoid
       ? 'Comeback goal: finish the next planned period within your allowance · $when'
       : 'Comeback goal: complete the next planned unit · $when';
@@ -578,7 +580,11 @@ class _TodayHeader extends StatelessWidget {
           : avoidItems.isNotEmpty
               ? _avoidHomeSummary(avoidItems)
               : agenda.totalRunning == 0
-                  ? 'Your next chapter starts with a quest.'
+                  ? agenda.resting.isNotEmpty
+                      ? 'Rest day. Nothing is due today.'
+                      : agenda.upcoming.isNotEmpty
+                          ? 'Nothing due yet. Your quests start soon.'
+                          : 'Your next chapter starts with a quest.'
                   : allDone
                       ? 'Everything done today. Legend.'
                       : "Nice start. Don't get smug.";
@@ -692,6 +698,14 @@ class _TodayHeader extends StatelessWidget {
                   pendingCount > 0
                       ? '$pendingCount saved on this device · waiting to sync'
                       : switch (agenda) {
+                          _
+                              when agenda.totalRunning == 0 &&
+                                  agenda.resting.isNotEmpty =>
+                            'Rest day. Nothing is due today.',
+                          _
+                              when agenda.totalRunning == 0 &&
+                                  agenda.upcoming.isNotEmpty =>
+                            'Nothing due yet. Your quests start soon.',
                           _ when agenda.totalRunning == 0 =>
                             'No running quests. Time to forge one.',
                           _ when agenda.open.isEmpty =>
@@ -887,16 +901,22 @@ class _PokeInboxCardState extends ConsumerState<_PokeInboxCard> {
           ),
           const SizedBox(height: 10),
           // One tap fires this emoji back to every poker (and clears).
-          Row(
+          // Wraps on narrow phones and with large text instead of
+          // overflowing the card.
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              for (final emoji in _reactions) ...[
-                _ReactionButton(
-                  emoji: emoji,
-                  enabled: !_busy,
-                  onTap: () => _react(emoji),
+              for (final emoji in _reactions)
+                Semantics(
+                  button: true,
+                  label: 'React with $emoji',
+                  child: _ReactionButton(
+                    emoji: emoji,
+                    enabled: !_busy,
+                    onTap: () => _react(emoji),
+                  ),
                 ),
-                const SizedBox(width: 8),
-              ],
             ],
           ),
         ],
@@ -921,8 +941,8 @@ class _ReactionButton extends StatelessWidget {
     return Pressable(
       onTap: enabled ? onTap : null,
       child: Container(
-        width: 40,
-        height: 40,
+        width: 48,
+        height: 48,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: AppColors.surfaceLight,
@@ -1368,6 +1388,15 @@ class _CheckInButtonState extends ConsumerState<_CheckInButton> {
         icon: const Icon(Icons.block, size: 15),
         label: Text(running.remainingLabel),
       );
+    }
+
+    // A clock quest's only action is its stopwatch, and the button
+    // shows the running time so the clock is visible from Home.
+    if (item.challenge.isClock) {
+      return ClockQuickButton(
+          challenge: item.challenge,
+          expand: AppColors.activeType == AppThemeType.editorial &&
+              item.challenge.isProgress);
     }
 
     // Progress quests are never ticked off — they collect amounts.
@@ -1972,7 +2001,10 @@ class _DoneRow extends ConsumerWidget {
                 ),
               ),
             ),
-          if (!isPending && item.canLogBonus) ...[
+          if (!isPending && item.challenge.isClock) ...[
+            const SizedBox(width: 8),
+            ClockQuickButton(challenge: item.challenge),
+          ] else if (!isPending && item.canLogBonus) ...[
             const SizedBox(width: 8),
             _CheckInButton(item: item, color: AppColors.neonPurple),
           ],
@@ -1987,16 +2019,32 @@ class _DoneRow extends ConsumerWidget {
 class _AllDoneCard extends StatelessWidget {
   const _AllDoneCard(
       {required this.hasQuests,
+      this.restingCount = 0,
+      this.upcomingCount = 0,
       this.waitingForSync = false,
       this.hasLostQuests = false});
 
   final bool hasQuests;
+  final int restingCount;
+  final int upcomingCount;
   final bool waitingForSync;
   final bool hasLostQuests;
 
   @override
   Widget build(BuildContext context) {
     if (!hasQuests && !waitingForSync && !hasLostQuests) {
+      // Quests exist, they just ask nothing today.
+      if (restingCount > 0 || upcomingCount > 0) {
+        return AppStatePanel(
+            title: restingCount > 0 ? 'Rest day.' : 'Nothing due yet.',
+            message: restingCount > 0
+                ? '$restingCount quest${restingCount == 1 ? '' : 's'} '
+                    'take${restingCount == 1 ? 's' : ''} today off. Nothing '
+                    'is due and no strike can land.'
+                : 'Your quests have not started yet. They are listed under '
+                    'Upcoming.',
+            icon: Icons.self_improvement);
+      }
       return AppStatePanel(
           title: 'Small habit. Big energy.',
           message:

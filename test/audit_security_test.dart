@@ -37,8 +37,15 @@ void main() {
   });
   test('malformed push fields do not crash a background handler', () {
     expect(PushMessage.tryParse({'category': 123}), isNull);
-    expect(PushMessage.tryParse({'category': 'quest', 'title': {}, 'body': [],
-      'refId': 123, 'id': '42'})?.outboxId, 42);
+    expect(
+        PushMessage.tryParse({
+          'category': 'quest',
+          'title': {},
+          'body': [],
+          'refId': 123,
+          'id': '42'
+        })?.outboxId,
+        42);
   });
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => SharedPreferences.setMockInitialValues({}));

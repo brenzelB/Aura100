@@ -627,7 +627,7 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
       if (error == null) return;
       final message = error is PostgrestException && error.code == 'P0001'
           ? 'Edit the wording to follow the community rules.'
-          : 'Could not create the challenge. Please try again.';
+          : 'Could not create the quest. Please try again.';
       ScaffoldMessenger.of(context).showSnackBar(
         AppSnackBar(content: Text(message), backgroundColor: AppColors.danger),
       );

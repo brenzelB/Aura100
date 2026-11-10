@@ -94,9 +94,8 @@ class BlackoutAlertSection extends ConsumerWidget {
   /// One sentence that answers the only two questions the player has:
   /// who did it, and when was I locked out.
   static String _sentence(Blackout notice) {
-    final who = notice.attackerName == null
-        ? 'Someone'
-        : '@${notice.attackerName}';
+    final who =
+        notice.attackerName == null ? 'Someone' : '@${notice.attackerName}';
     final where = notice.challengeTitle == null
         ? 'one of your quests'
         : '"${notice.challengeTitle}"';

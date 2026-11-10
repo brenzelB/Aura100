@@ -65,8 +65,8 @@ class FriendshipController extends AutoDisposeAsyncNotifier<void> {
   }) async {
     final repo = ref.read(friendsRepositoryProvider);
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() =>
-        repo.respondToFriendRequest(friendshipId: friendshipId, accept: accept));
+    state = await AsyncValue.guard(() => repo.respondToFriendRequest(
+        friendshipId: friendshipId, accept: accept));
     if (state.hasError) return false;
     _refresh();
     return true;
@@ -83,8 +83,7 @@ class FriendshipController extends AutoDisposeAsyncNotifier<void> {
 }
 
 /// Pending quest invites for the logged-in user.
-final myInvitesProvider =
-    FutureProvider.autoDispose<List<QuestInvite>>((ref) {
+final myInvitesProvider = FutureProvider.autoDispose<List<QuestInvite>>((ref) {
   if (!SupabaseConfig.isConfigured) return const [];
   ref.watch(authStateChangesProvider);
   return ref.watch(friendsRepositoryProvider).fetchMyInvites();
