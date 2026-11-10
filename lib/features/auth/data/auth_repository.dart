@@ -50,7 +50,7 @@ class AuthRepository {
       _guarded('signInWithEmail', () async {
         _googleBrowser.cancel();
         await _client.auth.signInWithPassword(email: email, password: password);
-        debugPrint('✅ [AuthRepository.signInWithEmail] signed in as $email');
+        debugPrint('✅ [AuthRepository.signInWithEmail] signed in as ${_redact(email)}');
       });
 
   /// Creates a new account. With email confirmations disabled (local dev)
@@ -83,7 +83,7 @@ class AuthRepository {
         );
         debugPrint(
           '✅ [AuthRepository.signUpWithEmail] user created: '
-          '${response.user?.email} — session: '
+          '${_redact(response.user?.email ?? '')} — session: '
           '${response.session != null ? 'ACTIVE' : 'NONE (email confirmation pending)'}',
         );
       });
@@ -110,7 +110,7 @@ class AuthRepository {
           email: email,
           token: code,
         );
-        debugPrint('✅ [AuthRepository.confirmSignupWithCode] confirmed $email');
+        debugPrint('✅ [AuthRepository.confirmSignupWithCode] confirmed ${_redact(email)}');
       });
 
   /// Sends the confirmation mail again.
@@ -126,7 +126,7 @@ class AuthRepository {
           email: email,
           emailRedirectTo: kIsWeb ? null : SupabaseConfig.confirmRedirectUrl,
         );
-        debugPrint('✅ [AuthRepository.resendConfirmation] sent to $email');
+        debugPrint('✅ [AuthRepository.resendConfirmation] sent to ${_redact(email)}');
       });
 
   // ── Forgotten password ─────────────────────────────────────────────
@@ -145,7 +145,7 @@ class AuthRepository {
           email,
           redirectTo: kIsWeb ? null : SupabaseConfig.oauthRedirectUri,
         );
-        debugPrint('✅ [AuthRepository.sendPasswordReset] mail sent to $email');
+        debugPrint('✅ [AuthRepository.sendPasswordReset] mail sent to ${_redact(email)}');
       });
 
   /// Redeems the recovery code. On success the user holds a session —
@@ -162,7 +162,7 @@ class AuthRepository {
           email: email,
           token: code,
         );
-        debugPrint('✅ [AuthRepository.verifyRecoveryCode] verified $email');
+        debugPrint('✅ [AuthRepository.verifyRecoveryCode] verified ${_redact(email)}');
       });
 
   /// Sets a new password for the currently signed-in user.
@@ -289,4 +289,12 @@ class AuthRepository {
       rethrow;
     }
   }
+}
+
+/// "denis@example.com" -> "d***@example.com", so logs show which account
+/// without carrying the full address.
+String _redact(String email) {
+  final at = email.indexOf('@');
+  if (at <= 0) return '***';
+  return '${email[0]}***${email.substring(at)}';
 }

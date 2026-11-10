@@ -299,7 +299,7 @@ class _ChallengeShopSheetState extends ConsumerState<ChallengeShopSheet> {
               : 'Perks are unavailable for quests with a zero Aura reward.'),
           const SizedBox(height: 8),
           Text(widget.challenge.attacksEnabled
-              ? '3 outgoing attacks per account / UTC day. Ego Duels are free: no Aura or XP changes.'
+              ? '3 outgoing attacks per account and day (resets at ${formatDailyReset()} your time). Ego Duels are free: no Aura or XP changes.'
               : 'Attacks are disabled in this quest.'),
           const SizedBox(height: 12),
           benefitsAsync.when(

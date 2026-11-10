@@ -1,5 +1,6 @@
 import 'dart:async';
 import '../../../core/text/server_message.dart';
+import '../../../core/text/dates.dart';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -710,7 +711,7 @@ final offlineSyncServiceProvider = Provider<OfflineSyncService>((ref) {
       if (result.discardedCount > 0 && !service.isDisposed) {
         ref.read(offlineSyncNoticeProvider.notifier).state =
             '${result.discardedCount} offline check-in(s) could not be applied. '
-            'Only the current UTC day and active quests can be synced.';
+            'Only check-ins from today (since ${formatDailyReset()}) on active quests can be synced.';
       }
       return result;
     },
@@ -1046,6 +1047,10 @@ class CreateChallengeController extends AutoDisposeAsyncNotifier<void> {
     // Action-only notifier.
   }
 
+  /// Usernames whose invitation failed on the last [create], so the
+  /// sheet can name them instead of claiming everyone was invited.
+  List<String> failedInvites = const [];
+
   /// Returns true on success; errors land in `state` for the UI.
   Future<bool> create({
     required String title,
@@ -1072,6 +1077,8 @@ class CreateChallengeController extends AutoDisposeAsyncNotifier<void> {
     final repo = ref.read(challengeRepositoryProvider);
     state = const AsyncLoading();
     String? createdId;
+    final failed = <String>[];
+    failedInvites = const [];
     state = await AsyncValue.guard(() async {
       createdId = await repo.createChallenge(
         balancePreset: balancePreset,
@@ -1095,14 +1102,18 @@ class CreateChallengeController extends AutoDisposeAsyncNotifier<void> {
         activeWeekdays: activeWeekdays,
       );
       // Fire the invitations right after the quest exists. Best-effort:
-      // one bad username should not undo the whole creation.
+      // one bad username should not undo the whole creation, but the
+      // ones that failed are reported back by name.
       for (final username in invitees) {
         try {
           await repo.inviteToChallenge(
               challengeId: createdId!, username: username);
-        } catch (_) {}
+        } catch (_) {
+          failed.add(username);
+        }
       }
     });
+    failedInvites = List.unmodifiable(failed);
     if (!state.hasError) {
       // The freshly forged quest appears in the list immediately.
       ref.invalidate(myChallengesProvider);

@@ -74,7 +74,7 @@ void main() {
       final deviceDay = DateTime.utc(2026, 10, deviceAhead ? 25 : 24);
       await _openSchedule(tester, _DeviceClock(deviceDay, utc));
       expect(find.text('Today'), findsOneWidget);
-      expect(find.textContaining('your time (00:00 UTC)'), findsOneWidget);
+      expect(find.textContaining('Daily reset:'), findsOneWidget);
       await tester.tap(find.text('Today'));
       await tester.pumpAndSettle();
       final picker =

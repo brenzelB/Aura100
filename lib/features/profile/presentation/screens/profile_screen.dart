@@ -439,8 +439,8 @@ class ProfileScreen extends ConsumerWidget {
                                             const SizedBox(height: 8),
                                             Text(
                                                 '${500 - stats.xpInLevel} XP to the next level'),
-                                            const Text(
-                                                '100 XP per confirmed unit · up to 500 per UTC day. Your XP stays when you spend Aura or leave a quest.'),
+                                            Text(
+                                                '100 XP per confirmed unit · up to 500 per day (the day resets at ${formatDailyReset()} your time). Your XP stays when you spend Aura or leave a quest.'),
                                           ]))),
                               const SizedBox(height: 12),
                               _StatsGrid(stats),

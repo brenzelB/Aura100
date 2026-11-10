@@ -82,6 +82,22 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
         _maxStrikes = preset.misses;
         _attacksEnabled = preset.attacks;
       });
+  /// Fills step one with a ready-made quest so a first quest is one tap
+  /// away. Only the goal is set: rhythm, dates and rules keep whatever
+  /// the person already chose, and every field stays editable.
+  void _applyTemplate(_QuestTemplate t) => _edit(() {
+        _titleController.text = t.title;
+        _descriptionController.text = t.description;
+        _goalType = t.goal;
+        _tracking = t.tracking;
+        _period = t.period;
+        if (t.perPeriod != null) _perPeriod = t.perPeriod!;
+        _targetController.text = t.target ?? '';
+        _targetMinutesController.text = t.targetMinutes ?? '';
+        _unitController.text = t.unit ?? '';
+        _allowance = 0;
+      });
+
   late DateTime _startsOn = _initialStartDate();
   late DateTime _endsOn = _startsOn.add(const Duration(days: 6));
   CheckinPeriod _period = CheckinPeriod.daily;
@@ -547,8 +563,8 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
       return;
     }
 
-    final success =
-        await ref.read(createChallengeControllerProvider.notifier).create(
+    final controller = ref.read(createChallengeControllerProvider.notifier);
+    final success = await controller.create(
               title: _titleController.text.trim(),
               description: _descriptionController.text.trim(),
               durationDays: _durationDays,
@@ -591,8 +607,9 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
     _draftTimer?.cancel();
     if (_owner != null) await _draftStore.clear(_owner!);
     if (!mounted) return;
+    final failed = controller.failedInvites;
     Navigator.of(context).pop();
-    final invited = _invitees.length;
+    final invited = _invitees.length - failed.length;
     messenger.showSnackBar(AppSnackBar(
       content: Text(_isLms
           ? '🏆 Lobby "${_titleController.text.trim()}" created'
@@ -602,6 +619,16 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
               '${invited == 0 ? '' : ' · $invited invited'}'),
       backgroundColor: AppColors.neonGreen,
     ));
+    if (failed.isNotEmpty) {
+      // A second, honest note: the quest exists, these people just
+      // were not reached. They can be invited again from the quest.
+      messenger.showSnackBar(AppSnackBar(
+        content: Text(
+            'Could not invite ${failed.map((u) => '@$u').join(', ')}. '
+            'Open the quest to try again.'),
+        backgroundColor: AppColors.danger,
+      ));
+    }
   }
 
   @override
@@ -681,6 +708,34 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
                           child: Text(
                               'Draft restored. Your changes stay on this device.')),
                     if (_step == 0) ...[
+                      // ── Quick start: a ready-made goal in one tap ─────
+                      ...[
+                        Text('QUICK START', style: textTheme.labelLarge),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final t in _QuestTemplate.all)
+                              ActionChip(
+                                key: Key('quest-template-${t.id}'),
+                                avatar: Icon(t.icon, size: 18),
+                                label: Text(t.label),
+                                onPressed:
+                                    isLoading ? null : () => _applyTemplate(t),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'How it works: every check-in earns Aura. A miss costs '
+                          'Aura and one strike. Run out of strikes and you are '
+                          'out of the quest.',
+                          style: textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textSecondary),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       // ── Title ────────────────────────────────────────
                       TextFormField(
                         controller: _titleController,
@@ -1046,7 +1101,7 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Daily reset: ${formatTime(_initialStartDate().add(const Duration(days: 1)))} your time (00:00 UTC).',
+                          'Daily reset: ${formatTime(_initialStartDate().add(const Duration(days: 1)))} your time.',
                           style: textTheme.bodySmall
                               ?.copyWith(color: AppColors.textSecondary),
                         ),
@@ -1269,7 +1324,7 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
                           '+${_auraGainController.text} Aura per unit · −${_auraPenaltyController.text} per missed period · $_maxStrikes misses allowed. The next miss ends your run.'),
                       const SizedBox(height: 8),
                       const Text(
-                          '100 permanent XP per confirmed unit, up to 500 per UTC day. Shopping and attacks never lower your level.'),
+                          '100 permanent XP per confirmed unit, up to 500 per day. Shopping and attacks never lower your level.'),
                       if (_mode != QuestMode.lastManStanding)
                         const Text(
                             'If the run fails, you keep 25% of its remaining Aura. Permanent XP stays.'),
@@ -1320,7 +1375,7 @@ class _CreateChallengeSheetState extends ConsumerState<CreateChallengeSheet> {
                                   contentPadding: EdgeInsets.zero,
                                   title: const Text('Allow attacks'),
                                   subtitle: const Text(
-                                      '3 outgoing attacks per account and UTC day. Ego Duels are free and never change Aura or XP.'),
+                                      '3 outgoing attacks per account and day. Ego Duels are free and never change Aura or XP.'),
                                   value: _attacksEnabled,
                                   onChanged: (value) =>
                                       _edit(() => _attacksEnabled = value)),
@@ -1816,4 +1871,72 @@ class _WeekdayChip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A ready-made first quest for the QUICK START row.
+class _QuestTemplate {
+  const _QuestTemplate({
+    required this.id,
+    required this.label,
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.goal,
+    this.tracking = QuestTracking.manual,
+    this.period = CheckinPeriod.daily,
+    this.perPeriod,
+    this.target,
+    this.targetMinutes,
+    this.unit,
+  });
+
+  final String id, label, title, description;
+  final IconData icon;
+  final GoalType goal;
+  final QuestTracking tracking;
+  final CheckinPeriod period;
+  final int? perPeriod;
+  final String? target, targetMinutes, unit;
+
+  static const all = [
+    _QuestTemplate(
+      id: 'workout',
+      label: 'Workout',
+      icon: Icons.fitness_center,
+      title: 'Workout 3x a week',
+      description: 'Any workout of 30 minutes or more counts.',
+      goal: GoalType.check,
+      period: CheckinPeriod.weekly,
+      perPeriod: 3,
+    ),
+    _QuestTemplate(
+      id: 'reading',
+      label: 'Reading',
+      icon: Icons.menu_book,
+      title: 'Read 20 minutes a day',
+      description: 'Start the clock when you open the book.',
+      goal: GoalType.progress,
+      tracking: QuestTracking.clock,
+      target: '0',
+      targetMinutes: '20',
+    ),
+    _QuestTemplate(
+      id: 'steps',
+      label: '10k steps',
+      icon: Icons.directions_walk,
+      title: '10,000 steps a day',
+      description: 'Log your steps before the day ends.',
+      goal: GoalType.progress,
+      target: '10000',
+      unit: 'Steps',
+    ),
+    _QuestTemplate(
+      id: 'no-smoking',
+      label: 'No smoking',
+      icon: Icons.smoke_free,
+      title: 'No smoking',
+      description: 'Log a slip if it happens. Honesty keeps the quest fair.',
+      goal: GoalType.avoid,
+    ),
+  ];
 }

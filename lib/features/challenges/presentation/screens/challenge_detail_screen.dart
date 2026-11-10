@@ -71,8 +71,12 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
   /// recover from a dropped socket — hence the long interval.
   void _startTimer() {
     _refreshTimer?.cancel();
-    _refreshTimer =
-        Timer.periodic(RealtimeSync.fallbackInterval, (_) => _refreshData());
+    _refreshTimer = Timer.periodic(RealtimeSync.fallbackInterval, (_) {
+      // While the socket is live, every change already arrives through
+      // it; reloading six providers on top would only cost data.
+      if (ref.read(realtimeSyncProvider)?.connected.value ?? false) return;
+      _refreshData();
+    });
   }
 
   @override
@@ -265,7 +269,13 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('QUEST DETAILS'),
+        // The quest's own name once it is loaded, so the screen says which
+        // quest this is even after scrolling past the header.
+        title: Text(
+          challenge?.title.toUpperCase() ?? 'QUEST DETAILS',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           if (challenge != null)
             abandoning
@@ -278,11 +288,31 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
                           strokeWidth: 2, color: AppColors.danger),
                     ),
                   )
-                : IconButton(
-                    tooltip: 'Abandon quest',
-                    icon: Icon(Icons.flag_outlined, color: AppColors.danger),
-                    onPressed: () =>
-                        _confirmAbandon(context, challenge, members),
+                // Leaving is rare and costly, so it lives behind the overflow
+                // menu instead of sitting one tap away in the app bar.
+                : PopupMenuButton<String>(
+                    key: const Key('quest-overflow-menu'),
+                    tooltip: 'More',
+                    icon: const Icon(Icons.more_vert),
+                    onSelected: (value) {
+                      if (value == 'abandon') {
+                        _confirmAbandon(context, challenge, members);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem<String>(
+                        value: 'abandon',
+                        child: Row(
+                          children: [
+                            Icon(Icons.flag_outlined,
+                                color: AppColors.danger, size: 20),
+                            const SizedBox(width: 12),
+                            Text('Abandon quest',
+                                style: TextStyle(color: AppColors.danger)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
         ],
       ),
@@ -684,7 +714,7 @@ class _SpectatorCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'No more check-ins, perks or duels. Leave whenever you '
-                  'like with the flag up top.',
+                  'like from the ⋮ menu up top.',
                   style: textTheme.bodySmall?.copyWith(
                     color: AppColors.textSecondary,
                     fontSize: 12,

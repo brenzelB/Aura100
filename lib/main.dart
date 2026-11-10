@@ -1,6 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart'
-    show LicenseEntryWithLineBreaks, LicenseRegistry;
+    show LicenseEntryWithLineBreaks, LicenseRegistry, debugPrint, kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -14,6 +14,13 @@ import 'core/push/push_service.dart';
 Future<void> main() async {
   // Required because we do async work (Supabase init) before runApp.
   WidgetsFlutterBinding.ensureInitialized();
+
+  // The repositories log generously (including e-mail addresses on sign
+  // in). That is useful in development, but a release build must not write
+  // personal data to the device log, so debugPrint goes silent there.
+  if (kReleaseMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
+  }
 
   // The exact font files used by the two non-editorial themes are bundled as
   // assets. Keep runtime fetching off so fonts never make a network request.
