@@ -193,7 +193,9 @@ void main() {
     expect(totals.lifetime, 2660);
   });
 
-  group('the card offers a clock instead of a keypad', () {
+  // The clock lives in ClockControls (quest screen) and ClockQuickButton
+  // (cards and Home); the typed-progress shortcuts stay out of the way.
+  group('the quest offers a clock instead of a keypad', () {
     setUp(() {
       SharedPreferences.setMockInitialValues({});
       GoogleFonts.config.allowRuntimeFetching = false;
@@ -203,11 +205,29 @@ void main() {
       await tester.pumpWidget(ProviderScope(
         overrides: overrides,
         child: MaterialApp(
-          home: Scaffold(body: QuickProgressActions(challenge: _quest())),
+          home: Scaffold(body: ClockControls(challenge: _quest())),
         ),
       ));
       await tester.pumpAndSettle();
     }
+
+    testWidgets('a clock quest shows no typed-amount shortcuts',
+        (tester) async {
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          openClockSessionProvider('q').overrideWith((ref) async => null),
+        ],
+        child: MaterialApp(
+          home: Scaffold(body: QuickProgressActions(challenge: _quest())),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Finish ('), findsNothing);
+      expect(find.byType(ElevatedButton), findsNothing);
+
+      await tester.pumpWidget(const SizedBox());
+    });
 
     testWidgets('with no clock running, the only action is to start one',
         (tester) async {
