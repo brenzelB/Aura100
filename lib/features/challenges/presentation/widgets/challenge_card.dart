@@ -144,16 +144,8 @@ class ChallengeCard extends ConsumerWidget {
                   label: challenge.timeLeftLabel,
                   color: AppColors.neonCyan,
                 ),
-                _StatChip(
-                  icon: Icons.bolt,
-                  label: '+${challenge.auraGain}',
-                  color: AppColors.neonGreen,
-                ),
-                _StatChip(
-                  icon: Icons.heart_broken,
-                  label: '-${challenge.auraPenalty}',
-                  color: AppColors.danger,
-                ),
+                // Gain and penalty live in the quest's STAKES section; the
+                // card keeps only what decides today's move.
                 _StatChip(
                   icon: Icons.shield_outlined,
                   label:

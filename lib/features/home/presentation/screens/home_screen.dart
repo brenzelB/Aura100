@@ -147,30 +147,6 @@ class HomeScreen extends ConsumerWidget {
                       label: const Text('Activity'),
                     ),
                   ]),
-                  if (activity.count > 0) ...[
-                    const SizedBox(height: 14),
-                    Material(
-                        color: AppColors.isDark
-                            ? const Color(0xFF3D3C44)
-                            : const Color(0xFFB7EBCC),
-                        borderRadius: BorderRadius.circular(12),
-                        child: ListTile(
-                          key: const ValueKey('home-activity-shortcut'),
-                          contentPadding:
-                              const EdgeInsets.symmetric(horizontal: 14),
-                          title: Text(activity.label,
-                              style: TextStyle(
-                                  color: AppColors.isDark
-                                      ? const Color(0xFFB7EBCC)
-                                      : const Color(0xFF312149),
-                                  fontWeight: FontWeight.w700)),
-                          trailing: Icon(Icons.arrow_forward,
-                              color: AppColors.isDark
-                                  ? const Color(0xFFB7EBCC)
-                                  : const Color(0xFF312149)),
-                          onTap: () => context.push(AppRoutes.activity),
-                        )),
-                  ],
                   const SizedBox(height: 6),
                 ],
                 _TodayHeader(
@@ -1603,149 +1579,156 @@ class _AgendaCard extends ConsumerWidget {
         : item.previousAvoidPeriodProtected
             ? 'Last period protected · this period is in progress'
             : 'No check-in needed · this goal is in progress';
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: EdgeInsets.all(featured ? 16 : 14),
-      decoration: editorial && !featured && pendingRoast == null
-          ? BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColors.outline)))
-          : AppColors.panelDecoration(
-              accent: pendingRoast != null
-                  ? AppColors.neonPurple
-                  : AppColors.neonCyan,
-              glow: pendingRoast != null,
-            ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (pendingRoast != null)
-            GestureDetector(
-              onTap: () =>
-                  showTargetedRoastLockDialog(context, ref, pendingRoast),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.neonPurple.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.neonPurple, width: 1.5),
-                ),
-                child: Row(
-                  children: [
-                    const Text('🔥', style: TextStyle(fontSize: 16)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'TARGETED ROAST RECEIVED!',
-                            style: TextStyle(
-                              color: AppColors.neonPurple,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 12,
-                            ),
-                          ),
-                          Text(
-                            'From @${pendingRoast.senderUsername} — tap to unlock screen (${pendingRoast.durationSeconds}s lock)',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(Icons.lock_clock,
-                        color: AppColors.neonPurple, size: 20),
-                  ],
-                ),
+    Future<void> openQuest() async {
+      if (pendingRoast != null) {
+        await showTargetedRoastLockDialog(context, ref, pendingRoast);
+      }
+      if (context.mounted) {
+        context.push('${AppRoutes.challenges}/${item.challenge.id}');
+      }
+    }
+
+    // The whole card opens the quest; its buttons keep their own taps.
+    return InkWell(
+      onTap: openQuest,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: EdgeInsets.all(featured ? 16 : 14),
+        decoration: editorial && !featured && pendingRoast == null
+            ? BoxDecoration(
+                border: Border(bottom: BorderSide(color: AppColors.outline)))
+            : AppColors.panelDecoration(
+                accent: pendingRoast != null
+                    ? AppColors.neonPurple
+                    : AppColors.neonCyan,
+                glow: pendingRoast != null,
               ),
-            ),
-          Row(
-            children: [
-              Expanded(
-                child: InkWell(
-                  onTap: () async {
-                    if (pendingRoast != null) {
-                      await showTargetedRoastLockDialog(
-                          context, ref, pendingRoast);
-                    }
-                    if (context.mounted) {
-                      context
-                          .push('${AppRoutes.challenges}/${item.challenge.id}');
-                    }
-                  },
-                  child: Text(
-                    item.challenge.title,
-                    maxLines: editorial ? 3 : 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: featured
-                        ? textTheme.headlineMedium
-                        : textTheme.bodyLarge
-                            ?.copyWith(fontWeight: FontWeight.w700),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (pendingRoast != null)
+              GestureDetector(
+                onTap: () =>
+                    showTargetedRoastLockDialog(context, ref, pendingRoast),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.neonPurple.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.neonPurple, width: 1.5),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('🔥', style: TextStyle(fontSize: 16)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'TARGETED ROAST RECEIVED!',
+                              style: TextStyle(
+                                color: AppColors.neonPurple,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              'From @${pendingRoast.senderUsername} — tap to unlock screen (${pendingRoast.durationSeconds}s lock)',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.lock_clock,
+                          color: AppColors.neonPurple, size: 20),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              if (!featured)
-                _CheckInButton(
-                    item: item,
-                    color: editorial
-                        ? AppColors.textPrimary
-                        : AppColors.neonGreen),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Wrap(
-            spacing: 12,
-            runSpacing: 4,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(avoidGoal ? 'Avoid · in progress' : item.demandLabel,
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: AppColors.accentText)),
-              Text(
-                  editorial
-                      ? '+${item.challenge.auraGain} Aura'
-                      : '+${item.challenge.auraGain} ⚡',
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: AppColors.successText)),
-            ],
-          ),
-          if (avoidGoal) ...[
-            const SizedBox(height: 8),
             Row(
               children: [
-                Icon(avoidStatusIcon, size: 17, color: avoidStatusColor),
-                const SizedBox(width: 7),
                 Expanded(
-                  child: Text(
-                    avoidStatusText,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: avoidStatusColor,
-                      fontWeight: FontWeight.w600,
+                  child: Semantics(
+                    button: true,
+                    hint: 'Opens the quest',
+                    child: Text(
+                      item.challenge.title,
+                      maxLines: editorial ? 3 : 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: featured
+                          ? textTheme.headlineMedium
+                          : textTheme.bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
+                const SizedBox(width: 12),
+                if (!featured)
+                  _CheckInButton(
+                      item: item,
+                      color: editorial
+                          ? AppColors.textPrimary
+                          : AppColors.neonGreen),
               ],
             ),
-            const SizedBox(height: 5),
-            SlipMeter(challenge: item.challenge, compact: true),
-          ],
-          if (item.challenge.isProgress) ...[
-            const SizedBox(height: 8),
-            QuestProgressBar(challenge: item.challenge, compact: true),
-            if (featured) ...[
-              const SizedBox(height: 16),
-              SizedBox(
-                  width: double.infinity,
-                  child: _CheckInButton(item: item, color: AppColors.neonPink)),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 12,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(avoidGoal ? 'Avoid · in progress' : item.demandLabel,
+                    style: textTheme.bodySmall
+                        ?.copyWith(color: AppColors.accentText)),
+                Text(
+                    editorial
+                        ? '+${item.challenge.auraGain} Aura'
+                        : '+${item.challenge.auraGain} ⚡',
+                    style: textTheme.bodySmall
+                        ?.copyWith(color: AppColors.successText)),
+              ],
+            ),
+            if (avoidGoal) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(avoidStatusIcon, size: 17, color: avoidStatusColor),
+                  const SizedBox(width: 7),
+                  Expanded(
+                    child: Text(
+                      avoidStatusText,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: avoidStatusColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 5),
+              SlipMeter(challenge: item.challenge, compact: true),
             ],
-            QuickProgressActions(challenge: item.challenge),
+            if (item.challenge.isProgress) ...[
+              const SizedBox(height: 8),
+              QuestProgressBar(challenge: item.challenge, compact: true),
+              if (featured) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                    width: double.infinity,
+                    child:
+                        _CheckInButton(item: item, color: AppColors.neonPink)),
+              ],
+              QuickProgressActions(challenge: item.challenge),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -1765,110 +1748,116 @@ class _RiskCard extends ConsumerWidget {
     final pendingRoast =
         roasts.where((r) => r.challengeId == item.challenge.id).firstOrNull;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: AppColors.panelDecoration(
-          accent:
-              pendingRoast != null ? AppColors.neonPurple : AppColors.danger,
-          isDanger: pendingRoast == null,
-          glow: true),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (pendingRoast != null)
-            GestureDetector(
-              onTap: () =>
-                  showTargetedRoastLockDialog(context, ref, pendingRoast),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.neonPurple.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.neonPurple, width: 1.5),
-                ),
-                child: Row(
-                  children: [
-                    const Text('🔥', style: TextStyle(fontSize: 16)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'TARGETED ROAST RECEIVED!',
-                            style: TextStyle(
-                              color: AppColors.neonPurple,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 12,
+    Future<void> openQuest() async {
+      if (pendingRoast != null) {
+        await showTargetedRoastLockDialog(context, ref, pendingRoast);
+      }
+      if (context.mounted) {
+        context.push('${AppRoutes.challenges}/${item.challenge.id}');
+      }
+    }
+
+    // The whole card opens the quest; its buttons keep their own taps.
+    return InkWell(
+      onTap: openQuest,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: AppColors.panelDecoration(
+            accent:
+                pendingRoast != null ? AppColors.neonPurple : AppColors.danger,
+            isDanger: pendingRoast == null,
+            glow: true),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (pendingRoast != null)
+              GestureDetector(
+                onTap: () =>
+                    showTargetedRoastLockDialog(context, ref, pendingRoast),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.neonPurple.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.neonPurple, width: 1.5),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('🔥', style: TextStyle(fontSize: 16)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'TARGETED ROAST RECEIVED!',
+                              style: TextStyle(
+                                color: AppColors.neonPurple,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 12,
+                              ),
                             ),
-                          ),
-                          Text(
-                            'From @${pendingRoast.senderUsername} — tap to unlock screen (${pendingRoast.durationSeconds}s lock)',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w600,
+                            Text(
+                              'From @${pendingRoast.senderUsername} — tap to unlock screen (${pendingRoast.durationSeconds}s lock)',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    Icon(Icons.lock_clock,
-                        color: AppColors.neonPurple, size: 20),
-                  ],
-                ),
-              ),
-            ),
-          Row(
-            children: [
-              ThemeIcon(
-                icon: Icons.warning_amber_rounded,
-                matrixChar: '[!]',
-                size: 18,
-                color: AppColors.danger,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: InkWell(
-                  onTap: () async {
-                    if (pendingRoast != null) {
-                      await showTargetedRoastLockDialog(
-                          context, ref, pendingRoast);
-                    }
-                    if (context.mounted) {
-                      context
-                          .push('${AppRoutes.challenges}/${item.challenge.id}');
-                    }
-                  },
-                  child: Text(
-                    item.challenge.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: textTheme.bodyLarge
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                      Icon(Icons.lock_clock,
+                          color: AppColors.neonPurple, size: 20),
+                    ],
                   ),
                 ),
               ),
-              _CheckInButton(item: item, color: AppColors.danger),
+            Row(
+              children: [
+                ThemeIcon(
+                  icon: Icons.warning_amber_rounded,
+                  matrixChar: '[!]',
+                  size: 18,
+                  color: AppColors.danger,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Semantics(
+                    button: true,
+                    hint: 'Opens the quest',
+                    child: Text(
+                      item.challenge.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyLarge
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+                _CheckInButton(item: item, color: AppColors.danger),
+              ],
+            ),
+            if (item.challenge.isProgress) ...[
+              const SizedBox(height: 8),
+              QuestProgressBar(challenge: item.challenge, compact: true),
+              QuickProgressActions(challenge: item.challenge),
             ],
-          ),
-          if (item.challenge.isProgress) ...[
-            const SizedBox(height: 8),
-            QuestProgressBar(challenge: item.challenge, compact: true),
-            QuickProgressActions(challenge: item.challenge),
+            const SizedBox(height: 10),
+            Text(
+              item.deadlineToday
+                  ? 'Miss today and the quest is lost '
+                      '($strikes strike${strikes == 1 ? '' : 's'} used up).'
+                  : 'Fail this period and the quest is lost — '
+                      '${item.demandLabel}.',
+              style: textTheme.bodySmall?.copyWith(color: AppColors.danger),
+            ),
           ],
-          const SizedBox(height: 10),
-          Text(
-            item.deadlineToday
-                ? 'Miss today and the quest is lost '
-                    '($strikes strike${strikes == 1 ? '' : 's'} used up).'
-                : 'Fail this period and the quest is lost — '
-                    '${item.demandLabel}.',
-            style: textTheme.bodySmall?.copyWith(color: AppColors.danger),
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -140,7 +140,9 @@ class FriendsRepository {
       // Two FKs point at profiles → the inviter needs an explicit hint.
       final rows = await _client
           .from('invites')
-          .select('id, created_at, challenges(title), '
+          .select('id, created_at, challenges(title, mode, duration_days, '
+              'is_endless, checkin_period, checkins_per_period, goal_type, '
+              'tracking, aura_penalty, max_strikes), '
               'inviter:profiles!invites_inviter_id_fkey(username)')
           .eq('invitee_id', userId)
           .eq('status', 'pending')
@@ -154,6 +156,8 @@ class FriendsRepository {
                 inviterName: (row['inviter']
                     as Map<String, dynamic>)['username'] as String,
                 createdAt: DateTime.parse(row['created_at'] as String),
+                rules: QuestInvite.describe(
+                    row['challenges'] as Map<String, dynamic>?),
               ))
           .toList();
       debugPrint(

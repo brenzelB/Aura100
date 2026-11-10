@@ -6,6 +6,7 @@ import '../../../../core/widgets/app_states.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/motion.dart';
 import '../../application/challenge_providers.dart';
+import '../../domain/challenge.dart';
 import '../widgets/challenge_card.dart';
 import '../widgets/create_challenge_sheet.dart';
 
@@ -41,30 +42,7 @@ class ChallengesScreen extends ConsumerWidget {
           // ── Data: the quest list (or a hero empty state) ──────
           data: (challenges) => challenges.isEmpty
               ? const _EmptyState()
-              : ListView.builder(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  // Extra bottom padding so the FAB never covers a card.
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
-                  itemCount: challenges.length +
-                      (AppColors.activeType == AppThemeType.editorial ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    final editorial =
-                        AppColors.activeType == AppThemeType.editorial;
-                    if (editorial && index == 0) {
-                      return const EditorialCover(
-                          title: 'Make room for more.',
-                          chapter: 'THE QUEST EDIT',
-                          compact: true,
-                          subtitle:
-                              'Build a habit. Break a pattern. Surprise yourself.');
-                    }
-                    final questIndex = editorial ? index - 1 : index;
-                    return StaggeredEntrance(
-                      delay: StaggeredEntrance.forIndex(questIndex),
-                      child: ChallengeCard(challenge: challenges[questIndex]),
-                    );
-                  },
-                ),
+              : _GroupedQuestList(challenges: challenges),
 
           // ── Loading ───────────────────────────────────────────
           loading: () => const AppLoadingState(label: 'Loading your quests…'),
@@ -140,6 +118,79 @@ class _ErrorState extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The three questions a quest list answers: what am I playing, what is
+/// about to start, and what is over. One mixed list sorted by age made
+/// a won quest from last month sit between two that are due today.
+class _GroupedQuestList extends StatelessWidget {
+  const _GroupedQuestList({required this.challenges});
+
+  final List<Challenge> challenges;
+
+  @override
+  Widget build(BuildContext context) {
+    final editorial = AppColors.activeType == AppThemeType.editorial;
+    final active = <Challenge>[];
+    final waiting = <Challenge>[];
+    final finished = <Challenge>[];
+    for (final c in challenges) {
+      if (c.isOver) {
+        finished.add(c);
+      } else if (c.isLobby || !c.hasStarted) {
+        waiting.add(c);
+      } else {
+        active.add(c);
+      }
+    }
+    final sections = [
+      ('ACTIVE', active),
+      ('WAITING TO START', waiting),
+      ('FINISHED', finished),
+    ].where((s) => s.$2.isNotEmpty).toList();
+    // A single group needs no heading - it would only push cards down.
+    final showHeadings = sections.length > 1;
+
+    final children = <Widget>[
+      if (editorial)
+        const EditorialCover(
+            title: 'Make room for more.',
+            chapter: 'THE QUEST EDIT',
+            compact: true,
+            subtitle: 'Build a habit. Break a pattern. Surprise yourself.'),
+    ];
+    var index = 0;
+    for (final (title, quests) in sections) {
+      if (showHeadings) {
+        children.add(Padding(
+          padding: EdgeInsets.only(top: children.isEmpty ? 0 : 8, bottom: 12),
+          child: Semantics(
+            header: true,
+            child: Text(
+              '$title · ${quests.length}',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleSmall
+                  ?.copyWith(color: AppColors.textSecondary, letterSpacing: 1),
+            ),
+          ),
+        ));
+      }
+      for (final quest in quests) {
+        children.add(StaggeredEntrance(
+          delay: StaggeredEntrance.forIndex(index++),
+          child: ChallengeCard(challenge: quest),
+        ));
+      }
+    }
+
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      // Extra bottom padding so the FAB never covers a card.
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
+      children: children,
     );
   }
 }

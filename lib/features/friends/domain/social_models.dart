@@ -37,12 +37,56 @@ class QuestInvite {
     required this.questTitle,
     required this.inviterName,
     required this.createdAt,
+    this.rules,
   });
 
   final String id;
   final String questTitle;
   final String inviterName;
   final DateTime createdAt;
+
+  /// What joining commits to, in one line: "CO-OP · 30 days · daily ·
+  /// -50 Aura per miss · 1 strike". Null when the quest row could not
+  /// be read, so an old server never breaks the invite list.
+  final String? rules;
+
+  /// Builds [rules] from the invited quest's row.
+  static String? describe(Map<String, dynamic>? quest) {
+    if (quest == null) return null;
+    final mode = switch (quest['mode']) {
+      'coop' => 'CO-OP · everyone pays for a miss',
+      'versus' => 'TEAM BATTLE',
+      'last_man_standing' => 'LAST STANDING',
+      _ => 'FREE FOR ALL',
+    };
+    final days = quest['duration_days'] as int?;
+    final length = quest['is_endless'] == true
+        ? 'endless'
+        : days == null
+            ? null
+            : '$days day${days == 1 ? '' : 's'}';
+    final per = (quest['checkins_per_period'] as int?) ?? 1;
+    final rhythm = switch (quest['checkin_period']) {
+      'weekly' => '${per}x a week',
+      'monthly' => '${per}x a month',
+      _ => 'daily',
+    };
+    final goal = switch (quest['goal_type']) {
+      'avoid' => 'avoid',
+      'progress' => quest['tracking'] == 'clock' ? 'stopwatch' : 'progress',
+      _ => null,
+    };
+    final penalty = quest['aura_penalty'] as int?;
+    final strikes = quest['max_strikes'] as int?;
+    return [
+      mode,
+      if (length != null) length,
+      rhythm,
+      if (goal != null) goal,
+      if (penalty != null && penalty > 0) '-$penalty Aura per miss',
+      if (strikes != null) '$strikes strike${strikes == 1 ? '' : 's'} allowed',
+    ].join(' · ');
+  }
 }
 
 /// A poke received from a quest-mate.
