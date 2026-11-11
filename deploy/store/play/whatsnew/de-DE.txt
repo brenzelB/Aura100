@@ -1,6 +1,7 @@
-- Neue CLOCK-Quests: Uhr starten und stoppen statt abhaken. Fasten, Fokus, Bildschirmpause.
-- Sieh, wie lange du heute, diese Woche und diesen Monat durchgehalten hast.
-- Wer länger durchhält, steht vorne.
-- Start oder Stopp vergessen? Beide Zeiten lassen sich vor dem Verbuchen korrigieren.
-- Behoben: Mitteilungen ließen sich nicht einschalten, wenn die Abfrage verpasst oder zweimal abgelehnt wurde.
-- Behoben: Eine geschaffte Quest verschwand. Sie bleibt jetzt mit Auswertung und Rangliste.
+- Vorlagen für die erste Quest: Training, Lesen, 10.000 Schritte, Nichtrauchen.
+- Die laufende Stoppuhr ist überall sichtbar und startet nicht mehr an Ruhetagen.
+- Ruhetage zeigt der Startbildschirm als Ruhetag statt als "keine Quests".
+- Einladungen zeigen die Regeln der Quest.
+- Der Quests-Tab ist nach Aktiv, Wartet und Beendet sortiert.
+- Der tägliche Wechsel steht in deiner Ortszeit.
+- Klarere Fehlermeldungen.
