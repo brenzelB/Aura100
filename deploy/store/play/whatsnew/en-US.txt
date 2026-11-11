@@ -1,6 +1,7 @@
-- New CLOCK quests: start and stop a timer instead of ticking a box. Fasting, focus, screen-free time.
-- See how long you managed today, this week and this month.
-- Whoever holds out longest leads the party.
-- Forgot to start or stop? Both times can be corrected before you bank the session.
-- Fixed: notifications could not be switched on if the prompt was missed or refused twice.
-- Fixed: a completed quest used to vanish. It now stays, with a summary and final standing.
+- Templates for your first quest: workout, reading, 10k steps, no smoking.
+- A running stopwatch is visible everywhere and no longer starts on rest days.
+- Home shows a rest day as a rest day instead of "no quests".
+- Invites show the rules of the quest.
+- The Quests tab is grouped into active, waiting and finished.
+- The daily reset is shown in your local time.
+- Clearer error messages.

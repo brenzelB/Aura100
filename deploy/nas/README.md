@@ -193,6 +193,12 @@ Vorgabe `'manual'`, RLS aktiv, der partielle Unique-Index
 `clock_sessions_one_open` vorhanden, `create_challenge` genau **einmal**
 definiert, 21 bestehende Quests unverändert auf `manual`.
 
+Angewendet am 11.11.2026: `20261110120000_clock_rest_days.sql` (`clock_start`
+lehnt an Ruhetagen der Quest ab). Rollback-Punkt:
+`vor-clock-rest-days-20261111.dump`. Vorher trocken getestet. Nachgeprüft:
+`clock_start` genau **einmal** definiert, enthält die `isodow`-Prüfung,
+`authenticated` darf sie ausführen; PostgREST-Schema neu geladen.
+
 ---
 
 ## Backups
