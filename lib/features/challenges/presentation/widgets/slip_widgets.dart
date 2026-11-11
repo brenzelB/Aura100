@@ -1,7 +1,7 @@
 import 'package:aura_quest/core/widgets/app_states.dart';
+import '../../../../core/text/server_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/feedback/interaction_feedback.dart';
@@ -143,9 +143,7 @@ Future<void> logSlipAndReveal(
   if (result == null) {
     final error = ref.read(slipControllerProvider(challenge.id)).error;
     messenger.showSnackBar(AppSnackBar(
-      content: Text(error is PostgrestException
-          ? error.message
-          : 'Could not log that — try again.'),
+      content: Text(serverMessage(error, 'Could not log that — try again.')),
       backgroundColor: AppColors.danger,
     ));
     return;

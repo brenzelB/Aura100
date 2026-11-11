@@ -12,7 +12,8 @@ void main() {
 
     test('accepts multi-codepoint emojis', () {
       expect(EmojiUtils.isEmoji('❤️'), isTrue); // + variation selector
-      expect(EmojiUtils.isEmoji('🇩🇪'), isTrue); // flag (2 regional indicators)
+      expect(
+          EmojiUtils.isEmoji('🇩🇪'), isTrue); // flag (2 regional indicators)
       expect(EmojiUtils.isEmoji('👨‍👩‍👧'), isTrue); // ZWJ family
       expect(EmojiUtils.isEmoji('👍🏽'), isTrue); // skin tone modifier
     });

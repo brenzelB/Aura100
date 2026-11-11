@@ -1,11 +1,11 @@
 import 'package:aura_quest/core/theme/design_tokens.dart';
+import '../../../../core/text/server_message.dart';
 import 'package:aura_quest/core/widgets/app_states.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../core/widgets/editorial_marks.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 import '../../../../core/widgets/theme_components.dart';
 
 import '../../../../core/realtime/realtime_sync.dart';
@@ -22,6 +22,7 @@ import '../../domain/progress_entry.dart';
 import '../../domain/quest_member.dart';
 import '../widgets/benefit_chip.dart';
 import '../widgets/challenge_shop_sheet.dart';
+import '../widgets/clock_controls.dart';
 import '../widgets/progress_widgets.dart';
 import '../widgets/quest_activity_section.dart';
 import '../widgets/quest_duels_section.dart';
@@ -70,8 +71,12 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
   /// recover from a dropped socket — hence the long interval.
   void _startTimer() {
     _refreshTimer?.cancel();
-    _refreshTimer =
-        Timer.periodic(RealtimeSync.fallbackInterval, (_) => _refreshData());
+    _refreshTimer = Timer.periodic(RealtimeSync.fallbackInterval, (_) {
+      // While the socket is live, every change already arrives through
+      // it; reloading six providers on top would only cost data.
+      if (ref.read(realtimeSyncProvider)?.connected.value ?? false) return;
+      _refreshData();
+    });
   }
 
   @override
@@ -217,9 +222,8 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
     } else {
       final error = ref.read(abandonControllerProvider(challenge.id)).error;
       messenger.showSnackBar(AppSnackBar(
-        content: Text(error is PostgrestException
-            ? error.message
-            : 'Could not abandon the quest - try again.'),
+        content: Text(
+            serverMessage(error, 'Could not abandon the quest - try again.')),
         backgroundColor: AppColors.danger,
       ));
     }
@@ -265,7 +269,13 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('QUEST DETAILS'),
+        // The quest's own name once it is loaded, so the screen says which
+        // quest this is even after scrolling past the header.
+        title: Text(
+          challenge?.title.toUpperCase() ?? 'QUEST DETAILS',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           if (challenge != null)
             abandoning
@@ -278,11 +288,31 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
                           strokeWidth: 2, color: AppColors.danger),
                     ),
                   )
-                : IconButton(
-                    tooltip: 'Abandon quest',
-                    icon: Icon(Icons.flag_outlined, color: AppColors.danger),
-                    onPressed: () =>
-                        _confirmAbandon(context, challenge, members),
+                // Leaving is rare and costly, so it lives behind the overflow
+                // menu instead of sitting one tap away in the app bar.
+                : PopupMenuButton<String>(
+                    key: const Key('quest-overflow-menu'),
+                    tooltip: 'More',
+                    icon: const Icon(Icons.more_vert),
+                    onSelected: (value) {
+                      if (value == 'abandon') {
+                        _confirmAbandon(context, challenge, members);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem<String>(
+                        value: 'abandon',
+                        child: Row(
+                          children: [
+                            Icon(Icons.flag_outlined,
+                                color: AppColors.danger, size: 20),
+                            const SizedBox(width: 12),
+                            Text('Abandon quest',
+                                style: TextStyle(color: AppColors.danger)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
         ],
       ),
@@ -577,7 +607,8 @@ class _BlackoutCardState extends ConsumerState<_BlackoutCard> {
       ref.read(challengeRepositoryProvider).ackBlackouts(widget.challenge.id);
     }
 
-    final blocked = widget.challenge.isProgress ? 'log any reps' : 'check in';
+    final blocked =
+        widget.challenge.isProgress ? 'log any progress' : 'check in';
 
     return Container(
       width: double.infinity,
@@ -683,7 +714,7 @@ class _SpectatorCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'No more check-ins, perks or duels. Leave whenever you '
-                  'like with the flag up top.',
+                  'like from the ⋮ menu up top.',
                   style: textTheme.bodySmall?.copyWith(
                     color: AppColors.textSecondary,
                     fontSize: 12,
@@ -1131,9 +1162,8 @@ class _LobbyCard extends ConsumerWidget {
     } else {
       final error = ref.read(startQuestControllerProvider(challenge.id)).error;
       messenger.showSnackBar(AppSnackBar(
-        content: Text(error is PostgrestException
-            ? error.message
-            : 'Could not start the quest — try again.'),
+        content: Text(
+            serverMessage(error, 'Could not start the quest — try again.')),
         backgroundColor: AppColors.danger,
       ));
     }
@@ -1255,7 +1285,7 @@ class _ProgressSection extends ConsumerWidget {
                   Row(
                     children: [
                       Text(
-                        'THIS ${challenge.checkinPeriod.name.toUpperCase()}',
+                        challenge.checkinPeriod.currentLabel,
                         style: textTheme.headlineSmall?.copyWith(
                           color: done
                               ? AppColors.successText
@@ -1337,25 +1367,27 @@ class _ProgressSection extends ConsumerWidget {
                                   ? 'WATCHING ONLY'
                                   : (done ? 'TARGET REACHED' : 'QUEST OVER'))),
                         )
-                      : ElevatedButton.icon(
-                          onPressed: () =>
-                              showAddProgressSheet(context, ref, challenge),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                AppColors.activeType == AppThemeType.editorial
+                      : challenge.isClock
+                          ? ClockControls(challenge: challenge)
+                          : ElevatedButton.icon(
+                              onPressed: () =>
+                                  showAddProgressSheet(context, ref, challenge),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.activeType ==
+                                        AppThemeType.editorial
                                     ? AppColors.neonPink
                                     : done
                                         ? AppColors.neonGreen
                                         : AppColors.neonPurple,
-                            foregroundColor:
-                                AppColors.activeType == AppThemeType.editorial
+                                foregroundColor: AppColors.activeType ==
+                                        AppThemeType.editorial
                                     ? AppColors.onAccent
                                     : AppColors.background,
-                            minimumSize: const Size(0, 48),
-                          ),
-                          icon: const Icon(Icons.add),
-                          label: Text(done ? 'LOG MORE REPS' : 'ADD PROGRESS'),
-                        ),
+                                minimumSize: const Size(0, 48),
+                              ),
+                              icon: const Icon(Icons.add),
+                              label: Text(done ? 'LOG MORE' : 'ADD PROGRESS'),
+                            ),
                 ),
               ],
             ),
@@ -1564,7 +1596,7 @@ class _AvoidSection extends ConsumerWidget {
           Row(
             children: [
               Text(
-                'THIS ${challenge.checkinPeriod.name.toUpperCase()}',
+                challenge.checkinPeriod.currentLabel,
                 style: textTheme.headlineSmall?.copyWith(color: color),
               ),
               const Spacer(),
@@ -1712,7 +1744,7 @@ class _CumulativeTotals extends StatelessWidget {
               Icon(Icons.insights, size: 16, color: AppColors.successText),
               const SizedBox(width: 6),
               Text(
-                challenge.isClock ? 'TOTAL TIME' : 'TOTAL REPS',
+                challenge.isClock ? 'TOTAL TIME' : 'TOTALS',
                 style: textTheme.labelMedium?.copyWith(
                   color: AppColors.successText,
                   letterSpacing: 1,
@@ -2271,8 +2303,7 @@ class _DayDetailsSheetState extends ConsumerState<_DayDetailsSheet> {
     if (result.isQueuedOffline) {
       navigator.pop();
       messenger.showSnackBar(AppSnackBar(
-        content: const Text(
-            '⚡ Offline erledigt! Wird synchronisiert, sobald wieder Netz da ist.'),
+        content: const Text('Saved on this device · waiting to sync'),
         backgroundColor: AppColors.neonYellow,
       ));
       return;

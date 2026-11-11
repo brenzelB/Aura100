@@ -1,4 +1,5 @@
 import 'package:aura_quest/core/widgets/app_states.dart';
+import '../../../../core/text/server_message.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/widgets/editorial_cover.dart';
 import '../../../../core/theme/design_tokens.dart';
@@ -142,9 +143,7 @@ class _ChallengeShopSheetState extends ConsumerState<ChallengeShopSheet> {
     ref.listen(purchaseControllerProvider(widget.challenge.id), (_, next) {
       final error = next.error;
       if (error == null) return;
-      final message = error is PostgrestException
-          ? error.message
-          : 'Purchase failed — try again.';
+      final message = serverMessage(error, 'Purchase failed — try again.');
       ScaffoldMessenger.of(context).showSnackBar(
         AppSnackBar(content: Text(message), backgroundColor: AppColors.danger),
       );
@@ -300,7 +299,7 @@ class _ChallengeShopSheetState extends ConsumerState<ChallengeShopSheet> {
               : 'Perks are unavailable for quests with a zero Aura reward.'),
           const SizedBox(height: 8),
           Text(widget.challenge.attacksEnabled
-              ? '3 outgoing attacks per account / UTC day. Ego Duels are free: no Aura or XP changes.'
+              ? '3 outgoing attacks per account and day (resets at ${formatDailyReset()} your time). Ego Duels are free: no Aura or XP changes.'
               : 'Attacks are disabled in this quest.'),
           const SizedBox(height: 12),
           benefitsAsync.when(
@@ -900,7 +899,10 @@ class _BlackoutFlowDialogState extends ConsumerState<_BlackoutFlowDialog> {
       ref.invalidate(questMembersProvider(widget.challenge.id));
       if (mounted) Navigator.of(context).pop(armed);
     } on PostgrestException catch (e) {
-      if (mounted) setState(() => _error = e.message);
+      if (mounted) {
+        setState(
+            () => _error = serverMessage(e, 'Could not arm it - try again.'));
+      }
     } catch (_) {
       if (mounted) setState(() => _error = 'Could not arm it - try again.');
     } finally {
@@ -912,7 +914,8 @@ class _BlackoutFlowDialogState extends ConsumerState<_BlackoutFlowDialog> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final membersAsync = ref.watch(questMembersProvider(widget.challenge.id));
-    final blocks = widget.challenge.isProgress ? 'log any reps' : 'check in';
+    final blocks =
+        widget.challenge.isProgress ? 'log any progress' : 'check in';
 
     return AppDialog(
       backgroundColor: AppColors.surface,

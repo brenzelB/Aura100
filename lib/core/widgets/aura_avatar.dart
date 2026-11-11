@@ -77,7 +77,7 @@ class AuraAvatar extends StatelessWidget {
           );
         }
       }
-      
+
       avatarContent ??= Text(
         emoji!,
         style: TextStyle(fontSize: size * 0.5),
@@ -103,9 +103,11 @@ class AuraAvatar extends StatelessWidget {
     Gradient? bgGradient;
 
     if (isAuralis || isEditorial) {
-      bgColor = AppColors.surfaceLight; // Cream in Editorial, Light grey in Auralis (and dark-mode variations)
+      bgColor = AppColors
+          .surfaceLight; // Cream in Editorial, Light grey in Auralis (and dark-mode variations)
     } else if (isNeoBrutalist) {
-      bgColor = AppColors.surface; // White in light mode, Dark surface in dark mode
+      bgColor =
+          AppColors.surface; // White in light mode, Dark surface in dark mode
     }
 
     return Container(

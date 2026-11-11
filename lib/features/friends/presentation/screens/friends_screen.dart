@@ -1,8 +1,8 @@
 import 'package:aura_quest/core/widgets/app_states.dart';
+import '../../../../core/text/server_message.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/widgets/editorial_cover.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/aura_avatar.dart';
@@ -203,15 +203,54 @@ class FriendsScreen extends ConsumerWidget {
       ref.listen(provider, (_, next) {
         final error = next.error;
         if (error == null) return;
-        final message = error is PostgrestException
-            ? error.message
-            : 'Something went wrong - try again.';
+        final message =
+            serverMessage(error, 'Something went wrong - try again.');
         ScaffoldMessenger.of(context).showSnackBar(
           AppSnackBar(
               content: Text(message), backgroundColor: AppColors.danger),
         );
       });
     }
+
+    final hasInvites = invitesAsync.valueOrNull?.isNotEmpty ?? false;
+    final invitesSection = <Widget>[
+      Text(
+        'QUEST INVITES',
+        style: textTheme.headlineSmall?.copyWith(color: AppColors.warningText),
+      ),
+      const SizedBox(height: 12),
+      invitesAsync.when(
+        data: (invites) => invites.isEmpty
+            ? const _EmptyHint(
+                icon: Icons.mail_outline,
+                motif: SpotMotif.quests,
+                title: 'No open invites',
+                text: 'Ask a friend to invite you — or invite '
+                    'them from any quest.')
+            : Column(
+                children: [
+                  for (final invite in invites)
+                    _InviteTile(
+                      invite: invite,
+                      busy: responding,
+                      onAccept: () => _respond(context, ref, invite, true),
+                      onDecline: () => _respond(context, ref, invite, false),
+                    ),
+                ],
+              ),
+        loading: () => Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(
+            child: CircularProgressIndicator(color: AppColors.warningText),
+          ),
+        ),
+        error: (error, _) => Text(
+          'Could not load invites. Please try again.',
+          style: textTheme.bodyMedium?.copyWith(color: AppColors.danger),
+        ),
+      ),
+      const SizedBox(height: 28),
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -274,6 +313,9 @@ class FriendsScreen extends ConsumerWidget {
               orElse: () => const SizedBox.shrink(),
             ),
 
+            // Someone is waiting on an answer: that goes first.
+            if (hasInvites) ...invitesSection,
+
             // ── Friends ───────────────────────────────────────
             Text(
               'MY FRIENDS',
@@ -317,47 +359,7 @@ class FriendsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 28),
 
-            // ── Quest invites ─────────────────────────────────
-            Text(
-              'QUEST INVITES',
-              style: textTheme.headlineSmall
-                  ?.copyWith(color: AppColors.warningText),
-            ),
-            const SizedBox(height: 12),
-            invitesAsync.when(
-              data: (invites) => invites.isEmpty
-                  ? const _EmptyHint(
-                      icon: Icons.mail_outline,
-                      motif: SpotMotif.quests,
-                      title: 'No open invites',
-                      text: 'Ask a friend to invite you — or invite '
-                          'them from any quest.')
-                  : Column(
-                      children: [
-                        for (final invite in invites)
-                          _InviteTile(
-                            invite: invite,
-                            busy: responding,
-                            onAccept: () =>
-                                _respond(context, ref, invite, true),
-                            onDecline: () =>
-                                _respond(context, ref, invite, false),
-                          ),
-                      ],
-                    ),
-              loading: () => Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(
-                  child:
-                      CircularProgressIndicator(color: AppColors.warningText),
-                ),
-              ),
-              error: (error, _) => Text(
-                'Could not load invites. Please try again.',
-                style: textTheme.bodyMedium?.copyWith(color: AppColors.danger),
-              ),
-            ),
-            const SizedBox(height: 28),
+            if (!hasInvites) ...invitesSection,
 
             // ── Pokes ─────────────────────────────────────────
             Text(
@@ -595,6 +597,14 @@ class _InviteTile extends StatelessWidget {
                   style: textTheme.bodySmall
                       ?.copyWith(color: AppColors.textSecondary),
                 ),
+                if (invite.rules != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    invite.rules!,
+                    style: textTheme.bodySmall
+                        ?.copyWith(color: AppColors.textPrimary),
+                  ),
+                ],
               ],
             ),
           ),

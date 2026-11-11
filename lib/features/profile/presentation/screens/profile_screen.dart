@@ -363,14 +363,12 @@ class ProfileScreen extends ConsumerWidget {
           error: (error, _) => ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              Text(
-                'Could not load your profile. Please try again.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: AppColors.danger),
-              ),
+              AppStatePanel(
+                  title: 'Profile unavailable',
+                  message: 'Check your connection and try again.',
+                  icon: Icons.cloud_off,
+                  actionLabel: 'RETRY',
+                  onAction: () => ref.invalidate(currentProfileProvider)),
             ],
           ),
           data: (profile) {
@@ -441,8 +439,8 @@ class ProfileScreen extends ConsumerWidget {
                                             const SizedBox(height: 8),
                                             Text(
                                                 '${500 - stats.xpInLevel} XP to the next level'),
-                                            const Text(
-                                                '100 XP per confirmed unit · up to 500 per UTC day. Your XP stays when you spend Aura or leave a quest.'),
+                                            Text(
+                                                '100 XP per confirmed unit · up to 500 per day (the day resets at ${formatDailyReset()} your time). Your XP stays when you spend Aura or leave a quest.'),
                                           ]))),
                               const SizedBox(height: 12),
                               _StatsGrid(stats),

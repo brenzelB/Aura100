@@ -1,4 +1,3 @@
-import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,11 +5,13 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/motion.dart';
+import '../../../../core/widgets/action_feedback.dart';
 import '../../../home/presentation/widgets/robbed_notice_gate.dart';
 import '../../application/challenge_providers.dart';
 import '../../domain/challenge.dart';
 import 'benefit_chip.dart';
 import 'challenge_shop_sheet.dart';
+import 'clock_controls.dart';
 import 'progress_widgets.dart';
 import 'slip_widgets.dart';
 
@@ -30,37 +31,32 @@ class ChallengeCard extends ConsumerWidget {
         .checkIn(questTitle: challenge.title);
 
     if (result.isQueuedOffline) {
-      messenger.showSnackBar(AppSnackBar(
-        content: const Text(
-            '⚡ Offline erledigt! Wird synchronisiert, sobald wieder Netz da ist.'),
-        backgroundColor: AppColors.neonYellow,
-      ));
+      showActionFeedback(messenger,
+          pending: true, message: 'Saved on this device · waiting to sync');
       return;
     }
 
     if (!result.isSuccess) {
-      messenger.showSnackBar(AppSnackBar(
-        content: Text(result.errorMessage ?? 'Check-in failed - try again.'),
-        backgroundColor: AppColors.danger,
-      ));
+      showActionFeedback(messenger,
+          error: true,
+          message: result.errorMessage ?? 'Check-in failed. Try again.');
       return;
     }
 
     final gained = result.auraGained ?? 0;
 
     // A heist may have swiped this payout — reveal it and skip the
-    // "+aura" toast (gained is 0 when robbed).
+    // reward toast (gained is 0 when robbed).
     if (context.mounted) {
       final robbed = await revealRobbedIfAny(context, ref, challenge.id);
       if (robbed != null) return;
     }
 
-    messenger.showSnackBar(AppSnackBar(
-      content: Text(challenge.bonusCheckInAvailable
-          ? 'Bonus recorded. Goal already met — extra effort, no extra Aura or XP.'
-          : '⚡ +$gained Aura! Quest checked in.'),
-      backgroundColor: AppColors.neonGreen,
-    ));
+    // The same words Home uses, so one action never reads two ways.
+    showActionFeedback(messenger,
+        message: '${challenge.title} · '
+            '${challenge.bonusCheckInAvailable ? 'Bonus recorded' : 'check-in confirmed'}',
+        confirmedAura: gained);
   }
 
   @override
@@ -148,16 +144,8 @@ class ChallengeCard extends ConsumerWidget {
                   label: challenge.timeLeftLabel,
                   color: AppColors.neonCyan,
                 ),
-                _StatChip(
-                  icon: Icons.bolt,
-                  label: '+${challenge.auraGain}',
-                  color: AppColors.neonGreen,
-                ),
-                _StatChip(
-                  icon: Icons.heart_broken,
-                  label: '-${challenge.auraPenalty}',
-                  color: AppColors.danger,
-                ),
+                // Gain and penalty live in the quest's STAKES section; the
+                // card keeps only what decides today's move.
                 _StatChip(
                   icon: Icons.shield_outlined,
                   label:
@@ -321,6 +309,8 @@ class ChallengeCard extends ConsumerWidget {
                   )
                 // Progress quests collect towards a target instead of
                 // being ticked off.
+                else if (challenge.isClock)
+                  ClockQuickButton(challenge: challenge)
                 else if (challenge.isProgress)
                   _AddProgressButton(
                     done: challenge.checkedInToday,

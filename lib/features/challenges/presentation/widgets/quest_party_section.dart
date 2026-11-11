@@ -1,7 +1,7 @@
 import 'package:aura_quest/core/widgets/app_states.dart';
+import '../../../../core/text/server_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../../../core/text/dates.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -84,9 +84,8 @@ class _QuestPartySectionState extends ConsumerState<QuestPartySection> {
       ref.listen(provider, (_, next) {
         final error = next.error;
         if (error == null) return;
-        final message = error is PostgrestException
-            ? error.message
-            : 'Something went wrong - try again.';
+        final message =
+            serverMessage(error, 'Something went wrong - try again.');
         ScaffoldMessenger.of(context).showSnackBar(
           AppSnackBar(
               content: Text(message), backgroundColor: AppColors.danger),

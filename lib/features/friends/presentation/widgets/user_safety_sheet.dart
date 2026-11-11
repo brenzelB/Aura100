@@ -1,4 +1,5 @@
 import 'package:aura_quest/core/theme/design_tokens.dart';
+import '../../../../core/text/server_message.dart';
 import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -80,7 +81,10 @@ class _UserSafetySheetState extends ConsumerState<_UserSafetySheet> {
         backgroundColor: AppColors.neonGreen,
       ));
     } on PostgrestException catch (e) {
-      if (mounted) setState(() => _error = e.message);
+      if (mounted) {
+        setState(
+            () => _error = serverMessage(e, 'That did not work — try again.'));
+      }
     } catch (_) {
       if (mounted) setState(() => _error = 'That did not work — try again.');
     } finally {

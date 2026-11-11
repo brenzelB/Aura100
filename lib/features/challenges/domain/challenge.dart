@@ -17,6 +17,13 @@ enum CheckinPeriod {
         monthly => 30,
       };
 
+  /// Heading for "what counts right now": TODAY / THIS WEEK / THIS MONTH.
+  String get currentLabel => switch (this) {
+        daily => 'TODAY',
+        weekly => 'THIS WEEK',
+        monthly => 'THIS MONTH',
+      };
+
   /// Caption for stats tiles ("7/8 days" vs "3/4 weeks").
   String get unitLabel => switch (this) {
         daily => 'days',

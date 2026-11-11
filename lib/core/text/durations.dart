@@ -17,6 +17,8 @@ String formatMinutes(num minutes) {
   final hours = total ~/ 60;
   final mins = total % 60;
   if (hours == 0) return '${mins}m';
+  // A round number of hours needs no minutes: "16h", not "16h 00m".
+  if (mins == 0) return '${hours}h';
   return '${hours}h ${mins.toString().padLeft(2, '0')}m';
 }
 

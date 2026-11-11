@@ -19,17 +19,18 @@ class FriendsRepository {
     if (userId == null) return const [];
 
     try {
-      final rows = await _client.from('friendships').select(
-          'requester_id, addressee_id, created_at, '
-          'requester:profiles!friendships_requester_id_fkey(username, avatar_emoji), '
-          'addressee:profiles!friendships_addressee_id_fkey(username, avatar_emoji)')
+      final rows = await _client
+          .from('friendships')
+          .select('requester_id, addressee_id, created_at, '
+              'requester:profiles!friendships_requester_id_fkey(username, avatar_emoji), '
+              'addressee:profiles!friendships_addressee_id_fkey(username, avatar_emoji)')
           .eq('status', 'accepted');
 
       final friends = rows.map((row) {
         final iAmRequester = row['requester_id'] == userId;
-        final otherId =
-            (iAmRequester ? row['addressee_id'] : row['requester_id'])
-                as String;
+        final otherId = (iAmRequester
+            ? row['addressee_id']
+            : row['requester_id']) as String;
         final other = (iAmRequester ? row['addressee'] : row['requester'])
             as Map<String, dynamic>;
         return Friend(
@@ -41,7 +42,8 @@ class FriendsRepository {
       }).toList()
         ..sort((a, b) =>
             a.username.toLowerCase().compareTo(b.username.toLowerCase()));
-      debugPrint('✅ [FriendsRepository.fetchFriends] ${friends.length} friends');
+      debugPrint(
+          '✅ [FriendsRepository.fetchFriends] ${friends.length} friends');
       return friends;
     } on PostgrestException catch (e) {
       _log('fetchFriends', e);
@@ -138,7 +140,9 @@ class FriendsRepository {
       // Two FKs point at profiles → the inviter needs an explicit hint.
       final rows = await _client
           .from('invites')
-          .select('id, created_at, challenges(title), '
+          .select('id, created_at, challenges(title, mode, duration_days, '
+              'is_endless, checkin_period, checkins_per_period, goal_type, '
+              'tracking, aura_penalty, max_strikes), '
               'inviter:profiles!invites_inviter_id_fkey(username)')
           .eq('invitee_id', userId)
           .eq('status', 'pending')
@@ -147,11 +151,13 @@ class FriendsRepository {
       final invites = rows
           .map((row) => QuestInvite(
                 id: row['id'] as String,
-                questTitle: (row['challenges']
-                    as Map<String, dynamic>)['title'] as String,
+                questTitle: (row['challenges'] as Map<String, dynamic>)['title']
+                    as String,
                 inviterName: (row['inviter']
                     as Map<String, dynamic>)['username'] as String,
                 createdAt: DateTime.parse(row['created_at'] as String),
+                rules: QuestInvite.describe(
+                    row['challenges'] as Map<String, dynamic>?),
               ))
           .toList();
       debugPrint(
@@ -197,8 +203,7 @@ class FriendsRepository {
           .limit(20);
 
       final nudges = rows.map(_nudgeFromRow).toList();
-      debugPrint(
-          '✅ [FriendsRepository.fetchMyNudges] ${nudges.length} pokes');
+      debugPrint('✅ [FriendsRepository.fetchMyNudges] ${nudges.length} pokes');
       return nudges;
     } on PostgrestException catch (e) {
       _log('fetchMyNudges', e);
@@ -244,8 +249,8 @@ class FriendsRepository {
           .map((row) => PokeBack(
                 reactorName: (row['reactor']
                     as Map<String, dynamic>)['username'] as String,
-                questTitle: (row['challenges']
-                    as Map<String, dynamic>)['title'] as String,
+                questTitle: (row['challenges'] as Map<String, dynamic>)['title']
+                    as String,
                 reaction: row['reaction'] as String,
                 createdAt: DateTime.parse(row['created_at'] as String),
               ))
@@ -352,8 +357,7 @@ class FriendsRepository {
         challengeId: row['challenge_id'] as String,
         questTitle:
             (row['challenges'] as Map<String, dynamic>)['title'] as String,
-        fromName:
-            (row['sender'] as Map<String, dynamic>)['username'] as String,
+        fromName: (row['sender'] as Map<String, dynamic>)['username'] as String,
         createdAt: DateTime.parse(row['created_at'] as String),
         seenAt: row['seen_at'] == null
             ? null

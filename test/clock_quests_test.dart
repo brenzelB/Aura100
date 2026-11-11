@@ -46,7 +46,7 @@ Challenge _quest({
 void main() {
   group('formatMinutes', () {
     test('reads as hours and minutes, never as a raw count', () {
-      expect(formatMinutes(960), '16h 00m');
+      expect(formatMinutes(960), '16h');
       expect(formatMinutes(970), '16h 10m');
       expect(formatMinutes(45), '45m');
       expect(formatMinutes(0), '0m');
@@ -54,7 +54,7 @@ void main() {
 
     test('hours keep counting past a day', () {
       // A 36-hour fast is spoken of as 36 hours, not "1d 12h".
-      expect(formatMinutes(36 * 60), '36h 00m');
+      expect(formatMinutes(36 * 60), '36h');
     });
 
     test('nothing and nonsense degrade to zero rather than throwing', () {
@@ -133,7 +133,7 @@ void main() {
       expect(quest.amount(750), '12h 30m');
       expect(quest.amountWithUnit(750), '12h 30m');
       expect(quest.addedLabel(45), '+45m');
-      expect(quest.progressLabel(750, 960), '12h 30m / 16h 00m');
+      expect(quest.progressLabel(750, 960), '12h 30m / 16h');
       expect(quest.amountWithUnit(750), isNot(contains('min')));
     });
 
@@ -193,7 +193,9 @@ void main() {
     expect(totals.lifetime, 2660);
   });
 
-  group('the card offers a clock instead of a keypad', () {
+  // The clock lives in ClockControls (quest screen) and ClockQuickButton
+  // (cards and Home); the typed-progress shortcuts stay out of the way.
+  group('the quest offers a clock instead of a keypad', () {
     setUp(() {
       SharedPreferences.setMockInitialValues({});
       GoogleFonts.config.allowRuntimeFetching = false;
@@ -203,11 +205,29 @@ void main() {
       await tester.pumpWidget(ProviderScope(
         overrides: overrides,
         child: MaterialApp(
-          home: Scaffold(body: QuickProgressActions(challenge: _quest())),
+          home: Scaffold(body: ClockControls(challenge: _quest())),
         ),
       ));
       await tester.pumpAndSettle();
     }
+
+    testWidgets('a clock quest shows no typed-amount shortcuts',
+        (tester) async {
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          openClockSessionProvider('q').overrideWith((ref) async => null),
+        ],
+        child: MaterialApp(
+          home: Scaffold(body: QuickProgressActions(challenge: _quest())),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Finish ('), findsNothing);
+      expect(find.byType(ElevatedButton), findsNothing);
+
+      await tester.pumpWidget(const SizedBox());
+    });
 
     testWidgets('with no clock running, the only action is to start one',
         (tester) async {

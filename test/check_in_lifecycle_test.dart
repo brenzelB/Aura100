@@ -77,7 +77,8 @@ void main() {
     subscription.close();
     await container.pump();
     repo.reply.completeError(
-        const PostgrestException(message: 'Already checked in today.'));
+        const PostgrestException(
+            message: 'Already checked in today.', code: 'P0001'));
     final result = await response;
     expect(result.isSuccess, isFalse);
     expect(result.auraGained, isNull);

@@ -342,7 +342,8 @@ void main() {
     await _mount(tester, repo);
     await tester.tap(find.text('+1'));
     repo.reply.completeError(
-        const PostgrestException(message: 'Connection lost. Try again.'));
+        const PostgrestException(
+            message: 'Connection lost. Try again.', code: 'P0001'));
     await tester.pumpAndSettle();
     expect(find.text('Connection lost. Try again.'), findsOneWidget);
     expect(find.byType(ConfirmedAuraAmount), findsNothing);

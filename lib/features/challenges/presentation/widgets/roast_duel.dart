@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../core/text/server_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../../../core/text/game_roasts.dart';
 import '../../../../core/widgets/app_states.dart';
@@ -32,9 +32,8 @@ class DuelSheet extends ConsumerWidget {
       final error = next.error;
       if (error == null) return;
       ScaffoldMessenger.of(context).showSnackBar(AppSnackBar(
-        content: Text(error is PostgrestException
-            ? error.message
-            : 'Could not save your move. Try again.'),
+        content:
+            Text(serverMessage(error, 'Could not save your move. Try again.')),
       ));
     });
     return SafeArea(
@@ -324,7 +323,5 @@ Future<void> startDuelFlow(
   ScaffoldMessenger.of(context).showSnackBar(AppSnackBar(
       content: Text(ok
           ? 'Duel sent. Your ego is on the line. Your Aura is not.'
-          : error is PostgrestException
-              ? error.message
-              : 'Could not send the duel. Try again.')));
+          : serverMessage(error, 'Could not send the duel. Try again.'))));
 }

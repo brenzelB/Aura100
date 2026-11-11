@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../core/text/server_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../../../core/text/quantity.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -10,7 +10,6 @@ import '../../../home/presentation/widgets/targeted_roast_gate.dart';
 import '../../application/challenge_providers.dart';
 import '../../domain/challenge.dart';
 import '../../domain/progress_presets.dart';
-import 'clock_controls.dart';
 import 'progress_feedback.dart';
 
 /// Direct, server-confirmed writes; all shortcuts share the quest's controller.
@@ -50,9 +49,8 @@ class _QuickProgressActionsState extends ConsumerState<QuickProgressActions> {
         final error = ref.read(progressControllerProvider(challenge.id)).error;
         showActionFeedback(messenger,
             error: true,
-            message: error is PostgrestException
-                ? error.message
-                : 'Could not log progress. Check your connection and try again.');
+            message: serverMessage(error,
+                'Could not log progress. Check your connection and try again.'));
       } else {
         showProgressFeedback(messenger,
             result: result, added: amount, challenge: challenge);
@@ -85,10 +83,8 @@ class _QuickProgressActionsState extends ConsumerState<QuickProgressActions> {
     final busy = _submitting ||
         ref.watch(progressControllerProvider(challenge.id)).isLoading;
     // Nothing to shortcut on a clock quest: the only two actions are
-    // start and stop, and they belong in one control.
-    if (challenge.isClock) {
-      return ClockControls(challenge: challenge, compact: true);
-    }
+    // start and stop, and the card's own button already is that control.
+    if (challenge.isClock) return const SizedBox.shrink();
     final presets = progressPresets(challenge.targetValue ?? 0);
     // Two shortcuts plus the exact remainder; don't duplicate the final amount.
     final amounts = [

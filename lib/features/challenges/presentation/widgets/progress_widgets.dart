@@ -1,8 +1,8 @@
 import 'package:aura_quest/core/theme/design_tokens.dart';
+import '../../../../core/text/server_message.dart';
 import 'package:aura_quest/core/widgets/app_states.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../../../core/text/quantity.dart';
 import '../../../../core/feedback/interaction_feedback.dart';
@@ -182,10 +182,8 @@ Future<void> showAddProgressSheet(
     final running =
         ref.read(openClockSessionProvider(challenge.id)).valueOrNull;
     if (running == null) {
-      await ref.read(clockControllerProvider(challenge.id).notifier).start();
-      return;
+      return startClockWithFeedback(context, ref, challenge);
     }
-    if (!context.mounted) return;
     return showClockStopSheet(context, ref, challenge);
   }
   final messenger = ScaffoldMessenger.of(context);
@@ -276,9 +274,8 @@ class _AddProgressSheetState extends ConsumerState<_AddProgressSheet> {
     if (!mounted) return;
     if (result == null) {
       final error = ref.read(progressControllerProvider(challenge.id)).error;
-      setState(() => _error = error is PostgrestException
-          ? error.message
-          : 'Could not log that — try again.');
+      setState(() =>
+          _error = serverMessage(error, 'Could not log that — try again.'));
       return;
     }
 
@@ -346,7 +343,7 @@ class _AddProgressSheetState extends ConsumerState<_AddProgressSheet> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        "Goal's done — extra reps are bonus. They're "
+                        "Goal's done — anything extra is bonus. It's "
                         'logged towards your totals, not the goal.',
                         style: textTheme.bodySmall
                             ?.copyWith(color: AppColors.successText),
@@ -535,9 +532,8 @@ class _CorrectEntrySheetState extends ConsumerState<_CorrectEntrySheet> {
 
   void _showError() {
     final error = ref.read(progressControllerProvider(challenge.id)).error;
-    setState(() => _error = error is PostgrestException
-        ? error.message
-        : 'Could not save that — try again.');
+    setState(() =>
+        _error = serverMessage(error, 'Could not save that — try again.'));
   }
 
   @override

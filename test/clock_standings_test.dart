@@ -201,8 +201,7 @@ void main() {
       // The amount is still a time, not a minute count. The sentence is
       // a RichText (the name is bold, the verb is coloured), so the
       // finder has to be told to look inside the spans.
-      expect(
-          find.textContaining('+10h 00m', findRichText: true), findsOneWidget);
+      expect(find.textContaining('+10h', findRichText: true), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
     });

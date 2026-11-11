@@ -87,6 +87,7 @@ class HomeAgenda {
     required this.open,
     required this.done,
     required this.upcoming,
+    this.resting = const [],
   });
 
   /// Running quests whose current period still needs check-ins,
@@ -99,6 +100,11 @@ class HomeAgenda {
   /// Quests that haven't started yet.
   final List<Challenge> upcoming;
 
+  /// Running quests that take today off (a switched-off weekday). They
+  /// ask nothing today, but they exist, and Home must not tell a player
+  /// with three quests that it is time to create their first.
+  final List<Challenge> resting;
+
   /// The subset of [open] that dies on the next miss — still savable.
   List<AgendaItem> get atRisk => open.where((i) => i.isCritical).toList();
 
@@ -107,6 +113,10 @@ class HomeAgenda {
   List<AgendaItem> get doomed => open.where((i) => i.isDoomed).toList();
 
   int get totalRunning => open.length + done.length;
+
+  /// Anything at all on the player's plate: due, done, resting or ahead.
+  bool get hasAnyQuest =>
+      totalRunning > 0 || resting.isNotEmpty || upcoming.isNotEmpty;
 
   /// 0..1 for the progress ring; null when nothing is running.
   double? get completion =>
@@ -133,6 +143,7 @@ class HomeAgenda {
             ),
       ],
       upcoming: upcoming,
+      resting: resting,
     );
   }
 
@@ -145,6 +156,7 @@ class HomeAgenda {
     final open = <AgendaItem>[];
     final done = <AgendaItem>[];
     final upcoming = <Challenge>[];
+    final resting = <Challenge>[];
 
     for (final challenge in challenges) {
       // Out of the running: the quest stays reachable from the Challenges
@@ -152,11 +164,8 @@ class HomeAgenda {
       // to-do list — and there is nothing left for them to do here.
       if (challenge.amIOut) continue;
 
-      // A rest day: the quest demands nothing today and the server would
-      // refuse an entry anyway. Listing it as "open" would only nag.
-      if (!challenge.runsOn(todayDate)) continue;
-
-      // A lobby quest hasn't started — it waits in the "upcoming" list.
+      // A lobby quest hasn't started — it waits in the "upcoming" list,
+      // whatever weekday today is.
       if (challenge.isLobby) {
         upcoming.add(challenge);
         continue;
@@ -175,6 +184,14 @@ class HomeAgenda {
       }
       // Over and done with — nothing to do here.
       if (endExclusive != null && !todayDate.isBefore(endExclusive)) continue;
+
+      // A rest day: the quest demands nothing today and the server would
+      // refuse an entry anyway. Listing it as "open" would only nag, but
+      // it is still running, so it is counted as resting.
+      if (!challenge.runsOn(todayDate)) {
+        resting.add(challenge);
+        continue;
+      }
 
       final checkIns = checkInsByQuest[challenge.id] ?? const {};
       final periodLen = challenge.checkinPeriod.lengthDays;
@@ -222,6 +239,7 @@ class HomeAgenda {
       return b.challenge.auraGain.compareTo(a.challenge.auraGain);
     });
 
-    return HomeAgenda(open: open, done: done, upcoming: upcoming);
+    return HomeAgenda(
+        open: open, done: done, upcoming: upcoming, resting: resting);
   }
 }

@@ -86,8 +86,7 @@ void main() {
       expect(formatProgress(1.25, 2.5, 'Liters'), '1.25 / 2.5 Liters');
     });
 
-    test('period start is anchored to the quest start, not the calendar',
-        () {
+    test('period start is anchored to the quest start, not the calendar', () {
       final weekly = _quest(
         target: 10,
         period: CheckinPeriod.weekly,

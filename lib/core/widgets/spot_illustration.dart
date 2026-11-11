@@ -120,8 +120,8 @@ class _SpotPainter extends CustomPainter {
     for (final dx in [-g * 0.55, g * 0.55]) {
       final head = Offset(c.dx + dx, c.dy - g * 0.45);
       canvas.drawCircle(head, g * 0.42, dx < 0 ? fill : stroke);
-      final body = Rect.fromLTWH(
-          head.dx - g * 0.7, c.dy + g * 0.15, g * 1.4, g * 0.9);
+      final body =
+          Rect.fromLTWH(head.dx - g * 0.7, c.dy + g * 0.15, g * 1.4, g * 0.9);
       canvas.drawArc(body, math.pi, math.pi, false, stroke);
     }
   }
@@ -144,8 +144,8 @@ class _SpotPainter extends CustomPainter {
       ..lineTo(c.dx - g * 0.55, c.dy + g * 0.1)
       ..close();
     canvas.drawPath(cup, fill);
-    canvas.drawLine(Offset(c.dx, c.dy + g * 0.1),
-        Offset(c.dx, c.dy + g * 0.7), stroke);
+    canvas.drawLine(
+        Offset(c.dx, c.dy + g * 0.1), Offset(c.dx, c.dy + g * 0.7), stroke);
     canvas.drawLine(Offset(c.dx - g * 0.5, c.dy + g),
         Offset(c.dx + g * 0.5, c.dy + g), stroke);
   }

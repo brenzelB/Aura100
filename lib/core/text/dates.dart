@@ -99,3 +99,13 @@ String formatSpan(DateTime from, DateTime to) {
   return '${day.format(start)} ${clock.format(start)} → '
       '${day.format(end)} ${clock.format(end)}';
 }
+
+/// When the quest day turns over, in the device's own time ("01:00").
+///
+/// Quest days are shared UTC days on the server, so the reset lands at a
+/// different local hour depending on where the person is. Saying the
+/// local hour is clearer than saying "UTC".
+String formatDailyReset({DateTime? now}) {
+  final utc = (now ?? DateTime.now()).toUtc();
+  return formatTime(DateTime.utc(utc.year, utc.month, utc.day));
+}

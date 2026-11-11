@@ -44,7 +44,9 @@ void main() {
           _challenge(id: 'a', title: 'Done today'),
           _challenge(id: 'b', title: 'Still open'),
         ],
-        checkInsByQuest: {'a': _checks([15])},
+        checkInsByQuest: {
+          'a': _checks([15])
+        },
         today: _d(15),
       );
 
@@ -77,7 +79,9 @@ void main() {
         challenges: [
           _challenge(startsOn: _d(10), maxStrikes: 1, strikesUsed: 1)
         ],
-        checkInsByQuest: {'c1': _checks([11, 12, 13, 14])},
+        checkInsByQuest: {
+          'c1': _checks([11, 12, 13, 14])
+        },
         today: _d(15),
       );
 
@@ -116,7 +120,9 @@ void main() {
         challenges: [
           _challenge(startsOn: _d(10), maxStrikes: 1, strikesUsed: 0)
         ],
-        checkInsByQuest: {'c1': _checks([10, 11, 12, 13, 14])},
+        checkInsByQuest: {
+          'c1': _checks([10, 11, 12, 13, 14])
+        },
         today: _d(15),
       );
 
@@ -148,7 +154,9 @@ void main() {
             checkinsPerPeriod: 3,
           )
         ],
-        checkInsByQuest: {'c1': _checks([13, 14])},
+        checkInsByQuest: {
+          'c1': _checks([13, 14])
+        },
         today: _d(15),
       );
 
@@ -170,7 +178,9 @@ void main() {
             checkinsPerPeriod: 2,
           )
         ],
-        checkInsByQuest: {'c1': _checks([13, 14])},
+        checkInsByQuest: {
+          'c1': _checks([13, 14])
+        },
         today: _d(15),
       );
 
@@ -194,12 +204,11 @@ void main() {
           // Critical: 1 strike allowed and exactly 1 settled →
           // today decides.
           _challenge(
-              id: 'critical',
-              startsOn: _d(13),
-              maxStrikes: 1,
-              strikesUsed: 1),
+              id: 'critical', startsOn: _d(13), maxStrikes: 1, strikesUsed: 1),
         ],
-        checkInsByQuest: {'critical': _checks([13])},
+        checkInsByQuest: {
+          'critical': _checks([13])
+        },
         today: _d(15),
       );
 

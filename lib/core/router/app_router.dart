@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -42,7 +43,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: AppRoutes.splash,
-    debugLogDiagnostics: true, // handy during development; remove for release
+    // Route logs help while developing; release builds stay quiet.
+    debugLogDiagnostics: kDebugMode,
     refreshListenable: refreshNotifier,
 
     // ── Global auth guard ─────────────────────────────────────
